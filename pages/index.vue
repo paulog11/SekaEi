@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AssessmentResult } from '~/types/assessment'
 import { SAMPLE_PASSAGES } from '~/types/passages'
+import { useHistory } from '~/composables/useHistory'
 
 useHead({ title: 'SekaEi — English Pronunciation Practice' })
 
@@ -12,10 +13,23 @@ const referenceText = computed(() => {
   return SAMPLE_PASSAGES.find(p => p.id === selectedPassageId.value)?.text ?? ''
 })
 
+const selectedPassage = computed(() =>
+  customText.value.trim() ? null : SAMPLE_PASSAGES.find(p => p.id === selectedPassageId.value) ?? null
+)
+
 const audioWav = ref<Blob | null>(null)
+const videoBlob = ref<Blob | null>(null)
+const videoUrl = ref<string | null>(null)
+const playbackVideoRef = ref<HTMLVideoElement | null>(null)
 const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
+
+const { addAttempt, getByPassage } = useHistory()
+
+const passageHistory = computed(() =>
+  selectedPassage.value ? getByPassage(selectedPassage.value.id) : []
+)
 
 function friendlyError(err: unknown): string {
   const msg = (err as { data?: { message?: string } })?.data?.message ?? ''
@@ -28,8 +42,11 @@ function friendlyError(err: unknown): string {
   return msg || 'Assessment failed. Please try again.'
 }
 
-function onRecorded(wav: Blob) {
+function onRecorded(wav: Blob, vid: Blob) {
   audioWav.value = wav
+  videoBlob.value = vid
+  if (videoUrl.value) URL.revokeObjectURL(videoUrl.value)
+  videoUrl.value = URL.createObjectURL(vid)
   assessmentResult.value = null
   assessError.value = null
 }
@@ -50,6 +67,22 @@ async function assess() {
       body: form,
     })
     assessmentResult.value = data
+
+    // Save to history
+    if (selectedPassage.value) {
+      addAttempt({
+        passageId: selectedPassage.value.id,
+        passageTitle: selectedPassage.value.title,
+        timestamp: Date.now(),
+        scores: {
+          accuracy: data.PronunciationAssessment.AccuracyScore,
+          fluency: data.PronunciationAssessment.FluencyScore,
+          completeness: data.PronunciationAssessment.CompletenessScore,
+          prosody: data.PronunciationAssessment.ProsodyScore,
+          overall: data.PronunciationAssessment.PronScore,
+        },
+      })
+    }
   } catch (err: unknown) {
     assessError.value = friendlyError(err)
   } finally {
@@ -61,6 +94,20 @@ function onRecordAgain() {
   audioWav.value = null
   assessmentResult.value = null
   assessError.value = null
+}
+
+let replayTimeout: ReturnType<typeof setTimeout> | null = null
+
+function onReplay(offsetSec: number, durationSec: number) {
+  const video = playbackVideoRef.value
+  if (!video) return
+
+  if (replayTimeout !== null) clearTimeout(replayTimeout)
+  video.currentTime = offsetSec
+  video.play()
+  replayTimeout = setTimeout(() => {
+    video.pause()
+  }, (durationSec + 0.1) * 1000)
 }
 </script>
 
@@ -138,7 +185,28 @@ function onRecordAgain() {
     </section>
 
     <section v-if="assessmentResult" class="page__section">
-      <ScoreDisplay :result="assessmentResult" />
+      <!-- Hidden video for click-to-replay seeking -->
+      <video
+        v-if="videoUrl"
+        ref="playbackVideoRef"
+        :src="videoUrl"
+        class="replay-video"
+        preload="auto"
+        playsinline
+      />
+
+      <ScoreDisplay
+        :result="assessmentResult"
+        :ipa="selectedPassage?.ipa"
+        @replay="onReplay"
+      />
+
+      <PassageHistory
+        v-if="selectedPassage"
+        :passage-id="selectedPassage.id"
+        :passage-title="selectedPassage.title"
+      />
+
       <button class="btn btn--secondary" style="margin-top:1rem" @click="onRecordAgain">
         Try Again
       </button>
@@ -349,5 +417,9 @@ function onRecordAgain() {
   font-size: 0.85rem;
   color: #9ca3af;
   text-align: center;
+}
+
+.replay-video {
+  display: none;
 }
 </style>

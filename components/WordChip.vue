@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import type { AzureWord } from '~/types/assessment'
 
-const props = defineProps<{ word: AzureWord }>()
+const props = defineProps<{
+  word: AzureWord
+  ipa?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'replay', offsetSec: number, durationSec: number): void
+}>()
 
 const score = computed(() => props.word.PronunciationAssessment.AccuracyScore)
 const errorType = computed(() => props.word.PronunciationAssessment.ErrorType)
+const isOmission = computed(() => errorType.value === 'Omission')
 
 const colorClass = computed(() => {
   if (errorType.value === 'Omission') return 'chip--omission'
@@ -17,13 +25,29 @@ const colorClass = computed(() => {
 const tooltipLines = computed(() =>
   props.word.Phonemes.map(p => `${p.Phoneme}: ${Math.round(p.PronunciationAssessment.AccuracyScore)}`)
 )
+
+function handleReplay() {
+  if (isOmission.value) return
+  const offsetSec = props.word.Offset / 10_000_000
+  const durationSec = props.word.Duration / 10_000_000
+  emit('replay', offsetSec, durationSec)
+}
 </script>
 
 <template>
-  <span :class="['chip', colorClass]" :title="tooltipLines.join('\n')">
+  <span
+    :class="['chip', colorClass, { 'chip--replayable': !isOmission }]"
+    :title="tooltipLines.join('\n')"
+    :role="isOmission ? undefined : 'button'"
+    :tabindex="isOmission ? undefined : 0"
+    @click="handleReplay"
+    @keydown.enter="handleReplay"
+    @keydown.space.prevent="handleReplay"
+  >
     {{ word.Word }}
     <span class="chip__score">{{ Math.round(score) }}</span>
     <span v-if="errorType !== 'None'" class="chip__error">{{ errorType }}</span>
+    <span v-if="ipa" class="chip__ipa">{{ ipa }}</span>
     <span v-if="tooltipLines.length" class="chip__tooltip" aria-hidden="true">
       <span v-for="line in tooltipLines" :key="line" class="chip__phoneme">{{ line }}</span>
     </span>
@@ -35,6 +59,7 @@ const tooltipLines = computed(() =>
   position: relative;
   display: inline-flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 4px 8px;
   border-radius: 6px;
@@ -42,6 +67,15 @@ const tooltipLines = computed(() =>
   font-weight: 500;
   cursor: default;
   margin: 3px;
+  transition: box-shadow 0.1s;
+}
+
+.chip--replayable {
+  cursor: pointer;
+}
+
+.chip--replayable:hover {
+  box-shadow: 0 0 0 2px #2563eb55;
 }
 
 .chip--good    { background: #d1fae5; color: #065f46; }
@@ -59,6 +93,15 @@ const tooltipLines = computed(() =>
   font-size: 0.65rem;
   font-style: italic;
   opacity: 0.8;
+}
+
+.chip__ipa {
+  display: block;
+  width: 100%;
+  font-size: 0.65rem;
+  font-family: serif;
+  opacity: 0.6;
+  margin-top: 1px;
 }
 
 .chip__tooltip {

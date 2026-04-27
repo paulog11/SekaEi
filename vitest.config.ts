@@ -27,7 +27,10 @@ export default defineConfig({
         plugins: [vue()],
         test: {
           name: 'dom',
-          include: ['tests/unit/useRecorder.test.ts'],
+          include: [
+            'tests/unit/useRecorder.test.ts',
+            'tests/unit/useHistory.test.ts',
+          ],
           environment: 'happy-dom',
         },
       },
