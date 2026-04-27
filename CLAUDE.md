@@ -108,7 +108,31 @@ pnpm dev          # development server on :3000
 pnpm build        # production build
 pnpm preview      # preview production build
 pnpm typecheck    # vue-tsc strict check
+pnpm test         # run all unit tests (Vitest)
+pnpm test:watch   # watch mode
+pnpm test:coverage # coverage report
 ```
+
+---
+
+## Testing
+
+Framework: **Vitest 2.x** with two environments:
+- `node` — server files and pure JS (WAV encoder, Azure util, Nitro handler, worklet, passages)
+- `happy-dom` — Vue composables that use `ref`/`watch`
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/useWavEncoder.test.ts` | Float32→int16 clamping, downsampling, WAV header byte layout, performance smoke |
+| `tests/unit/pcmCapture.test.ts` | AudioWorklet processor logic via a hand-rolled `AudioWorkletProcessor` mock (no browser needed) |
+| `tests/unit/useRecorder.test.ts` | Recorder state machine, PCM chunk concatenation, media track teardown |
+| `tests/unit/azure.test.ts` | All Azure SDK result branches mocked (happy path, NoMatch, Canceled, SDK error, missing NBest), header stripping, config flags |
+| `tests/unit/assess.post.test.ts` | Nitro handler field validation (missing key/region, missing fields, empty text), successful proxy, Azure error → 422 |
+| `tests/unit/passages.test.ts` | Data integrity of SAMPLE_PASSAGES (non-empty fields, unique ids, content checks) |
+
+Shared fixture: `tests/fixtures/mockAssessmentResult.ts` — typed helper to build Azure NBest JSON for mocks.
+
+**Key constraint:** `composables/useRecorder.ts` must explicitly import `{ ref, watch }` from `vue` (not rely on Nuxt auto-imports) so Vitest can resolve them outside Nuxt context.
 
 ---
 

@@ -1,3 +1,4 @@
+import { ref, watch } from 'vue'
 import { useWavEncoder } from './useWavEncoder'
 
 export type RecorderState = 'idle' | 'recording' | 'stopped'
