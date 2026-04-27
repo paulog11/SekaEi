@@ -41,6 +41,12 @@ class MockAudioContext {
     addModule: vi.fn().mockResolvedValue(undefined),
   }
   createMediaStreamSource = vi.fn().mockReturnValue({ connect: vi.fn() })
+  createAnalyser = vi.fn().mockReturnValue({
+    fftSize: 512,
+    frequencyBinCount: 256,
+    getByteFrequencyData: vi.fn(),
+    connect: vi.fn(),
+  })
   close = vi.fn().mockResolvedValue(undefined)
 }
 

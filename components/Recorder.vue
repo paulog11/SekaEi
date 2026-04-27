@@ -5,20 +5,24 @@ const emit = defineEmits<{
   (e: 'recorded', audioWav: Blob, videoBlob: Blob): void
 }>()
 
-const { state, error, result, start, stop, reset } = useRecorder()
+const { state, error, result, micLevel, duration, durationWarning, start, stop, reset } = useRecorder()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const playbackRef = ref<HTMLVideoElement | null>(null)
 const playbackUrl = ref<string | null>(null)
 let currentStream: MediaStream | null = null
 
+const formattedDuration = computed(() => {
+  const m = Math.floor(duration.value / 60).toString().padStart(2, '0')
+  const s = (duration.value % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+})
+
 // Preview live camera while recording
 async function handleStart() {
   playbackUrl.value = null
   await start()
 
-  // We need the live stream for the preview — re-acquire it from the video element trick
-  // Actually getUserMedia is called inside useRecorder; we preview via a separate constraint-matched stream
   if (videoRef.value) {
     try {
       const previewStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
@@ -31,7 +35,6 @@ async function handleStart() {
 }
 
 async function handleStop() {
-  // Stop preview stream
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop())
     currentStream = null
@@ -81,6 +84,21 @@ function handleReset() {
       </div>
     </div>
 
+    <!-- Recording status bar: timer + mic level -->
+    <div v-if="state === 'recording'" class="recorder__rec-info">
+      <span :class="['recorder__timer', { 'recorder__timer--warn': durationWarning }]">
+        {{ formattedDuration }} / 01:00
+      </span>
+      <div class="mic-meter" aria-label="Microphone level">
+        <div class="mic-meter__fill" :style="{ width: `${micLevel * 100}%` }" />
+      </div>
+      <span class="mic-meter__label">Mic</span>
+    </div>
+
+    <p v-if="durationWarning && state === 'recording'" class="recorder__warn">
+      Less than 10 seconds remaining — recording will stop automatically.
+    </p>
+
     <div class="recorder__controls">
       <button v-if="state === 'idle'" class="btn btn--primary" @click="handleStart">
         Start Recording
@@ -93,9 +111,6 @@ function handleReset() {
       </button>
     </div>
 
-    <p v-if="state === 'recording'" class="recorder__status recorder__status--live">
-      Recording…
-    </p>
     <p v-if="error" class="recorder__status recorder__status--error">{{ error }}</p>
   </div>
 </template>
@@ -129,6 +144,55 @@ function handleReset() {
   font-size: 0.9rem;
 }
 
+.recorder__rec-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recorder__timer {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.recorder__timer--warn {
+  color: #b45309;
+}
+
+.mic-meter {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mic-meter__fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 4px;
+  transition: width 0.1s ease-out;
+}
+
+.mic-meter__label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.recorder__warn {
+  font-size: 0.8rem;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+}
+
 .recorder__controls {
   display: flex;
   gap: 0.75rem;
@@ -153,6 +217,5 @@ function handleReset() {
   text-align: center;
   font-size: 0.875rem;
 }
-.recorder__status--live  { color: #dc2626; font-weight: 600; }
 .recorder__status--error { color: #b91c1c; }
 </style>

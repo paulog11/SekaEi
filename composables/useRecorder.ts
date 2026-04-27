@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useWavEncoder } from './useWavEncoder'
 
 export type RecorderState = 'idle' | 'recording' | 'stopped'
@@ -8,23 +8,42 @@ export interface RecorderResult {
   audioWav: Blob
 }
 
+const MAX_DURATION_S = 60
+const WARN_DURATION_S = 50
+
 export function useRecorder() {
   const state = ref<RecorderState>('idle')
   const error = ref<string | null>(null)
   const result = ref<RecorderResult | null>(null)
+  const micLevel = ref(0)       // 0–1 RMS level, updated ~10× per second
+  const duration = ref(0)       // seconds elapsed since recording started
+  const durationWarning = ref(false) // true when ≥ WARN_DURATION_S
 
   let stream: MediaStream | null = null
   let mediaRecorder: MediaRecorder | null = null
   let audioContext: AudioContext | null = null
+  let analyser: AnalyserNode | null = null
+  let levelTimer: ReturnType<typeof setInterval> | null = null
+  let durationTimer: ReturnType<typeof setInterval> | null = null
+  let autoStopTimer: ReturnType<typeof setTimeout> | null = null
   let pcmChunks: Float32Array[] = []
   let videoChunks: Blob[] = []
   const { encodeWav } = useWavEncoder()
+
+  function clearTimers() {
+    if (levelTimer !== null) { clearInterval(levelTimer); levelTimer = null }
+    if (durationTimer !== null) { clearInterval(durationTimer); durationTimer = null }
+    if (autoStopTimer !== null) { clearTimeout(autoStopTimer); autoStopTimer = null }
+  }
 
   async function start() {
     error.value = null
     result.value = null
     pcmChunks = []
     videoChunks = []
+    duration.value = 0
+    durationWarning.value = false
+    micLevel.value = 0
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -40,26 +59,47 @@ export function useRecorder() {
     }
     mediaRecorder.start(100)
 
-    // PCM capture via AudioWorklet for Azure
+    // PCM capture via AudioWorklet for Azure + AnalyserNode for mic level
     audioContext = new AudioContext()
     const source = audioContext.createMediaStreamSource(stream)
     await audioContext.audioWorklet.addModule('/worklets/pcm-capture.js')
     const workletNode = new AudioWorkletNode(audioContext, 'pcm-capture-processor')
 
     workletNode.port.onmessage = (e: MessageEvent<{ type: string; data: Float32Array }>) => {
-      if (e.data.type === 'pcm') {
-        pcmChunks.push(e.data.data)
-      }
+      if (e.data.type === 'pcm') pcmChunks.push(e.data.data)
     }
 
+    analyser = audioContext.createAnalyser()
+    analyser.fftSize = 512
+    source.connect(analyser)
     source.connect(workletNode)
-    // Don't connect workletNode to destination — we only want to capture, not play back
+
+    const freqData = new Uint8Array(analyser.frequencyBinCount)
+    levelTimer = setInterval(() => {
+      if (!analyser) return
+      analyser.getByteFrequencyData(freqData)
+      const rms = Math.sqrt(freqData.reduce((sum, v) => sum + v * v, 0) / freqData.length)
+      micLevel.value = Math.min(rms / 128, 1)
+    }, 100)
+
+    // Duration counter + auto-stop
+    durationTimer = setInterval(() => {
+      duration.value += 1
+      if (duration.value >= WARN_DURATION_S) durationWarning.value = true
+    }, 1000)
+
+    autoStopTimer = setTimeout(() => {
+      stop()
+    }, MAX_DURATION_S * 1000)
 
     state.value = 'recording'
   }
 
   async function stop() {
     if (!stream || !mediaRecorder || !audioContext) return
+
+    clearTimers()
+    micLevel.value = 0
 
     // Stop video recorder
     await new Promise<void>((resolve) => {
@@ -70,6 +110,7 @@ export function useRecorder() {
 
     // Stop audio context
     await audioContext.close()
+    analyser = null
 
     // Stop all media tracks
     stream.getTracks().forEach(t => t.stop())
@@ -93,12 +134,16 @@ export function useRecorder() {
   }
 
   function reset() {
+    clearTimers()
     state.value = 'idle'
     result.value = null
     error.value = null
+    micLevel.value = 0
+    duration.value = 0
+    durationWarning.value = false
   }
 
-  return { state, error, result, start, stop, reset }
+  return { state, error, result, micLevel, duration, durationWarning, start, stop, reset }
 }
 
 function getSupportedMimeType(): string {

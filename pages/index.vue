@@ -17,6 +17,17 @@ const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
 
+function friendlyError(err: unknown): string {
+  const msg = (err as { data?: { message?: string } })?.data?.message ?? ''
+  if (msg.includes('No speech recognized') || msg.includes('NoMatch'))
+    return 'No speech was detected. Make sure your microphone is working and try again.'
+  if (msg.includes('Permission denied') || msg.includes('permission'))
+    return 'Microphone access was denied. Check your browser permissions and try again.'
+  if (msg.includes('Network') || msg.includes('fetch'))
+    return 'Network error — check your connection and try again.'
+  return msg || 'Assessment failed. Please try again.'
+}
+
 function onRecorded(wav: Blob) {
   audioWav.value = wav
   assessmentResult.value = null
@@ -40,7 +51,7 @@ async function assess() {
     })
     assessmentResult.value = data
   } catch (err: unknown) {
-    assessError.value = (err as { data?: { message?: string } })?.data?.message ?? 'Assessment failed. Please try again.'
+    assessError.value = friendlyError(err)
   } finally {
     assessing.value = false
   }
@@ -103,14 +114,27 @@ function onRecordAgain() {
 
     <section v-if="audioWav && !assessmentResult" class="page__section">
       <h2 class="section-title">3. Analyse pronunciation</h2>
-      <button
-        class="btn btn--primary btn--large"
-        :disabled="assessing"
-        @click="assess"
-      >
-        {{ assessing ? 'Analysing…' : 'Check My Pronunciation' }}
-      </button>
-      <p v-if="assessError" class="error-msg">{{ assessError }}</p>
+
+      <!-- Skeleton loader while assessing -->
+      <div v-if="assessing" class="skeleton-wrap" aria-busy="true" aria-label="Analysing your recording…">
+        <div class="skeleton skeleton--scores" />
+        <div class="skeleton skeleton--words" />
+        <p class="skeleton__label">Analysing your recording…</p>
+      </div>
+
+      <template v-else>
+        <button
+          class="btn btn--primary btn--large"
+          @click="assess"
+        >
+          Check My Pronunciation
+        </button>
+
+        <div v-if="assessError" class="error-card">
+          <p class="error-card__msg">{{ assessError }}</p>
+          <button class="btn btn--secondary btn--sm" @click="assess">Try again</button>
+        </div>
+      </template>
     </section>
 
     <section v-if="assessmentResult" class="page__section">
@@ -270,9 +294,60 @@ function onRecordAgain() {
   border: 0;
 }
 
-.error-msg {
-  margin-top: 0.75rem;
-  color: #b91c1c;
+.error-card {
+  margin-top: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.error-card__msg {
+  flex: 1;
+  color: #991b1b;
   font-size: 0.875rem;
+  margin: 0;
+}
+
+.btn--sm {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.skeleton--scores {
+  height: 80px;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton--words {
+  height: 48px;
+}
+
+.skeleton-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton__label {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  text-align: center;
 }
 </style>
