@@ -21,6 +21,9 @@ export default defineEventHandler(async (event) => {
   if (!audioPart?.data) {
     throw createError({ statusCode: 400, message: 'Missing audio field.' })
   }
+  if (audioPart.data.length > 4 * 1024 * 1024) {
+    throw createError({ statusCode: 413, message: 'Audio file too large (max 4 MB).' })
+  }
   if (!textPart?.data) {
     throw createError({ statusCode: 400, message: 'Missing referenceText field.' })
   }
@@ -28,6 +31,9 @@ export default defineEventHandler(async (event) => {
   const referenceText = textPart.data.toString('utf-8').trim()
   if (!referenceText) {
     throw createError({ statusCode: 400, message: 'referenceText must not be empty.' })
+  }
+  if (referenceText.length > 2000) {
+    throw createError({ statusCode: 400, message: 'referenceText too long (max 2000 characters).' })
   }
 
   try {

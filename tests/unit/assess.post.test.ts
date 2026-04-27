@@ -105,6 +105,14 @@ describe('assess.post — multipart validation', () => {
     })
   })
 
+  it('throws 413 when audio exceeds 4 MB', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: Buffer.alloc(4 * 1024 * 1024 + 1) },
+      { name: 'referenceText', data: Buffer.from('Hello world') },
+    ])
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 413 })
+  })
+
   it('throws 400 when referenceText field is missing', async () => {
     mockReadMultipart.mockResolvedValue(makeMultipartParts({ referenceText: null }))
     await expect(handler(makeEvent())).rejects.toMatchObject({
@@ -119,6 +127,11 @@ describe('assess.post — multipart validation', () => {
       statusCode: 400,
       message: 'referenceText must not be empty.',
     })
+  })
+
+  it('throws 400 when referenceText exceeds 2000 characters', async () => {
+    mockReadMultipart.mockResolvedValue(makeMultipartParts({ referenceText: 'a'.repeat(2001) }))
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 400 })
   })
 
   it('throws 400 when referenceText is empty string', async () => {
