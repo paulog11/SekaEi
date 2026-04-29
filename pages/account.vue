@@ -18,10 +18,17 @@ function switchTab(tab: 'signin' | 'signup') {
 
 const { getHistory } = useHistory()
 
+const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
+const historyLoading = ref(true)
+
+onMounted(async () => {
+  history.value = await getHistory()
+  historyLoading.value = false
+})
+
 const masteryRows = computed(() => {
-  const history = getHistory()
-  const seen = new Map<string, { passageId: string; passageTitle: string; attempts: typeof history }>()
-  for (const record of history) {
+  const seen = new Map<string, { passageId: string; passageTitle: string; attempts: import('~/composables/useHistory').AttemptRecord[] }>()
+  for (const record of history.value) {
     if (!seen.has(record.passageId)) {
       seen.set(record.passageId, { passageId: record.passageId, passageTitle: record.passageTitle, attempts: [] })
     }
@@ -33,9 +40,10 @@ const masteryRows = computed(() => {
 
 <template>
   <main class="page">
-    <section v-if="masteryRows.length" class="mastery-section">
+    <section v-if="historyLoading || masteryRows.length" class="mastery-section">
       <h2 class="mastery-title">Passage Mastery</h2>
-      <div class="mastery-list">
+      <p v-if="historyLoading" class="mastery-loading">Loading…</p>
+      <div v-if="!historyLoading" class="mastery-list">
         <div v-for="row in masteryRows" :key="row.passageId" class="mastery-row">
           <span class="mastery-row__title">{{ row.passageTitle }}</span>
           <div class="mastery-row__right">
@@ -124,6 +132,12 @@ const masteryRows = computed(() => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.75rem;
+}
+
+.mastery-loading {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .mastery-list {

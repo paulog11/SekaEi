@@ -27,12 +27,17 @@ const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
 
-const { addAttempt, getByPassage, getHistory } = useHistory()
+const { addAttempt, getHistory } = useHistory()
 
-const passageHistory = computed(() => getByPassage(activePassageId.value))
+// Per-passage star ratings loaded once on mount
+const allHistory = ref<import('~/composables/useHistory').AttemptRecord[]>([])
+
+onMounted(async () => {
+  allHistory.value = await getHistory()
+})
 
 function starsForPassage(passageId: string) {
-  return passageStars(getHistory().filter(r => r.passageId === passageId))
+  return passageStars(allHistory.value.filter(r => r.passageId === passageId))
 }
 
 function friendlyError(err: unknown): string {
@@ -70,7 +75,7 @@ async function assess() {
     assessmentResult.value = data
 
     // Save to history (built-in passages and custom text alike)
-    addAttempt({
+    await addAttempt({
       passageId: activePassageId.value,
       passageTitle: selectedPassage.value?.title ?? customText.value.trim().slice(0, 40),
       timestamp: Date.now(),
@@ -82,6 +87,8 @@ async function assess() {
         overall: data.PronunciationAssessment.PronScore,
       },
     })
+    // Refresh star ratings after saving
+    allHistory.value = await getHistory()
   } catch (err: unknown) {
     assessError.value = friendlyError(err)
   } finally {

@@ -8,6 +8,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     azureSpeechKey: '',
     azureSpeechRegion: '',
+    supabaseUrl: '',
+    supabaseServiceKey: '',
   },
   nitro: {
     experimental: {

@@ -1,3 +1,12 @@
+<script setup lang="ts">
+import { useApi } from '~/composables/useApi'
+
+const { apiFetch } = useApi()
+onMounted(() => {
+  apiFetch('/api/me').catch(() => {})
+})
+</script>
+
 <template>
   <header class="site-nav">
     <div class="site-nav__inner">

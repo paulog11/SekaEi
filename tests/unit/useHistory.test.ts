@@ -1,16 +1,25 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useHistory } from '~/composables/useHistory'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// ---------------------------------------------------------------------------
+// Mock useApi so tests don't need a real browser or server
+// ---------------------------------------------------------------------------
+
+const mockApiFetch = vi.fn()
+
+vi.mock('~/composables/useApi', () => ({
+  useApi: () => ({ apiFetch: mockApiFetch, getDeviceId: () => 'test-device-id' }),
+}))
+
+// ---------------------------------------------------------------------------
+// Import after mocks are set up
+// ---------------------------------------------------------------------------
+
+const { useHistory, _cache } = await import('~/composables/useHistory')
 import type { AttemptRecord } from '~/composables/useHistory'
 
-// localStorage is not available in the node environment — provide a minimal in-memory stub
-const store: Record<string, string> = {}
-const localStorageMock = {
-  getItem: (k: string) => store[k] ?? null,
-  setItem: (k: string, v: string) => { store[k] = v },
-  removeItem: (k: string) => { delete store[k] },
-  clear: () => { Object.keys(store).forEach(k => delete store[k]) },
-}
-vi.stubGlobal('localStorage', localStorageMock)
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function makeAttempt(overrides?: Partial<AttemptRecord>): AttemptRecord {
   return {
@@ -22,84 +31,79 @@ function makeAttempt(overrides?: Partial<AttemptRecord>): AttemptRecord {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 beforeEach(() => {
-  localStorage.clear()
+  vi.clearAllMocks()
+  _cache.all = null
+  _cache.passageId = null
+  _cache.passageData = null
 })
 
-describe('useHistory — addAttempt / getHistory', () => {
-  it('starts with an empty history', () => {
+describe('useHistory — getHistory', () => {
+  it('returns empty array when API returns empty', async () => {
+    mockApiFetch.mockResolvedValue({ attempts: [] })
     const { getHistory } = useHistory()
-    expect(getHistory()).toEqual([])
+    expect(await getHistory()).toEqual([])
   })
 
-  it('stores a single attempt', () => {
-    const { addAttempt, getHistory } = useHistory()
+  it('returns attempts from API', async () => {
     const attempt = makeAttempt()
-    addAttempt(attempt)
-    expect(getHistory()).toHaveLength(1)
-    expect(getHistory()[0]).toMatchObject({ passageId: 'interstellar' })
+    mockApiFetch.mockResolvedValue({ attempts: [attempt] })
+    const { getHistory } = useHistory()
+    expect(await getHistory()).toHaveLength(1)
+    expect((await getHistory())[0]).toMatchObject({ passageId: 'interstellar' })
   })
 
-  it('prepends new attempts (most recent first)', () => {
-    const { addAttempt, getHistory } = useHistory()
-    addAttempt(makeAttempt({ timestamp: 1000 }))
-    addAttempt(makeAttempt({ timestamp: 2000 }))
-    const history = getHistory()
-    expect(history[0].timestamp).toBe(2000)
-    expect(history[1].timestamp).toBe(1000)
+  it('returns empty array when API throws', async () => {
+    mockApiFetch.mockRejectedValue(new Error('Network error'))
+    const { getHistory } = useHistory()
+    expect(await getHistory()).toEqual([])
+  })
+})
+
+describe('useHistory — addAttempt', () => {
+  it('calls API with correct payload', async () => {
+    mockApiFetch.mockResolvedValue({})
+    const { addAttempt } = useHistory()
+    const attempt = makeAttempt()
+    await addAttempt(attempt)
+
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/attempts', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ passageId: 'interstellar' }),
+    }))
   })
 
-  it('caps history at 50 entries', () => {
-    const { addAttempt, getHistory } = useHistory()
-    for (let i = 0; i < 55; i++) {
-      addAttempt(makeAttempt({ timestamp: i }))
-    }
-    expect(getHistory()).toHaveLength(50)
-  })
-
-  it('drops the oldest entries when capped', () => {
-    const { addAttempt, getHistory } = useHistory()
-    for (let i = 0; i < 51; i++) {
-      addAttempt(makeAttempt({ timestamp: i }))
-    }
-    const history = getHistory()
-    // Oldest (timestamp=0) should be gone; newest (timestamp=50) should be first
-    expect(history[0].timestamp).toBe(50)
-    expect(history.some(r => r.timestamp === 0)).toBe(false)
+  it('does not throw when API fails', async () => {
+    mockApiFetch.mockRejectedValue(new Error('Server down'))
+    const { addAttempt } = useHistory()
+    await expect(addAttempt(makeAttempt())).resolves.not.toThrow()
   })
 })
 
 describe('useHistory — getByPassage', () => {
-  it('returns only attempts for the given passageId', () => {
-    const { addAttempt, getByPassage } = useHistory()
-    addAttempt(makeAttempt({ passageId: 'interstellar' }))
-    addAttempt(makeAttempt({ passageId: 'rocky-balboa' }))
-    addAttempt(makeAttempt({ passageId: 'interstellar' }))
-    expect(getByPassage('interstellar')).toHaveLength(2)
-    expect(getByPassage('rocky-balboa')).toHaveLength(1)
-    expect(getByPassage('great-dictator')).toHaveLength(0)
-  })
-})
-
-describe('useHistory — corrupt storage tolerance', () => {
-  it('returns empty array when localStorage contains invalid JSON', () => {
-    localStorage.setItem('sekaei.history.v1', 'not-valid-json{{')
-    const { getHistory } = useHistory()
-    expect(getHistory()).toEqual([])
+  it('fetches with passageId query param', async () => {
+    mockApiFetch.mockResolvedValue({ attempts: [] })
+    const { getByPassage } = useHistory()
+    await getByPassage('interstellar')
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/attempts?passageId=interstellar')
   })
 
-  it('returns empty array when localStorage contains a non-array', () => {
-    localStorage.setItem('sekaei.history.v1', JSON.stringify({ not: 'an array' }))
-    const { getHistory } = useHistory()
-    expect(getHistory()).toEqual([])
+  it('returns only attempts for the given passage', async () => {
+    const attempt = makeAttempt({ passageId: 'interstellar' })
+    mockApiFetch.mockResolvedValue({ attempts: [attempt] })
+    const { getByPassage } = useHistory()
+    const result = await getByPassage('interstellar')
+    expect(result).toHaveLength(1)
+    expect(result[0].passageId).toBe('interstellar')
   })
 
-  it('silently skips write when localStorage throws (e.g. quota)', () => {
-    const orig = localStorageMock.setItem
-    localStorageMock.setItem = () => { throw new Error('QuotaExceededError') }
-    const { addAttempt, getHistory } = useHistory()
-    expect(() => addAttempt(makeAttempt())).not.toThrow()
-    localStorageMock.setItem = orig
-    expect(getHistory()).toEqual([])
+  it('returns empty array when API throws', async () => {
+    mockApiFetch.mockRejectedValue(new Error('Network error'))
+    const { getByPassage } = useHistory()
+    expect(await getByPassage('interstellar')).toEqual([])
   })
 })

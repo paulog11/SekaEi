@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useHistory } from '~/composables/useHistory'
 import { passageStars } from '~/composables/useProgress'
+import type { AttemptRecord } from '~/composables/useHistory'
 
 const props = defineProps<{
   passageId: string
@@ -9,7 +10,14 @@ const props = defineProps<{
 
 const { getByPassage } = useHistory()
 
-const attempts = computed(() => getByPassage(props.passageId))
+const attempts = ref<AttemptRecord[]>([])
+
+async function load() {
+  attempts.value = await getByPassage(props.passageId)
+}
+
+watch(() => props.passageId, load, { immediate: true })
+
 const recentScores = computed(() => attempts.value.slice(0, 10).map(a => a.scores.overall).reverse())
 const stars = computed(() => passageStars(attempts.value))
 
