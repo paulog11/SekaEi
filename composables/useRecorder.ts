@@ -4,7 +4,6 @@ import { useWavEncoder } from './useWavEncoder'
 export type RecorderState = 'idle' | 'recording' | 'stopped'
 
 export interface RecorderResult {
-  videoBlob: Blob
   audioWav: Blob
 }
 
@@ -15,19 +14,17 @@ export function useRecorder() {
   const state = ref<RecorderState>('idle')
   const error = ref<string | null>(null)
   const result = ref<RecorderResult | null>(null)
-  const micLevel = ref(0)       // 0–1 RMS level, updated ~10× per second
-  const duration = ref(0)       // seconds elapsed since recording started
-  const durationWarning = ref(false) // true when ≥ WARN_DURATION_S
+  const micLevel = ref(0)
+  const duration = ref(0)
+  const durationWarning = ref(false)
 
   let stream: MediaStream | null = null
-  let mediaRecorder: MediaRecorder | null = null
   let audioContext: AudioContext | null = null
   let analyser: AnalyserNode | null = null
   let levelTimer: ReturnType<typeof setInterval> | null = null
   let durationTimer: ReturnType<typeof setInterval> | null = null
   let autoStopTimer: ReturnType<typeof setTimeout> | null = null
   let pcmChunks: Float32Array[] = []
-  let videoChunks: Blob[] = []
   const { encodeWav } = useWavEncoder()
 
   function clearTimers() {
@@ -40,26 +37,17 @@ export function useRecorder() {
     error.value = null
     result.value = null
     pcmChunks = []
-    videoChunks = []
     duration.value = 0
     durationWarning.value = false
     micLevel.value = 0
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    } catch (e) {
-      error.value = 'Camera/microphone permission denied.'
+      stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+    } catch {
+      error.value = 'Microphone permission denied.'
       return
     }
 
-    // Video recording (webm) for local playback
-    mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMimeType() })
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) videoChunks.push(e.data)
-    }
-    mediaRecorder.start(100)
-
-    // PCM capture via AudioWorklet for Azure + AnalyserNode for mic level
     audioContext = new AudioContext()
     const source = audioContext.createMediaStreamSource(stream)
     await audioContext.audioWorklet.addModule('/worklets/pcm-capture.js')
@@ -82,7 +70,6 @@ export function useRecorder() {
       micLevel.value = Math.min(rms / 128, 1)
     }, 100)
 
-    // Duration counter + auto-stop
     durationTimer = setInterval(() => {
       duration.value += 1
       if (duration.value >= WARN_DURATION_S) durationWarning.value = true
@@ -96,26 +83,16 @@ export function useRecorder() {
   }
 
   async function stop() {
-    if (!stream || !mediaRecorder || !audioContext) return
+    if (!stream || !audioContext) return
 
     clearTimers()
     micLevel.value = 0
 
-    // Stop video recorder
-    await new Promise<void>((resolve) => {
-      if (!mediaRecorder) return resolve()
-      mediaRecorder.onstop = () => resolve()
-      mediaRecorder.stop()
-    })
-
-    // Stop audio context
     await audioContext.close()
     analyser = null
 
-    // Stop all media tracks
     stream.getTracks().forEach(t => t.stop())
 
-    const videoBlob = new Blob(videoChunks, { type: mediaRecorder.mimeType })
     const totalLength = pcmChunks.reduce((sum, c) => sum + c.length, 0)
     const allPcm = new Float32Array(totalLength)
     let offset = 0
@@ -125,11 +102,10 @@ export function useRecorder() {
     }
 
     const audioWav = encodeWav(allPcm, audioContext.sampleRate)
-    result.value = { videoBlob, audioWav }
+    result.value = { audioWav }
     state.value = 'stopped'
 
     stream = null
-    mediaRecorder = null
     audioContext = null
   }
 
@@ -144,9 +120,4 @@ export function useRecorder() {
   }
 
   return { state, error, result, micLevel, duration, durationWarning, start, stop, reset }
-}
-
-function getSupportedMimeType(): string {
-  const candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
-  return candidates.find(m => MediaRecorder.isTypeSupported(m)) ?? ''
 }

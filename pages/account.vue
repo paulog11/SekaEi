@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useHistory } from '~/composables/useHistory'
+import { passageStars } from '~/composables/useProgress'
+
 useHead({ title: 'Account — SekaEi' })
 
 const activeTab = ref<'signin' | 'signup'>('signin')
@@ -12,10 +15,39 @@ function switchTab(tab: 'signin' | 'signup') {
   activeTab.value = tab
   submitted.value = false
 }
+
+const { getHistory } = useHistory()
+
+const masteryRows = computed(() => {
+  const history = getHistory()
+  const seen = new Map<string, { passageId: string; passageTitle: string; attempts: typeof history }>()
+  for (const record of history) {
+    if (!seen.has(record.passageId)) {
+      seen.set(record.passageId, { passageId: record.passageId, passageTitle: record.passageTitle, attempts: [] })
+    }
+    seen.get(record.passageId)!.attempts.push(record)
+  }
+  return [...seen.values()].sort((a, b) => passageStars(b.attempts) - passageStars(a.attempts))
+})
 </script>
 
 <template>
   <main class="page">
+    <section v-if="masteryRows.length" class="mastery-section">
+      <h2 class="mastery-title">Passage Mastery</h2>
+      <div class="mastery-list">
+        <div v-for="row in masteryRows" :key="row.passageId" class="mastery-row">
+          <span class="mastery-row__title">{{ row.passageTitle }}</span>
+          <div class="mastery-row__right">
+            <span class="mastery-row__count">{{ row.attempts.length }} attempt{{ row.attempts.length !== 1 ? 's' : '' }}</span>
+            <span class="star-row" :aria-label="`${passageStars(row.attempts)} out of 3 stars`">
+              <span v-for="n in 3" :key="n" :class="['star', { 'star--lit': passageStars(row.attempts) >= n }]">★</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="card">
       <div class="tabs">
         <button
@@ -77,13 +109,81 @@ function switchTab(tab: 'signin' | 'signup') {
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.mastery-section {
+  width: 100%;
+  max-width: 420px;
+}
+
+.mastery-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.mastery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mastery-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+}
+
+.mastery-row__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.75rem;
+}
+
+.mastery-row__right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.mastery-row__count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.star-row {
+  display: flex;
+  gap: 1px;
+}
+
+.star {
+  font-size: 0.9rem;
+  color: #d1d5db;
+}
+
+.star--lit {
+  color: #f59e0b;
 }
 
 .card {
   width: 100%;
   max-width: 420px;
-  margin-top: 2rem;
+  margin-top: 0;
   background: #fff;
   border: 2px solid #e5e7eb;
   border-radius: 10px;

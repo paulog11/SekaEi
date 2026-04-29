@@ -2,6 +2,7 @@
 import type { AssessmentResult } from '~/types/assessment'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 import { useHistory } from '~/composables/useHistory'
+import { passageStars, customPassageId } from '~/composables/useProgress'
 
 useHead({ title: 'SekaEi — English Pronunciation Practice' })
 
@@ -17,19 +18,22 @@ const selectedPassage = computed(() =>
   customText.value.trim() ? null : SAMPLE_PASSAGES.find(p => p.id === selectedPassageId.value) ?? null
 )
 
+const activePassageId = computed(() =>
+  selectedPassage.value ? selectedPassage.value.id : customPassageId(customText.value)
+)
+
 const audioWav = ref<Blob | null>(null)
-const videoBlob = ref<Blob | null>(null)
-const videoUrl = ref<string | null>(null)
-const playbackVideoRef = ref<HTMLVideoElement | null>(null)
 const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
 
-const { addAttempt, getByPassage } = useHistory()
+const { addAttempt, getByPassage, getHistory } = useHistory()
 
-const passageHistory = computed(() =>
-  selectedPassage.value ? getByPassage(selectedPassage.value.id) : []
-)
+const passageHistory = computed(() => getByPassage(activePassageId.value))
+
+function starsForPassage(passageId: string) {
+  return passageStars(getHistory().filter(r => r.passageId === passageId))
+}
 
 function friendlyError(err: unknown): string {
   const msg = (err as { data?: { message?: string } })?.data?.message ?? ''
@@ -42,11 +46,8 @@ function friendlyError(err: unknown): string {
   return msg || 'Assessment failed. Please try again.'
 }
 
-function onRecorded(wav: Blob, vid: Blob) {
+function onRecorded(wav: Blob) {
   audioWav.value = wav
-  videoBlob.value = vid
-  if (videoUrl.value) URL.revokeObjectURL(videoUrl.value)
-  videoUrl.value = URL.createObjectURL(vid)
   assessmentResult.value = null
   assessError.value = null
 }
@@ -68,21 +69,19 @@ async function assess() {
     })
     assessmentResult.value = data
 
-    // Save to history
-    if (selectedPassage.value) {
-      addAttempt({
-        passageId: selectedPassage.value.id,
-        passageTitle: selectedPassage.value.title,
-        timestamp: Date.now(),
-        scores: {
-          accuracy: data.PronunciationAssessment.AccuracyScore,
-          fluency: data.PronunciationAssessment.FluencyScore,
-          completeness: data.PronunciationAssessment.CompletenessScore,
-          prosody: data.PronunciationAssessment.ProsodyScore,
-          overall: data.PronunciationAssessment.PronScore,
-        },
-      })
-    }
+    // Save to history (built-in passages and custom text alike)
+    addAttempt({
+      passageId: activePassageId.value,
+      passageTitle: selectedPassage.value?.title ?? customText.value.trim().slice(0, 40),
+      timestamp: Date.now(),
+      scores: {
+        accuracy: data.PronunciationAssessment.AccuracyScore,
+        fluency: data.PronunciationAssessment.FluencyScore,
+        completeness: data.PronunciationAssessment.CompletenessScore,
+        prosody: data.PronunciationAssessment.ProsodyScore,
+        overall: data.PronunciationAssessment.PronScore,
+      },
+    })
   } catch (err: unknown) {
     assessError.value = friendlyError(err)
   } finally {
@@ -96,19 +95,6 @@ function onRecordAgain() {
   assessError.value = null
 }
 
-let replayTimeout: ReturnType<typeof setTimeout> | null = null
-
-function onReplay(offsetSec: number, durationSec: number) {
-  const video = playbackVideoRef.value
-  if (!video) return
-
-  if (replayTimeout !== null) clearTimeout(replayTimeout)
-  video.currentTime = offsetSec
-  video.play()
-  replayTimeout = setTimeout(() => {
-    video.pause()
-  }, (durationSec + 0.1) * 1000)
-}
 </script>
 
 <template>
@@ -134,7 +120,12 @@ function onReplay(offsetSec: number, durationSec: number) {
             class="sr-only"
             @change="customText = ''"
           >
-          <strong>{{ passage.title }}</strong>
+          <div class="passage-card__head">
+            <strong>{{ passage.title }}</strong>
+            <span class="star-row" aria-label="`${starsForPassage(passage.id)} stars`">
+              <span v-for="n in 3" :key="n" :class="['star', { 'star--lit': starsForPassage(passage.id) >= n }]">★</span>
+            </span>
+          </div>
           <span class="passage-card__source">{{ passage.source }}</span>
           <p class="passage-card__text">{{ passage.text }}</p>
         </label>
@@ -185,26 +176,14 @@ function onReplay(offsetSec: number, durationSec: number) {
     </section>
 
     <section v-if="assessmentResult" class="page__section">
-      <!-- Hidden video for click-to-replay seeking -->
-      <video
-        v-if="videoUrl"
-        ref="playbackVideoRef"
-        :src="videoUrl"
-        class="replay-video"
-        preload="auto"
-        playsinline
-      />
-
       <ScoreDisplay
         :result="assessmentResult"
         :ipa="selectedPassage?.ipa"
-        @replay="onReplay"
       />
 
       <PassageHistory
-        v-if="selectedPassage"
-        :passage-id="selectedPassage.id"
-        :passage-title="selectedPassage.title"
+        :passage-id="activePassageId"
+        :passage-title="selectedPassage?.title ?? customText.trim().slice(0, 40)"
       />
 
       <button class="btn btn--secondary" style="margin-top:1rem" @click="onRecordAgain">
@@ -268,6 +247,27 @@ function onReplay(offsetSec: number, durationSec: number) {
 
 .passage-card:hover { border-color: #93c5fd; }
 .passage-card--active { border-color: #2563eb; background: #eff6ff; }
+
+.passage-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.star-row {
+  display: flex;
+  gap: 1px;
+}
+
+.star {
+  font-size: 0.9rem;
+  color: #d1d5db;
+  transition: color 0.15s;
+}
+
+.star--lit {
+  color: #f59e0b;
+}
 
 .passage-card__source {
   font-size: 0.75rem;
@@ -416,9 +416,5 @@ function onReplay(offsetSec: number, durationSec: number) {
   font-size: 0.85rem;
   color: #9ca3af;
   text-align: center;
-}
-
-.replay-video {
-  display: none;
 }
 </style>

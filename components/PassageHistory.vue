@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useHistory } from '~/composables/useHistory'
+import { passageStars } from '~/composables/useProgress'
 
 const props = defineProps<{
   passageId: string
@@ -10,6 +11,7 @@ const { getByPassage } = useHistory()
 
 const attempts = computed(() => getByPassage(props.passageId))
 const recentScores = computed(() => attempts.value.slice(0, 10).map(a => a.scores.overall).reverse())
+const stars = computed(() => passageStars(attempts.value))
 
 const best = computed(() => recentScores.value.length ? Math.max(...recentScores.value) : 0)
 const avg = computed(() =>
@@ -39,12 +41,16 @@ const sparkPath = computed(() => {
 </script>
 
 <template>
-  <div v-if="recentScores.length >= 2" class="passage-history">
+  <div v-if="recentScores.length >= 1" class="passage-history">
     <div class="passage-history__header">
       <span class="passage-history__title">Your progress — {{ passageTitle }}</span>
       <span class="passage-history__count">{{ attempts.length }} attempt{{ attempts.length !== 1 ? 's' : '' }}</span>
     </div>
-    <div class="passage-history__body">
+    <div class="passage-history__stars" :aria-label="`${stars} out of 3 stars`">
+      <span v-for="n in 3" :key="n" :class="['star', { 'star--lit': stars >= n }]">★</span>
+      <span class="stars__label">{{ ['–', '60+', '80+', '90+'][stars] }}</span>
+    </div>
+    <div v-if="recentScores.length >= 2" class="passage-history__body">
       <svg class="sparkline" viewBox="0 0 80 30" aria-hidden="true">
         <path :d="sparkPath" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
@@ -87,6 +93,29 @@ const sparkPath = computed(() => {
 .passage-history__count {
   font-size: 0.75rem;
   color: #9ca3af;
+}
+
+.passage-history__stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.star {
+  font-size: 1rem;
+  color: #d1d5db;
+  transition: color 0.15s;
+}
+
+.star--lit {
+  color: #f59e0b;
+}
+
+.stars__label {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  margin-left: 4px;
 }
 
 .passage-history__body {

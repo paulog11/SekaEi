@@ -127,7 +127,7 @@ function diffWordClass(errorType: string): string {
     </div>
 
     <p class="score-display__hint">
-      <template v-if="!showDiff">Click a word to replay that moment. Hover for phoneme scores.</template>
+      <template v-if="!showDiff">Hover a word for phoneme scores.</template>
       <template v-else>Reference is what you should have said. Recognized is what Azure heard.</template>
     </p>
   </section>

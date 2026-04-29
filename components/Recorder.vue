@@ -2,15 +2,11 @@
 import { useRecorder } from '~/composables/useRecorder'
 
 const emit = defineEmits<{
-  (e: 'recorded', audioWav: Blob, videoBlob: Blob): void
+  (e: 'recorded', audioWav: Blob): void
+  (e: 'reset'): void
 }>()
 
 const { state, error, result, micLevel, duration, durationWarning, start, stop, reset } = useRecorder()
-
-const videoRef = ref<HTMLVideoElement | null>(null)
-const playbackRef = ref<HTMLVideoElement | null>(null)
-const playbackUrl = ref<string | null>(null)
-let currentStream: MediaStream | null = null
 
 const formattedDuration = computed(() => {
   const m = Math.floor(duration.value / 60).toString().padStart(2, '0')
@@ -18,73 +14,20 @@ const formattedDuration = computed(() => {
   return `${m}:${s}`
 })
 
-// Preview live camera while recording
-async function handleStart() {
-  playbackUrl.value = null
-  await start()
-
-  if (videoRef.value) {
-    try {
-      const previewStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      videoRef.value.srcObject = previewStream
-      currentStream = previewStream
-    } catch {
-      // Preview optional; ignore if denied
-    }
-  }
-}
-
-async function handleStop() {
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop())
-    currentStream = null
-  }
-  if (videoRef.value) videoRef.value.srcObject = null
-
-  await stop()
-}
-
 watch(result, (r) => {
   if (!r) return
-  playbackUrl.value = URL.createObjectURL(r.videoBlob)
-  emit('recorded', r.audioWav, r.videoBlob)
+  emit('recorded', r.audioWav)
 })
 
 function handleReset() {
-  if (playbackUrl.value) {
-    URL.revokeObjectURL(playbackUrl.value)
-    playbackUrl.value = null
-  }
   reset()
+  emit('reset')
 }
 </script>
 
 <template>
   <div class="recorder">
-    <!-- Live preview while recording -->
-    <div class="recorder__video-wrap">
-      <video
-        v-show="state === 'recording'"
-        ref="videoRef"
-        class="recorder__video"
-        autoplay
-        muted
-        playsinline
-      />
-      <video
-        v-show="state === 'stopped' && playbackUrl"
-        ref="playbackRef"
-        class="recorder__video"
-        :src="playbackUrl ?? undefined"
-        controls
-        playsinline
-      />
-      <div v-if="state === 'idle'" class="recorder__placeholder">
-        <span>Camera preview will appear here</span>
-      </div>
-    </div>
-
-    <!-- Recording status bar: timer + mic level -->
+    <!-- Mic level visualiser -->
     <div v-if="state === 'recording'" class="recorder__rec-info">
       <span :class="['recorder__timer', { 'recorder__timer--warn': durationWarning }]">
         {{ formattedDuration }} / 01:00
@@ -100,10 +43,10 @@ function handleReset() {
     </p>
 
     <div class="recorder__controls">
-      <button v-if="state === 'idle'" class="btn btn--primary" @click="handleStart">
+      <button v-if="state === 'idle'" class="btn btn--primary" @click="start">
         Start Recording
       </button>
-      <button v-if="state === 'recording'" class="btn btn--danger" @click="handleStop">
+      <button v-if="state === 'recording'" class="btn btn--danger" @click="stop">
         Stop Recording
       </button>
       <button v-if="state === 'stopped'" class="btn btn--secondary" @click="handleReset">
@@ -120,28 +63,6 @@ function handleReset() {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.recorder__video-wrap {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #111827;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.recorder__video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.recorder__placeholder {
-  color: #6b7280;
-  font-size: 0.9rem;
 }
 
 .recorder__rec-info {
