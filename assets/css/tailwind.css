@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply bg-white text-ink font-sans antialiased;
+    margin: 0;
+  }
+}
+
+@layer components {
+  /* Layout */
+  .container-page {
+    @apply max-w-page mx-auto px-5 pt-8 pb-16;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg
+           px-5 py-2.5 text-sm font-semibold leading-none
+           transition-opacity duration-150 cursor-pointer
+           min-h-[44px]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn:hover:not(:disabled) {
+    @apply opacity-85;
+  }
+  .btn-primary   { @apply btn bg-primary text-white border-none; }
+  .btn-secondary { @apply btn bg-border text-ink-medium border-none; }
+  .btn-danger    { @apply btn bg-danger text-white border-none; }
+  .btn-large     { @apply !px-8 !py-3 !text-base; }
+  .btn-sm        { @apply !px-3.5 !py-1.5 !text-xs !min-h-0; }
+
+  /* Surfaces */
+  .card {
+    @apply bg-white border-2 border-border rounded-xl p-6;
+  }
+  .card-soft {
+    @apply bg-surface border border-border rounded-xl p-4;
+  }
+
+  /* Form fields */
+  .field-label { @apply text-sm font-medium text-ink-medium; }
+  .field-input {
+    @apply w-full border-2 border-border rounded-lg
+           px-3.5 py-2.5 text-sm font-sans
+           outline-none transition-colors duration-150;
+  }
+  .field-input:focus {
+    @apply border-primary;
+  }
+
+  /* Stars */
+  .star     { @apply text-star-unlit transition-colors duration-150; }
+  .star-lit { @apply text-star-lit; }
+
+  /* Chip colours — exact round-trip of documented palette */
+  .chip-good      { @apply bg-chip-good-bg      text-chip-good-fg; }
+  .chip-ok        { @apply bg-chip-ok-bg        text-chip-ok-fg; }
+  .chip-bad       { @apply bg-chip-bad-bg       text-chip-bad-fg; }
+  .chip-omission  { @apply bg-chip-omission-bg  text-chip-omission-fg line-through; }
+  .chip-insertion { @apply bg-chip-insertion-bg text-chip-insertion-fg; }
+
+  /* Nav links */
+  .nav-link {
+    @apply text-sm font-medium text-ink-light px-3 py-1.5 rounded-md no-underline
+           transition-colors duration-150 hover:text-ink hover:bg-surface;
+  }
+  .nav-link.router-link-active       { @apply text-primary; }
+  .nav-link.router-link-exact-active { @apply text-primary bg-primary-50; }
+
+  .nav-link-mobile {
+    @apply block w-full text-base font-medium text-ink-medium px-3 py-3 no-underline
+           rounded-md min-h-[44px] hover:bg-surface;
+  }
+  .nav-link-mobile.router-link-exact-active { @apply text-primary bg-primary-50; }
+
+  /* Toggle buttons */
+  .toggle-btn {
+    @apply px-3.5 py-1.5 text-xs font-medium border border-border
+           rounded-md bg-surface text-ink-light cursor-pointer transition-colors;
+  }
+  .toggle-btn-active { @apply !bg-primary !text-white !border-primary; }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+  }
+
+  /* Diff word classes */
+  .diff-word-ok           { color: #1f2937; }
+  .diff-word-omission     { @apply text-ink-light line-through; }
+  .diff-word-insertion    { color: #5b21b6; @apply italic; }
+  .diff-word-mispronounced { color: #b91c1c; }
+
+  /* Section title */
+  .section-title {
+    @apply text-base font-semibold text-ink-medium mb-4;
+  }
+}

@@ -12,7 +12,7 @@ The name "SekaEi" is intentionally unexplained — treat it as a proper noun.
 
 - **Privacy first.** Video recordings never leave the browser. Only the extracted audio WAV is sent to the server (and discarded after scoring). Do not add any video upload or storage feature without explicit instruction.
 - **Azure key must stay server-side.** The key lives in `runtimeConfig` (Nitro), never in `runtimeConfig.public`. Never move it to the client bundle.
-- **No UI framework.** The project intentionally uses plain scoped CSS. Do not introduce Tailwind, UnoCSS, or any component library without being asked.
+- **Styling: Tailwind CSS.** The project uses `@nuxtjs/tailwindcss` (v3). Token config lives in `tailwind.config.ts`; the component layer (`@layer components`) is in `assets/css/tailwind.css`. When touching a component, migrate its `<style scoped>` to Tailwind utilities. Do not introduce a separate component library (shadcn, etc.) without being asked.
 - **No auth.** There are no user accounts for the MVP. Don't add auth plumbing unless asked.
 - **TypeScript strict.** All new files must pass `vue-tsc --noEmit` in strict mode.
 

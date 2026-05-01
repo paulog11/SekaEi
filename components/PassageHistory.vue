@@ -28,7 +28,6 @@ const avg = computed(() =>
     : 0
 )
 
-// SVG sparkline: 80×30 viewport, points normalized to 0–100
 const sparkPath = computed(() => {
   const scores = recentScores.value
   if (scores.length < 2) return ''
@@ -49,114 +48,38 @@ const sparkPath = computed(() => {
 </script>
 
 <template>
-  <div v-if="recentScores.length >= 1" class="passage-history">
-    <div class="passage-history__header">
-      <span class="passage-history__title">Your progress — {{ passageTitle }}</span>
-      <span class="passage-history__count">{{ attempts.length }} attempt{{ attempts.length !== 1 ? 's' : '' }}</span>
+  <div v-if="recentScores.length >= 1" class="card-soft mt-5">
+    <div class="flex justify-between items-baseline mb-2">
+      <span class="text-xs font-semibold text-ink-medium">Your progress — {{ passageTitle }}</span>
+      <span class="text-xs text-ink-lighter">{{ attempts.length }} attempt{{ attempts.length !== 1 ? 's' : '' }}</span>
     </div>
-    <div class="passage-history__stars" :aria-label="`${stars} out of 3 stars`">
-      <span v-for="n in 3" :key="n" :class="['star', { 'star--lit': stars >= n }]">★</span>
-      <span class="stars__label">{{ ['–', '60+', '80+', '90+'][stars] }}</span>
+
+    <div class="flex items-center gap-0.5 mb-2" :aria-label="`${stars} out of 3 stars`">
+      <span v-for="n in 3" :key="n" :class="['star text-base', { 'star-lit': stars >= n }]">★</span>
+      <span class="ml-1 text-[0.7rem] text-ink-lighter">{{ ['–', '60+', '80+', '90+'][stars] }}</span>
     </div>
-    <div v-if="recentScores.length >= 2" class="passage-history__body">
-      <svg class="sparkline" viewBox="0 0 80 30" aria-hidden="true">
-        <path :d="sparkPath" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <div v-if="recentScores.length >= 2" class="flex items-center gap-5">
+      <svg class="w-20 h-[30px] shrink-0" viewBox="0 0 80 30" aria-hidden="true">
+        <path
+          :d="sparkPath"
+          fill="none"
+          stroke="#2563eb"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
-      <div class="passage-history__stats">
-        <div class="stat">
-          <span class="stat__value">{{ best }}</span>
-          <span class="stat__label">Best</span>
+      <div class="flex gap-4">
+        <div class="flex flex-col items-center">
+          <span class="text-xl font-bold text-ink">{{ best }}</span>
+          <span class="text-[0.7rem] text-ink-lighter">Best</span>
         </div>
-        <div class="stat">
-          <span class="stat__value">{{ avg }}</span>
-          <span class="stat__label">Avg</span>
+        <div class="flex flex-col items-center">
+          <span class="text-xl font-bold text-ink">{{ avg }}</span>
+          <span class="text-[0.7rem] text-ink-lighter">Avg</span>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.passage-history {
-  margin-top: 1.25rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-}
-
-.passage-history__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.5rem;
-}
-
-.passage-history__title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.passage-history__count {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.passage-history__stars {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 0.5rem;
-}
-
-.star {
-  font-size: 1rem;
-  color: #d1d5db;
-  transition: color 0.15s;
-}
-
-.star--lit {
-  color: #f59e0b;
-}
-
-.stars__label {
-  font-size: 0.7rem;
-  color: #9ca3af;
-  margin-left: 4px;
-}
-
-.passage-history__body {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.sparkline {
-  width: 80px;
-  height: 30px;
-  flex-shrink: 0;
-}
-
-.passage-history__stats {
-  display: flex;
-  gap: 1rem;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat__value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.stat__label {
-  font-size: 0.7rem;
-  color: #9ca3af;
-}
-</style>

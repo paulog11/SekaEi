@@ -29,7 +29,6 @@ const assessError = ref<string | null>(null)
 
 const { addAttempt, getHistory } = useHistory()
 
-// Per-passage star ratings loaded once on mount
 const allHistory = ref<import('~/composables/useHistory').AttemptRecord[]>([])
 
 onMounted(async () => {
@@ -74,7 +73,6 @@ async function assess() {
     })
     assessmentResult.value = data
 
-    // Save to history (built-in passages and custom text alike)
     await addAttempt({
       passageId: activePassageId.value,
       passageTitle: selectedPassage.value?.title ?? customText.value.trim().slice(0, 40),
@@ -87,7 +85,6 @@ async function assess() {
         overall: data.PronunciationAssessment.PronScore,
       },
     })
-    // Refresh star ratings after saving
     allHistory.value = await getHistory()
   } catch (err: unknown) {
     assessError.value = friendlyError(err)
@@ -101,24 +98,31 @@ function onRecordAgain() {
   assessmentResult.value = null
   assessError.value = null
 }
-
 </script>
 
 <template>
-  <main class="page">
-    <header class="page__header">
-      <h1 class="page__title">SekaEi</h1>
-      <p class="page__subtitle">English pronunciation practice — record yourself and get instant feedback.</p>
+  <main class="container-page">
+    <header class="text-center mb-10">
+      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink">SekaEi</h1>
+      <p class="text-ink-light mt-1">English pronunciation practice — record yourself and get instant feedback.</p>
     </header>
 
-    <section class="page__section">
+    <section class="mb-10">
       <h2 class="section-title">1. Choose a passage</h2>
 
-      <div class="passage-selector">
+      <!-- Passage selector: snap-scroll row on mobile, 3-up grid on sm+ -->
+      <div class="flex gap-3 -mx-5 px-5 pb-2 overflow-x-auto snap-x snap-mandatory sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible sm:grid sm:grid-cols-3 sm:gap-4">
         <label
           v-for="passage in SAMPLE_PASSAGES"
           :key="passage.id"
-          :class="['passage-card', { 'passage-card--active': selectedPassageId === passage.id && !customText.trim() }]"
+          :class="[
+            'snap-start shrink-0 w-72 sm:w-auto',
+            'flex flex-col gap-1 cursor-pointer rounded-xl border-2 p-4',
+            'transition-colors duration-150',
+            selectedPassageId === passage.id && !customText.trim()
+              ? 'border-primary bg-primary-50'
+              : 'border-border hover:border-primary-300',
+          ]"
         >
           <input
             v-model="selectedPassageId"
@@ -127,62 +131,65 @@ function onRecordAgain() {
             class="sr-only"
             @change="customText = ''"
           >
-          <div class="passage-card__head">
-            <strong>{{ passage.title }}</strong>
-            <span class="star-row" aria-label="`${starsForPassage(passage.id)} stars`">
-              <span v-for="n in 3" :key="n" :class="['star', { 'star--lit': starsForPassage(passage.id) >= n }]">★</span>
+          <div class="flex items-center justify-between">
+            <strong class="text-ink text-sm">{{ passage.title }}</strong>
+            <span class="flex gap-px" :aria-label="`${starsForPassage(passage.id)} stars`">
+              <span v-for="n in 3" :key="n" :class="['star text-sm', { 'star-lit': starsForPassage(passage.id) >= n }]">★</span>
             </span>
           </div>
-          <span class="passage-card__source">{{ passage.source }}</span>
-          <p class="passage-card__text">{{ passage.text }}</p>
+          <span class="text-xs text-ink-lighter">{{ passage.source }}</span>
+          <p class="mt-1 text-sm text-ink-medium leading-relaxed m-0">{{ passage.text }}</p>
         </label>
       </div>
 
-      <div class="divider">or paste your own text</div>
+      <!-- Divider -->
+      <div class="relative my-4 text-center text-xs text-ink-lighter">
+        <span class="relative bg-white px-3">or paste your own text</span>
+        <span class="absolute inset-x-0 top-1/2 h-px bg-border -z-10" />
+      </div>
 
       <textarea
         v-model="customText"
-        class="custom-text"
+        class="field-input resize-y"
         rows="4"
         placeholder="Type or paste any English text here…"
       />
     </section>
 
-    <section class="page__section">
+    <section class="mb-10">
       <h2 class="section-title">2. Record yourself reading</h2>
-      <div class="reference-box">
-        <p class="reference-box__label">Reading:</p>
-        <p class="reference-box__text">{{ referenceText }}</p>
+
+      <!-- Reference box -->
+      <div class="bg-surface border-l-4 border-primary rounded-md px-4 py-3 mb-4">
+        <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1 m-0">Reading:</p>
+        <p class="text-base text-ink leading-relaxed m-0">{{ referenceText }}</p>
       </div>
+
       <Recorder @recorded="onRecorded" @reset="onRecordAgain" />
     </section>
 
-    <section v-if="audioWav && !assessmentResult" class="page__section">
+    <section v-if="audioWav && !assessmentResult" class="mb-10">
       <h2 class="section-title">3. Analyse pronunciation</h2>
 
-      <!-- Skeleton loader while assessing -->
-      <div v-if="assessing" class="skeleton-wrap" aria-busy="true" aria-label="Analysing your recording…">
-        <div class="skeleton skeleton--scores" />
-        <div class="skeleton skeleton--words" />
-        <p class="skeleton__label">Analysing your recording…</p>
+      <div v-if="assessing" class="flex flex-col" aria-busy="true" aria-label="Analysing your recording…">
+        <div class="skeleton h-20 mb-3 motion-reduce:animate-none" />
+        <div class="skeleton h-12 motion-reduce:animate-none" />
+        <p class="mt-3 text-center text-sm text-ink-lighter">Analysing your recording…</p>
       </div>
 
       <template v-else>
-        <button
-          class="btn btn--primary btn--large"
-          @click="assess"
-        >
+        <button class="btn-primary btn-large" @click="assess">
           Check My Pronunciation
         </button>
 
-        <div v-if="assessError" class="error-card">
-          <p class="error-card__msg">{{ assessError }}</p>
-          <button class="btn btn--secondary btn--sm" @click="assess">Try again</button>
+        <div v-if="assessError" class="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+          <p class="flex-1 text-sm text-red-800 m-0">{{ assessError }}</p>
+          <button class="btn-secondary btn-sm" @click="assess">Try again</button>
         </div>
       </template>
     </section>
 
-    <section v-if="assessmentResult" class="page__section">
+    <section v-if="assessmentResult" class="mb-10">
       <ScoreDisplay
         :result="assessmentResult"
         :ipa="selectedPassage?.ipa"
@@ -193,235 +200,9 @@ function onRecordAgain() {
         :passage-title="selectedPassage?.title ?? customText.trim().slice(0, 40)"
       />
 
-      <button class="btn btn--secondary" style="margin-top:1rem" @click="onRecordAgain">
+      <button class="btn-secondary mt-4" @click="onRecordAgain">
         Try Again
       </button>
     </section>
   </main>
 </template>
-
-<style scoped>
-.page {
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
-}
-
-.page__header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-}
-
-.page__title {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: #111827;
-}
-
-.page__subtitle {
-  color: #6b7280;
-  margin-top: 0.25rem;
-}
-
-.page__section {
-  margin-bottom: 2.5rem;
-}
-
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 1rem;
-}
-
-.passage-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.passage-card {
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.9rem 1.1rem;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.passage-card:hover { border-color: #93c5fd; }
-.passage-card--active { border-color: #2563eb; background: #eff6ff; }
-
-.passage-card__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.star-row {
-  display: flex;
-  gap: 1px;
-}
-
-.star {
-  font-size: 0.9rem;
-  color: #d1d5db;
-  transition: color 0.15s;
-}
-
-.star--lit {
-  color: #f59e0b;
-}
-
-.passage-card__source {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.passage-card__text {
-  font-size: 0.875rem;
-  color: #374151;
-  margin-top: 4px;
-  line-height: 1.5;
-}
-
-.divider {
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.85rem;
-  margin: 1rem 0;
-  position: relative;
-}
-.divider::before, .divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 40%;
-  height: 1px;
-  background: #e5e7eb;
-}
-.divider::before { left: 0; }
-.divider::after  { right: 0; }
-
-.custom-text {
-  width: 100%;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-.custom-text:focus { border-color: #2563eb; }
-
-.reference-box {
-  background: #f9fafb;
-  border-left: 4px solid #2563eb;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.reference-box__label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #9ca3af;
-  margin-bottom: 4px;
-}
-
-.reference-box__text {
-  font-size: 0.95rem;
-  color: #1f2937;
-  line-height: 1.6;
-}
-
-.btn {
-  padding: 0.6rem 1.4rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.btn:hover:not(:disabled) { opacity: 0.85; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--primary   { background: #2563eb; color: white; }
-.btn--secondary { background: #e5e7eb; color: #1f2937; }
-.btn--large     { padding: 0.8rem 2rem; font-size: 1rem; }
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.error-card {
-  margin-top: 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.error-card__msg {
-  flex: 1;
-  color: #991b1b;
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-.btn--sm {
-  padding: 0.35rem 0.9rem;
-  font-size: 0.85rem;
-}
-
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-.skeleton {
-  border-radius: 8px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite linear;
-}
-
-.skeleton--scores {
-  height: 80px;
-  margin-bottom: 0.75rem;
-}
-
-.skeleton--words {
-  height: 48px;
-}
-
-.skeleton-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton__label {
-  margin-top: 0.75rem;
-  font-size: 0.85rem;
-  color: #9ca3af;
-  text-align: center;
-}
-</style>
