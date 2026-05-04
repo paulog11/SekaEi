@@ -61,6 +61,14 @@ describe('GET /api/attempts', () => {
     await expect((handler as Function)(makeEvent(undefined))).rejects.toMatchObject({ statusCode: 401 })
   })
 
+  it('returns 401 when x-device-id is not a valid UUID', async () => {
+    await expect((handler as Function)(makeEvent('not-a-uuid'))).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('returns 401 when x-device-id is a plain string that looks close but is not UUID format', async () => {
+    await expect((handler as Function)(makeEvent('12345678-1234-1234-1234-1234567890ZZ'))).rejects.toMatchObject({ statusCode: 401 })
+  })
+
   it('returns empty array when no attempts exist', async () => {
     setupQueryChain([])
     const result = await (handler as Function)(makeEvent(VALID_UUID))
@@ -91,9 +99,47 @@ describe('GET /api/attempts', () => {
     expect(result.attempts[0].scores.prosody).toBeUndefined()
   })
 
+  it('includes prosody score when present', async () => {
+    setupQueryChain([{
+      id: 'row-2',
+      passage_id: 'rocky-balboa',
+      passage_title: 'Rocky',
+      created_at: '2024-02-01T00:00:00.000Z',
+      accuracy_score: 70,
+      fluency_score: 65,
+      completeness_score: 80,
+      prosody_score: 72,
+      overall_score: 71,
+    }])
+    const result = await (handler as Function)(makeEvent(VALID_UUID))
+    expect(result.attempts[0].scores.prosody).toBe(72)
+  })
+
   it('filters by passageId when query param is provided', async () => {
     const c = setupQueryChain([])
     await (handler as Function)(makeEvent(VALID_UUID, { passageId: 'rocky-balboa' }))
     expect(c.eq).toHaveBeenCalledWith('passage_id', 'rocky-balboa')
+  })
+
+  it('clamps limit to 500 when a larger value is requested', async () => {
+    const c = setupQueryChain([])
+    await (handler as Function)(makeEvent(VALID_UUID, { limit: '9999' }))
+    expect(c.limit).toHaveBeenCalledWith(500)
+  })
+
+  it('uses default limit of 100 when limit is not provided', async () => {
+    const c = setupQueryChain([])
+    await (handler as Function)(makeEvent(VALID_UUID))
+    expect(c.limit).toHaveBeenCalledWith(100)
+  })
+
+  it('throws 500 when DB query returns an error', async () => {
+    const c = {} as Record<string, ReturnType<typeof vi.fn>>
+    c.select = vi.fn().mockReturnValue(c)
+    c.eq = vi.fn().mockReturnValue(c)
+    c.order = vi.fn().mockReturnValue(c)
+    c.limit = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failure' } })
+    mockFrom.mockReturnValue(c)
+    await expect((handler as Function)(makeEvent(VALID_UUID))).rejects.toMatchObject({ statusCode: 500 })
   })
 })

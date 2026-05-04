@@ -84,6 +84,51 @@ beforeEach(() => {
   mockPronunciationConfig.applyTo.mockReset()
 })
 
+describe('runPronunciationAssessment — SDK configuration', () => {
+  it('calls SpeechConfig.fromSubscription with provided key and region', async () => {
+    const sdk = (await import('microsoft-cognitiveservices-speech-sdk')).default
+    mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
+      onSuccess(makeResult('RecognizedSpeech'))
+    })
+    await runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
+    expect(sdk.SpeechConfig.fromSubscription).toHaveBeenCalledWith(FAKE_KEY, FAKE_REGION)
+  })
+
+  it('sets speechRecognitionLanguage to en-US', async () => {
+    const sdk = (await import('microsoft-cognitiveservices-speech-sdk')).default
+    const mockConfig = { speechRecognitionLanguage: '' }
+    ;(sdk.SpeechConfig.fromSubscription as ReturnType<typeof vi.fn>).mockReturnValue(mockConfig)
+    mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
+      onSuccess(makeResult('RecognizedSpeech'))
+    })
+    await runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
+    expect(mockConfig.speechRecognitionLanguage).toBe('en-US')
+  })
+
+  it('calls getWaveFormatPCM with 16kHz 16-bit mono params', async () => {
+    const sdk = (await import('microsoft-cognitiveservices-speech-sdk')).default
+    mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
+      onSuccess(makeResult('RecognizedSpeech'))
+    })
+    await runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
+    expect(sdk.AudioStreamFormat.getWaveFormatPCM).toHaveBeenCalledWith(16000, 16, 1)
+  })
+
+  it('constructs PronunciationAssessmentConfig with referenceText and HundredMark/Phoneme/miscue', async () => {
+    const sdk = (await import('microsoft-cognitiveservices-speech-sdk')).default
+    mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
+      onSuccess(makeResult('RecognizedSpeech'))
+    })
+    await runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
+    expect(sdk.PronunciationAssessmentConfig).toHaveBeenCalledWith(
+      FAKE_TEXT,
+      'HundredMark',
+      'Phoneme',
+      true,
+    )
+  })
+})
+
 describe('runPronunciationAssessment — happy path', () => {
   it('resolves with AssessmentResult on RecognizedSpeech', async () => {
     mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
@@ -127,6 +172,15 @@ describe('runPronunciationAssessment — header stripping', () => {
     })
     await runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
     expect(mockPushStream.close).toHaveBeenCalledOnce()
+  })
+
+  it('writes an empty buffer when WAV contains only the 44-byte header', async () => {
+    mockRecognizer.recognizeOnceAsync.mockImplementation((onSuccess: (r: unknown) => void) => {
+      onSuccess(makeResult('RecognizedSpeech'))
+    })
+    await runPronunciationAssessment(makeWavBuffer(0), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
+    const writtenArg = mockPushStream.write.mock.calls[0][0] as Buffer
+    expect(writtenArg.length).toBe(0)
   })
 })
 

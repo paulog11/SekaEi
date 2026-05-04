@@ -107,4 +107,26 @@ describe('GET /api/me', () => {
     expect(result).toEqual({ user: { id: VALID_UUID, createdAt: '2024-06-01T00:00:00Z' } })
     expect(c.insert).toHaveBeenCalledWith({ id: VALID_UUID })
   })
+
+  it('throws 500 when the DB find query returns an error', async () => {
+    const c = {} as Record<string, ReturnType<typeof vi.fn>>
+    c.select = vi.fn().mockReturnValue(c)
+    c.eq = vi.fn().mockReturnValue(c)
+    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'connection refused' } })
+    mockFrom.mockReturnValue(c)
+
+    await expect((handler as Function)({ 'x-device-id': VALID_UUID })).rejects.toMatchObject({ statusCode: 500 })
+  })
+
+  it('throws 500 when the DB insert returns an error', async () => {
+    const c = {} as Record<string, ReturnType<typeof vi.fn>>
+    c.select = vi.fn().mockReturnValue(c)
+    c.eq = vi.fn().mockReturnValue(c)
+    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    c.insert = vi.fn().mockReturnValue(c)
+    c.single = vi.fn().mockResolvedValue({ data: null, error: { message: 'unique violation' } })
+    mockFrom.mockReturnValue(c)
+
+    await expect((handler as Function)({ 'x-device-id': VALID_UUID })).rejects.toMatchObject({ statusCode: 500 })
+  })
 })

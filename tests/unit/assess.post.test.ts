@@ -105,6 +105,15 @@ describe('assess.post — multipart validation', () => {
     })
   })
 
+  it('allows audio exactly at 4 MB limit', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: Buffer.alloc(4 * 1024 * 1024) },
+      { name: 'referenceText', data: Buffer.from('Hello world') },
+    ])
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await expect(handler(makeEvent())).resolves.toBeDefined()
+  })
+
   it('throws 413 when audio exceeds 4 MB', async () => {
     mockReadMultipart.mockResolvedValue([
       { name: 'audio', data: Buffer.alloc(4 * 1024 * 1024 + 1) },
@@ -129,9 +138,18 @@ describe('assess.post — multipart validation', () => {
     })
   })
 
+  it('allows referenceText exactly at 2000 characters', async () => {
+    mockReadMultipart.mockResolvedValue(makeMultipartParts({ referenceText: 'a'.repeat(2000) }))
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await expect(handler(makeEvent())).resolves.toBeDefined()
+  })
+
   it('throws 400 when referenceText exceeds 2000 characters', async () => {
     mockReadMultipart.mockResolvedValue(makeMultipartParts({ referenceText: 'a'.repeat(2001) }))
-    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 400 })
+    await expect(handler(makeEvent())).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'referenceText too long (max 2000 characters).',
+    })
   })
 
   it('throws 400 when referenceText is empty string', async () => {
