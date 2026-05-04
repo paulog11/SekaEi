@@ -2,20 +2,36 @@
 import type { AssessmentResult } from '~/types/assessment'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 import { useHistory } from '~/composables/useHistory'
+import { useCustomPassages } from '~/composables/useCustomPassages'
+import { useStreak } from '~/composables/useStreak'
 import { passageStars, customPassageId } from '~/composables/useProgress'
 
-useHead({ title: 'SekaEi — English Pronunciation Practice' })
+definePageMeta({ middleware: 'auth' })
+useHead({ title: 'Practice — SekaEi' })
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
 const customText = ref('')
 
+const { items: customPassages, fetchPassages } = useCustomPassages()
+const { fetchStreak } = useStreak()
+
+onMounted(() => {
+  fetchPassages()
+  fetchStreak()
+})
+
+const allPassages = computed(() => [
+  ...SAMPLE_PASSAGES,
+  ...customPassages.value.map(p => ({ id: `custom:${p.id}`, title: p.title, source: 'My passages', text: p.text, ipa: p.ipa ?? undefined })),
+])
+
 const referenceText = computed(() => {
   if (customText.value.trim()) return customText.value.trim()
-  return SAMPLE_PASSAGES.find(p => p.id === selectedPassageId.value)?.text ?? ''
+  return allPassages.value.find(p => p.id === selectedPassageId.value)?.text ?? ''
 })
 
 const selectedPassage = computed(() =>
-  customText.value.trim() ? null : SAMPLE_PASSAGES.find(p => p.id === selectedPassageId.value) ?? null
+  customText.value.trim() ? null : allPassages.value.find(p => p.id === selectedPassageId.value) ?? null
 )
 
 const activePassageId = computed(() =>
@@ -47,6 +63,8 @@ function friendlyError(err: unknown): string {
     return 'Microphone access was denied. Check your browser permissions and try again.'
   if (msg.includes('Network') || msg.includes('fetch'))
     return 'Network error — check your connection and try again.'
+  if (msg.includes('Not authenticated') || msg.includes('Invalid or expired session'))
+    return 'Your session has expired. Please sign in again.'
   return msg || 'Assessment failed. Please try again.'
 }
 
@@ -84,8 +102,10 @@ async function assess() {
         prosody: data.PronunciationAssessment.ProsodyScore,
         overall: data.PronunciationAssessment.PronScore,
       },
-    })
+    }, data)
+
     allHistory.value = await getHistory()
+    fetchStreak()
   } catch (err: unknown) {
     assessError.value = friendlyError(err)
   } finally {
@@ -110,10 +130,9 @@ function onRecordAgain() {
     <section class="mb-10">
       <h2 class="section-title">1. Choose a passage</h2>
 
-      <!-- Passage selector: snap-scroll row on mobile, 3-up grid on sm+ -->
       <div class="flex gap-3 -mx-5 px-5 pb-2 overflow-x-auto snap-x snap-mandatory sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible sm:grid sm:grid-cols-3 sm:gap-4">
         <label
-          v-for="passage in SAMPLE_PASSAGES"
+          v-for="passage in allPassages"
           :key="passage.id"
           :class="[
             'snap-start shrink-0 w-72 sm:w-auto',
@@ -142,7 +161,6 @@ function onRecordAgain() {
         </label>
       </div>
 
-      <!-- Divider -->
       <div class="relative my-4 text-center text-xs text-ink-lighter">
         <span class="relative bg-white px-3">or paste your own text</span>
         <span class="absolute inset-x-0 top-1/2 h-px bg-border -z-10" />
@@ -159,7 +177,6 @@ function onRecordAgain() {
     <section class="mb-10">
       <h2 class="section-title">2. Record yourself reading</h2>
 
-      <!-- Reference box -->
       <div class="bg-surface border-l-4 border-primary rounded-md px-4 py-3 mb-4">
         <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1 m-0">Reading:</p>
         <p class="text-base text-ink leading-relaxed m-0">{{ referenceText }}</p>

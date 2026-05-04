@@ -1,19 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
-// Mocks — must happen before importing the handler
+// Mocks — before importing handler
 // ---------------------------------------------------------------------------
-
-const mockSelect = vi.fn()
-const mockEq = vi.fn()
-const mockMaybeSingle = vi.fn()
-const mockInsert = vi.fn()
-const mockSingle = vi.fn()
 
 const mockFrom = vi.fn()
 
 vi.mock('~/server/utils/supabase', () => ({
   useSupabase: () => ({ from: mockFrom }),
+  useSupabaseUser: vi.fn(),
 }))
 
 const createError = (opts: { statusCode: number; message: string }) => {
@@ -23,15 +18,14 @@ const createError = (opts: { statusCode: number; message: string }) => {
 }
 
 vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
-vi.stubGlobal('getHeader', (event: Record<string, unknown>, key: string) => event[key])
 vi.stubGlobal('createError', createError)
 
 vi.mock('#imports', () => ({
   defineEventHandler: (fn: unknown) => fn,
-  getHeader: (event: Record<string, unknown>, key: string) => event[key],
   createError,
 }))
 
+import { useSupabaseUser } from '~/server/utils/supabase'
 const { default: handler } = await import('~/server/api/me.get')
 
 // ---------------------------------------------------------------------------
@@ -39,35 +33,26 @@ const { default: handler } = await import('~/server/api/me.get')
 // ---------------------------------------------------------------------------
 
 const VALID_UUID = '00000000-0000-0000-0000-000000000001'
+const MOCK_USER = { id: VALID_UUID, email: 'test@example.com' }
 
-function setupChain({ existing }: { existing: unknown }) {
-  const chain: Record<string, () => unknown> = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue(
-      existing === null
-        ? { data: null, error: null }
-        : { data: existing, error: null }
-    ),
-    insert: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: existing, error: null }),
-  }
-  Object.keys(chain).forEach(k => {
-    const orig = chain[k]
-    chain[k] = vi.fn().mockImplementation(function(this: unknown, ...args: unknown[]) {
-      return orig.call(this, ...args) ?? chain
-    })
-  })
-  // Make each method return the chain so calls can be chained
+function setupProfileChain(profileData: unknown, streakData: unknown) {
   const c = {} as Record<string, ReturnType<typeof vi.fn>>
   c.select = vi.fn().mockReturnValue(c)
   c.eq = vi.fn().mockReturnValue(c)
-  c.maybeSingle = vi.fn().mockResolvedValue(
-    existing === null ? { data: null, error: null } : { data: existing, error: null }
-  )
-  c.insert = vi.fn().mockReturnValue(c)
-  c.single = vi.fn().mockResolvedValue({ data: existing, error: null })
-  mockFrom.mockReturnValue(c)
+  c.maybeSingle = vi.fn()
+
+  let callCount = 0
+  mockFrom.mockImplementation(() => {
+    callCount++
+    if (callCount === 1) {
+      // profiles query
+      c.maybeSingle = vi.fn().mockResolvedValue({ data: profileData, error: null })
+    } else {
+      // daily_streaks query
+      c.maybeSingle = vi.fn().mockResolvedValue({ data: streakData, error: null })
+    }
+    return c
+  })
   return c
 }
 
@@ -76,57 +61,57 @@ function setupChain({ existing }: { existing: unknown }) {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/me', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  it('returns 401 when x-device-id is missing', async () => {
+  it('returns 401 when not authenticated', async () => {
+    vi.mocked(useSupabaseUser).mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
     await expect((handler as Function)({})).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('returns 401 when x-device-id is not a valid UUID', async () => {
-    await expect((handler as Function)({ 'x-device-id': 'not-a-uuid' })).rejects.toMatchObject({ statusCode: 401 })
+  it('returns user and streak when authenticated', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    setupProfileChain(
+      { display_name: 'Test User', created_at: '2024-01-01T00:00:00Z' },
+      { current_streak: 3, longest_streak: 7, daily_goal_minutes: 10, last_practice_date: '2024-01-01' },
+    )
+
+    const result = await (handler as Function)({})
+
+    expect(result).toMatchObject({
+      user: {
+        id: VALID_UUID,
+        email: 'test@example.com',
+        displayName: 'Test User',
+      },
+      streak: 3,
+      longestStreak: 7,
+      goalMinutes: 10,
+    })
   })
 
-  it('returns existing user when found', async () => {
-    const existing = { id: VALID_UUID, created_at: '2024-01-01T00:00:00Z' }
-    setupChain({ existing })
-    const result = await (handler as Function)({ 'x-device-id': VALID_UUID })
-    expect(result).toEqual({ user: { id: VALID_UUID, createdAt: '2024-01-01T00:00:00Z' } })
+  it('returns zeros for streak when no streak row exists', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    setupProfileChain(
+      { display_name: null, created_at: '2024-01-01T00:00:00Z' },
+      null,
+    )
+
+    const result = await (handler as Function)({})
+    expect(result.streak).toBe(0)
+    expect(result.goalMinutes).toBe(5)
   })
 
-  it('creates a new user when not found', async () => {
-    const newUser = { id: VALID_UUID, created_at: '2024-06-01T00:00:00Z' }
+  it('throws 500 when profile query fails', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+
     const c = {} as Record<string, ReturnType<typeof vi.fn>>
     c.select = vi.fn().mockReturnValue(c)
     c.eq = vi.fn().mockReturnValue(c)
-    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
-    c.insert = vi.fn().mockReturnValue(c)
-    c.single = vi.fn().mockResolvedValue({ data: newUser, error: null })
+    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failure' } })
     mockFrom.mockReturnValue(c)
 
-    const result = await (handler as Function)({ 'x-device-id': VALID_UUID })
-    expect(result).toEqual({ user: { id: VALID_UUID, createdAt: '2024-06-01T00:00:00Z' } })
-    expect(c.insert).toHaveBeenCalledWith({ id: VALID_UUID })
-  })
-
-  it('throws 500 when the DB find query returns an error', async () => {
-    const c = {} as Record<string, ReturnType<typeof vi.fn>>
-    c.select = vi.fn().mockReturnValue(c)
-    c.eq = vi.fn().mockReturnValue(c)
-    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'connection refused' } })
-    mockFrom.mockReturnValue(c)
-
-    await expect((handler as Function)({ 'x-device-id': VALID_UUID })).rejects.toMatchObject({ statusCode: 500 })
-  })
-
-  it('throws 500 when the DB insert returns an error', async () => {
-    const c = {} as Record<string, ReturnType<typeof vi.fn>>
-    c.select = vi.fn().mockReturnValue(c)
-    c.eq = vi.fn().mockReturnValue(c)
-    c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
-    c.insert = vi.fn().mockReturnValue(c)
-    c.single = vi.fn().mockResolvedValue({ data: null, error: { message: 'unique violation' } })
-    mockFrom.mockReturnValue(c)
-
-    await expect((handler as Function)({ 'x-device-id': VALID_UUID })).rejects.toMatchObject({ statusCode: 500 })
+    await expect((handler as Function)({})).rejects.toMatchObject({ statusCode: 500 })
   })
 })

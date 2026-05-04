@@ -1,6 +1,8 @@
 import { useApi } from './useApi'
+import type { AssessmentResult } from '~/types/assessment'
 
 export interface AttemptRecord {
+  id?: string
   passageId: string
   passageTitle: string
   timestamp: number
@@ -26,7 +28,7 @@ function invalidate() {
 export function useHistory() {
   const { apiFetch } = useApi()
 
-  async function addAttempt(record: AttemptRecord): Promise<void> {
+  async function addAttempt(record: AttemptRecord, azureResult?: AssessmentResult): Promise<void> {
     invalidate()
     try {
       await apiFetch('/api/attempts', {
@@ -35,6 +37,7 @@ export function useHistory() {
           passageId: record.passageId,
           passageTitle: record.passageTitle,
           scores: record.scores,
+          azureResult: azureResult ?? null,
         },
       })
     } catch {

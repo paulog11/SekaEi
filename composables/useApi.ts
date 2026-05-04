@@ -1,6 +1,6 @@
 const DEVICE_ID_KEY = 'sekaei.deviceId.v1'
 
-function getOrCreateDeviceId(): string {
+export function getOrCreateDeviceId(): string {
   try {
     const existing = localStorage.getItem(DEVICE_ID_KEY)
     if (existing) return existing
@@ -13,12 +13,16 @@ function getOrCreateDeviceId(): string {
 }
 
 export function useApi() {
-  function apiFetch<T>(url: string, options?: Parameters<typeof $fetch>[1]): Promise<T> {
-    const deviceId = getOrCreateDeviceId()
+  const supabase = useSupabaseClient()
+
+  async function apiFetch<T>(url: string, options?: Parameters<typeof $fetch>[1]): Promise<T> {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+
     return $fetch<T>(url, {
       ...options,
       headers: {
-        'x-device-id': deviceId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options?.headers as Record<string, string> | undefined),
       },
     })

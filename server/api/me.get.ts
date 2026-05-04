@@ -1,36 +1,27 @@
-import { useSupabase } from '../utils/supabase'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {
-  const deviceId = getHeader(event, 'x-device-id')
-  if (!deviceId || !UUID_RE.test(deviceId)) {
-    throw createError({ statusCode: 401, message: 'Missing or invalid x-device-id header.' })
-  }
-
+  const authUser = await useSupabaseUser(event)
   const db = useSupabase()
 
-  // Find existing user row
-  const { data: existing, error: findError } = await db
-    .from('users')
-    .select('id, created_at')
-    .eq('id', deviceId)
-    .maybeSingle()
+  const [profileRes, streakRes] = await Promise.all([
+    db.from('profiles').select('display_name, created_at').eq('id', authUser.id).maybeSingle(),
+    db.from('daily_streaks').select('current_streak, longest_streak, daily_goal_minutes, last_practice_date').eq('user_id', authUser.id).maybeSingle(),
+  ])
 
-  if (findError) throw createError({ statusCode: 500, message: findError.message })
+  if (profileRes.error) throw createError({ statusCode: 500, message: profileRes.error.message })
 
-  if (existing) {
-    return { user: { id: existing.id, createdAt: existing.created_at } }
+  const streak = streakRes.data
+
+  return {
+    user: {
+      id: authUser.id,
+      email: authUser.email,
+      displayName: profileRes.data?.display_name ?? null,
+      createdAt: profileRes.data?.created_at ?? null,
+    },
+    streak: streak?.current_streak ?? 0,
+    longestStreak: streak?.longest_streak ?? 0,
+    goalMinutes: streak?.daily_goal_minutes ?? 5,
   }
-
-  // First visit — create row with the device id as the primary key
-  const { data: created, error: insertError } = await db
-    .from('users')
-    .insert({ id: deviceId })
-    .select('id, created_at')
-    .single()
-
-  if (insertError) throw createError({ statusCode: 500, message: insertError.message })
-
-  return { user: { id: created.id, createdAt: created.created_at } }
 })

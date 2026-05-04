@@ -8,6 +8,7 @@ const mockFrom = vi.fn()
 
 vi.mock('~/server/utils/supabase', () => ({
   useSupabase: () => ({ from: mockFrom }),
+  useSupabaseUser: vi.fn(),
 }))
 
 const createError = (opts: { statusCode: number; message: string }) => {
@@ -17,17 +18,16 @@ const createError = (opts: { statusCode: number; message: string }) => {
 }
 
 vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
-vi.stubGlobal('getHeader', (event: Record<string, unknown>, key: string) => (event.__headers as Record<string, unknown>)?.[key])
 vi.stubGlobal('getQuery', (event: Record<string, unknown>) => event.__query ?? {})
 vi.stubGlobal('createError', createError)
 
 vi.mock('#imports', () => ({
   defineEventHandler: (fn: unknown) => fn,
-  getHeader: (event: Record<string, unknown>, key: string) => (event.__headers as Record<string, unknown>)?.[key],
   getQuery: (event: Record<string, unknown>) => event.__query ?? {},
   createError,
 }))
 
+import { useSupabaseUser } from '~/server/utils/supabase'
 const { default: handler } = await import('~/server/api/attempts.get')
 
 // ---------------------------------------------------------------------------
@@ -35,9 +35,10 @@ const { default: handler } = await import('~/server/api/attempts.get')
 // ---------------------------------------------------------------------------
 
 const VALID_UUID = '00000000-0000-0000-0000-000000000001'
+const MOCK_USER = { id: VALID_UUID, email: 'test@example.com' }
 
-function makeEvent(deviceId: string | undefined, query: Record<string, string> = {}) {
-  return { __headers: { 'x-device-id': deviceId }, __query: query }
+function makeEvent(query: Record<string, string> = {}) {
+  return { __query: query }
 }
 
 function setupQueryChain(data: unknown[]) {
@@ -57,25 +58,20 @@ function setupQueryChain(data: unknown[]) {
 describe('GET /api/attempts', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns 401 when x-device-id is missing', async () => {
-    await expect((handler as Function)(makeEvent(undefined))).rejects.toMatchObject({ statusCode: 401 })
-  })
-
-  it('returns 401 when x-device-id is not a valid UUID', async () => {
-    await expect((handler as Function)(makeEvent('not-a-uuid'))).rejects.toMatchObject({ statusCode: 401 })
-  })
-
-  it('returns 401 when x-device-id is a plain string that looks close but is not UUID format', async () => {
-    await expect((handler as Function)(makeEvent('12345678-1234-1234-1234-1234567890ZZ'))).rejects.toMatchObject({ statusCode: 401 })
+  it('returns 401 when not authenticated', async () => {
+    vi.mocked(useSupabaseUser).mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
+    await expect((handler as Function)(makeEvent())).rejects.toMatchObject({ statusCode: 401 })
   })
 
   it('returns empty array when no attempts exist', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([])
-    const result = await (handler as Function)(makeEvent(VALID_UUID))
+    const result = await (handler as Function)(makeEvent())
     expect(result).toEqual({ attempts: [] })
   })
 
   it('maps DB rows to AttemptRecord shape', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([{
       id: 'row-1',
       passage_id: 'interstellar',
@@ -88,10 +84,11 @@ describe('GET /api/attempts', () => {
       overall_score: 82,
     }])
 
-    const result = await (handler as Function)(makeEvent(VALID_UUID))
+    const result = await (handler as Function)(makeEvent())
 
     expect(result.attempts).toHaveLength(1)
     expect(result.attempts[0]).toMatchObject({
+      id: 'row-1',
       passageId: 'interstellar',
       passageTitle: 'Interstellar',
       scores: { accuracy: 80, fluency: 75, completeness: 90, overall: 82 },
@@ -100,6 +97,7 @@ describe('GET /api/attempts', () => {
   })
 
   it('includes prosody score when present', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([{
       id: 'row-2',
       passage_id: 'rocky-balboa',
@@ -111,35 +109,39 @@ describe('GET /api/attempts', () => {
       prosody_score: 72,
       overall_score: 71,
     }])
-    const result = await (handler as Function)(makeEvent(VALID_UUID))
+    const result = await (handler as Function)(makeEvent())
     expect(result.attempts[0].scores.prosody).toBe(72)
   })
 
   it('filters by passageId when query param is provided', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
-    await (handler as Function)(makeEvent(VALID_UUID, { passageId: 'rocky-balboa' }))
+    await (handler as Function)(makeEvent({ passageId: 'rocky-balboa' }))
     expect(c.eq).toHaveBeenCalledWith('passage_id', 'rocky-balboa')
   })
 
   it('clamps limit to 500 when a larger value is requested', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
-    await (handler as Function)(makeEvent(VALID_UUID, { limit: '9999' }))
+    await (handler as Function)(makeEvent({ limit: '9999' }))
     expect(c.limit).toHaveBeenCalledWith(500)
   })
 
   it('uses default limit of 100 when limit is not provided', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
-    await (handler as Function)(makeEvent(VALID_UUID))
+    await (handler as Function)(makeEvent())
     expect(c.limit).toHaveBeenCalledWith(100)
   })
 
   it('throws 500 when DB query returns an error', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = {} as Record<string, ReturnType<typeof vi.fn>>
     c.select = vi.fn().mockReturnValue(c)
     c.eq = vi.fn().mockReturnValue(c)
     c.order = vi.fn().mockReturnValue(c)
     c.limit = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failure' } })
     mockFrom.mockReturnValue(c)
-    await expect((handler as Function)(makeEvent(VALID_UUID))).rejects.toMatchObject({ statusCode: 500 })
+    await expect((handler as Function)(makeEvent())).rejects.toMatchObject({ statusCode: 500 })
   })
 })
