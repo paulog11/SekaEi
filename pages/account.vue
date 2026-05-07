@@ -4,12 +4,13 @@ import { useStreak } from '~/composables/useStreak'
 import { usePhonemeStats } from '~/composables/usePhonemeStats'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { passageStars } from '~/composables/useProgress'
-import { getOrCreateDeviceId } from '~/composables/useApi'
+import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 
 useHead({ title: 'Account — SekaEi' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
+const { apiFetch } = useApi()
 
 // ── Auth form state ──────────────────────────────────────────────────────────
 const activeTab = ref<'signin' | 'signup'>('signin')
@@ -18,10 +19,12 @@ const password = ref('')
 const confirmPassword = ref('')
 const authError = ref<string | null>(null)
 const authLoading = ref(false)
+const signupPending = ref(false)
 
 function switchTab(tab: 'signin' | 'signup') {
   activeTab.value = tab
   authError.value = null
+  signupPending.value = false
   email.value = ''
   password.value = ''
   confirmPassword.value = ''
@@ -32,7 +35,14 @@ async function handleSignIn() {
   authLoading.value = true
   try {
     const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value })
-    if (error) authError.value = error.message
+    if (error) {
+      authError.value = error.message
+    } else {
+      // Claim any pre-auth anonymous device attempts — idempotent, safe to call each sign-in
+      try {
+        await apiFetch('/api/devices/claim', { method: 'POST', body: { deviceId: getOrCreateDeviceId() } })
+      } catch { /* non-fatal */ }
+    }
   } finally {
     authLoading.value = false
   }
@@ -50,18 +60,13 @@ async function handleSignUp() {
   }
   authLoading.value = true
   try {
-    const deviceId = getOrCreateDeviceId()
     const { error } = await supabase.auth.signUp({ email: email.value, password: password.value })
     if (error) {
       authError.value = error.message
     } else {
-      // Claim device history server-side
-      try {
-        await $fetch('/api/auth/signup', {
-          method: 'POST',
-          body: { email: email.value, password: password.value, deviceId },
-        })
-      } catch { /* non-fatal */ }
+      // Email confirmation is required — session is null until the user clicks the link.
+      // Device claim will happen in /confirm once the session is established.
+      signupPending.value = true
       authError.value = null
     }
   } finally {
@@ -305,26 +310,35 @@ async function handleAddPassage() {
           <button type="submit" class="btn-primary mt-1" :disabled="authLoading">
             {{ authLoading ? 'Signing in…' : 'Sign in' }}
           </button>
+          <NuxtLink to="/reset" class="text-sm text-ink-light hover:text-ink text-center">
+            Forgot password?
+          </NuxtLink>
         </form>
 
         <!-- Sign up form -->
-        <form v-else class="flex flex-col gap-4" @submit.prevent="handleSignUp">
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label" for="signup-email">Email</label>
-            <input id="signup-email" v-model="email" class="field-input" type="email" placeholder="you@example.com" autocomplete="email" required>
+        <template v-else>
+          <div v-if="signupPending" class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-4 text-sm text-center">
+            <p class="font-semibold mb-1">Check your inbox</p>
+            <p>We've sent a confirmation link to <strong>{{ email }}</strong>. Click it to finish creating your account.</p>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label" for="signup-password">Password</label>
-            <input id="signup-password" v-model="password" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label" for="signup-confirm">Confirm password</label>
-            <input id="signup-confirm" v-model="confirmPassword" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
-          </div>
-          <button type="submit" class="btn-primary mt-1" :disabled="authLoading">
-            {{ authLoading ? 'Creating account…' : 'Create account' }}
-          </button>
-        </form>
+          <form v-else class="flex flex-col gap-4" @submit.prevent="handleSignUp">
+            <div class="flex flex-col gap-1.5">
+              <label class="field-label" for="signup-email">Email</label>
+              <input id="signup-email" v-model="email" class="field-input" type="email" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="field-label" for="signup-password">Password</label>
+              <input id="signup-password" v-model="password" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="field-label" for="signup-confirm">Confirm password</label>
+              <input id="signup-confirm" v-model="confirmPassword" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="btn-primary mt-1" :disabled="authLoading">
+              {{ authLoading ? 'Creating account…' : 'Create account' }}
+            </button>
+          </form>
+        </template>
       </div>
     </template>
 

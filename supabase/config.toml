@@ -218,9 +218,9 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
@@ -229,14 +229,17 @@ otp_length = 6
 otp_expiry = 3600
 
 # Use a production-ready SMTP server
+# Local dev: uncomment to send real emails via SMTP. Otherwise the Supabase CLI's
+# built-in Inbucket captures them at http://127.0.0.1:54324 (no config needed).
+# Hosted Supabase Cloud: configure SMTP in Dashboard → Project Settings → Auth → SMTP Settings.
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
+# host = "smtp.resend.com"          # or smtp.sendgrid.net, smtp.mailgun.org, smtp.postmarkapp.com
 # port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# user = "resend"                   # provider-specific username
+# pass = "env(SMTP_PASSWORD)"       # set SMTP_PASSWORD in your .env
+# admin_email = "noreply@sekaei.app"
+# sender_name = "SekaEi"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

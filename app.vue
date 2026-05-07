@@ -3,6 +3,8 @@ import { ref, watch } from 'vue'
 import { useApi } from '~/composables/useApi'
 
 const { apiFetch } = useApi()
+const user = useSupabaseUser()
+
 onMounted(() => {
   apiFetch('/api/me').catch(() => {})
 })
@@ -21,7 +23,7 @@ watch(route, () => { mobileNavOpen.value = false })
       <nav class="hidden sm:flex gap-1">
         <NuxtLink to="/" class="nav-link">Home</NuxtLink>
         <NuxtLink to="/practice" class="nav-link">Practice</NuxtLink>
-        <NuxtLink to="/account" class="nav-link">Account</NuxtLink>
+        <NuxtLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</NuxtLink>
       </nav>
 
       <!-- Mobile hamburger -->
@@ -57,7 +59,7 @@ watch(route, () => { mobileNavOpen.value = false })
       >
         <NuxtLink to="/" class="nav-link-mobile" @click="mobileNavOpen = false">Home</NuxtLink>
         <NuxtLink to="/practice" class="nav-link-mobile" @click="mobileNavOpen = false">Practice</NuxtLink>
-        <NuxtLink to="/account" class="nav-link-mobile" @click="mobileNavOpen = false">Account</NuxtLink>
+        <NuxtLink to="/account" class="nav-link-mobile" @click="mobileNavOpen = false">{{ user ? 'Account' : 'Sign in' }}</NuxtLink>
       </nav>
     </Transition>
   </header>

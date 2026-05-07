@@ -25,6 +25,12 @@ export function useApi() {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options?.headers as Record<string, string> | undefined),
       },
+      async onResponseError({ response }) {
+        if (response.status === 401) {
+          await supabase.auth.signOut()
+          await navigateTo('/account')
+        }
+      },
     })
   }
 
