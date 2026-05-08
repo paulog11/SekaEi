@@ -11,6 +11,16 @@ vi.mock('~/server/utils/azure', () => ({
   runPronunciationAssessment: mockRunAssessment,
 }))
 
+const mockSupabaseUser = vi.fn()
+const mockRpcFn = vi.fn()
+const mockSupabaseClient = { rpc: mockRpcFn }
+const mockUseSupabase = vi.fn(() => mockSupabaseClient)
+
+vi.mock('~/server/utils/supabase', () => ({
+  useSupabaseUser: mockSupabaseUser,
+  useSupabase: mockUseSupabase,
+}))
+
 // Mock Nuxt/h3 server utilities that are auto-imported in Nitro context
 const mockRuntimeConfig = vi.fn()
 
@@ -46,6 +56,8 @@ const { default: handler } = await import('~/server/api/assess.post')
 // Helpers
 // ---------------------------------------------------------------------------
 
+const FAKE_USER = { id: 'user-123' }
+
 function makeEvent() {
   return {} // Nitro event object; mocked utilities ignore it
 }
@@ -69,11 +81,25 @@ function makeMultipartParts(overrides?: {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Default: authenticated user, under daily limit
+  mockSupabaseUser.mockResolvedValue(FAKE_USER)
+  mockRpcFn.mockResolvedValue({ data: 1, error: null })
+  mockUseSupabase.mockReturnValue(mockSupabaseClient)
 })
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe('assess.post — authentication', () => {
+  it('throws 401 when user is not authenticated', async () => {
+    const err = new Error('Not authenticated.') as Error & { statusCode: number }
+    err.statusCode = 401
+    mockSupabaseUser.mockRejectedValue(err)
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 401 })
+    expect(mockRunAssessment).not.toHaveBeenCalled()
+  })
+})
 
 describe('assess.post — credential validation', () => {
   it('throws 500 when azureSpeechKey is missing', async () => {

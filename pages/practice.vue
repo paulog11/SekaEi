@@ -56,15 +56,18 @@ function starsForPassage(passageId: string) {
 }
 
 function friendlyError(err: unknown): string {
-  const msg = (err as { data?: { message?: string } })?.data?.message ?? ''
+  const e = err as { status?: number; data?: { message?: string } }
+  if (e?.status === 401 || e?.status === 403)
+    return 'Your session has expired. Please sign in again.'
+  if (e?.status === 429)
+    return e?.data?.message ?? 'Too many requests. Please wait before trying again.'
+  const msg = e?.data?.message ?? ''
   if (msg.includes('No speech recognized') || msg.includes('NoMatch'))
     return 'No speech was detected. Make sure your microphone is working and try again.'
   if (msg.includes('Permission denied') || msg.includes('permission'))
     return 'Microphone access was denied. Check your browser permissions and try again.'
   if (msg.includes('Network') || msg.includes('fetch'))
     return 'Network error — check your connection and try again.'
-  if (msg.includes('Not authenticated') || msg.includes('Invalid or expired session'))
-    return 'Your session has expired. Please sign in again.'
   return msg || 'Assessment failed. Please try again.'
 }
 

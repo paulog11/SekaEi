@@ -229,7 +229,7 @@ describe('runPronunciationAssessment — error branches', () => {
     )
     await expect(
       runPronunciationAssessment(makeWavBuffer(), FAKE_TEXT, FAKE_KEY, FAKE_REGION),
-    ).rejects.toThrow('SDK internal error')
+    ).rejects.toThrow('Assessment failed. Please try again.')
     expect(mockRecognizer.close).toHaveBeenCalledOnce()
   })
 

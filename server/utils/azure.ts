@@ -1,6 +1,17 @@
 import sdk from 'microsoft-cognitiveservices-speech-sdk'
 import type { AssessmentResult } from '../../types/assessment'
 
+function classifyAzureError(detail: string): Error {
+  const d = detail.toLowerCase()
+  if (d.includes('quota') || d.includes('throttl') || d.includes('rate'))
+    return new Error('Service is busy. Please wait a moment and try again.')
+  if (d.includes('unauthorized') || d.includes('forbidden') || d.includes('access denied'))
+    return new Error('Speech service is unavailable. Please try again later.')
+  if (d.includes('network') || d.includes('connect') || d.includes('timeout'))
+    return new Error('Network error reaching speech service. Check your connection.')
+  return new Error('Assessment failed. Please try again.')
+}
+
 export async function runPronunciationAssessment(
   wavBuffer: Buffer,
   referenceText: string,
@@ -58,12 +69,14 @@ export async function runPronunciationAssessment(
           reject(new Error('No speech recognized. Please speak clearly and try again.'))
         } else {
           const detail = sdk.CancellationDetails.fromResult(result)
-          reject(new Error(`Recognition cancelled: ${detail.errorDetails ?? detail.reason}`))
+          console.error('[azure] Recognition cancelled:', detail.errorDetails ?? detail.reason)
+          reject(classifyAzureError(detail.errorDetails ?? String(detail.reason)))
         }
       },
       (err) => {
         recognizer.close()
-        reject(new Error(String(err)))
+        console.error('[azure] SDK error:', err)
+        reject(classifyAzureError(String(err)))
       },
     )
   })
