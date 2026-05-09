@@ -54,8 +54,8 @@ async function handleSignUp() {
     authError.value = 'Passwords do not match.'
     return
   }
-  if (password.value.length < 8) {
-    authError.value = 'Password must be at least 8 characters.'
+  if (password.value.length < 12) {
+    authError.value = 'Password must be at least 12 characters.'
     return
   }
   authLoading.value = true
@@ -328,7 +328,8 @@ async function handleAddPassage() {
             </div>
             <div class="flex flex-col gap-1.5">
               <label class="field-label" for="signup-password">Password</label>
-              <input id="signup-password" v-model="password" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
+              <input id="signup-password" v-model="password" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" minlength="12" required>
+              <p class="text-xs text-ink-lighter m-0">At least 12 characters with uppercase, lowercase, and a digit.</p>
             </div>
             <div class="flex flex-col gap-1.5">
               <label class="field-label" for="signup-confirm">Confirm password</label>

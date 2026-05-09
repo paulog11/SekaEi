@@ -62,13 +62,20 @@ function makeEvent() {
   return {} // Nitro event object; mocked utilities ignore it
 }
 
+function makeValidWavBuffer(size = 2000): Buffer {
+  const b = Buffer.alloc(size)
+  b.write('RIFF', 0, 'ascii')
+  b.write('WAVE', 8, 'ascii')
+  return b
+}
+
 function makeMultipartParts(overrides?: {
   audio?: Buffer | null
   referenceText?: string | null
 }) {
   const parts = []
   if (overrides?.audio !== null) {
-    parts.push({ name: 'audio', data: overrides?.audio ?? Buffer.from('fake-wav') })
+    parts.push({ name: 'audio', data: overrides?.audio ?? makeValidWavBuffer() })
   }
   if (overrides?.referenceText !== null) {
     parts.push({
@@ -133,7 +140,7 @@ describe('assess.post — multipart validation', () => {
 
   it('allows audio exactly at 4 MB limit', async () => {
     mockReadMultipart.mockResolvedValue([
-      { name: 'audio', data: Buffer.alloc(4 * 1024 * 1024) },
+      { name: 'audio', data: makeValidWavBuffer(4 * 1024 * 1024) },
       { name: 'referenceText', data: Buffer.from('Hello world') },
     ])
     mockRunAssessment.mockResolvedValue(mockAssessmentResult())
@@ -190,9 +197,8 @@ describe('assess.post — successful call', () => {
   })
 
   it('calls runPronunciationAssessment with correct arguments', async () => {
-    const audioData = Buffer.from('fake-wav-data')
+    const audioData = makeValidWavBuffer()
     const text = 'Hello world'
-    mockReadMultipart.mockResolvedValue(makeMultipartParts({ referenceText: text }))
     mockReadMultipart.mockResolvedValue([
       { name: 'audio', data: audioData },
       { name: 'referenceText', data: Buffer.from(text) },
@@ -216,7 +222,7 @@ describe('assess.post — successful call', () => {
   it('trims whitespace from referenceText before passing to assessment', async () => {
     const paddedText = '  Hello world  '
     mockReadMultipart.mockResolvedValue([
-      { name: 'audio', data: Buffer.from('fake') },
+      { name: 'audio', data: makeValidWavBuffer() },
       { name: 'referenceText', data: Buffer.from(paddedText) },
     ])
     mockRunAssessment.mockResolvedValue(mockAssessmentResult())
@@ -251,5 +257,87 @@ describe('assess.post — Azure error handling', () => {
       statusCode: 422,
       message: 'Assessment failed.',
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe('assess.post — audio strict validation', () => {
+  beforeEach(() => {
+    mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
+  })
+
+  it('throws 400 when audio is shorter than 1024 bytes', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: Buffer.alloc(500) },
+      { name: 'referenceText', data: Buffer.from('Hello') },
+    ])
+    await expect(handler(makeEvent())).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Audio too short.',
+    })
+  })
+
+  it('throws 415 when audio MIME is set and not audio/*', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', type: 'application/octet-stream', data: makeValidWavBuffer(2000) },
+      { name: 'referenceText', data: Buffer.from('Hello') },
+    ])
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 415 })
+  })
+
+  it('throws 400 when WAV magic bytes are missing', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: Buffer.alloc(2000) },
+      { name: 'referenceText', data: Buffer.from('Hello') },
+    ])
+    await expect(handler(makeEvent())).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Invalid WAV.',
+    })
+  })
+
+  it('accepts a valid WAV buffer', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: makeValidWavBuffer(2000) },
+      { name: 'referenceText', data: Buffer.from('Hello') },
+    ])
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await expect(handler(makeEvent())).resolves.toBeDefined()
+  })
+})
+
+describe('assess.post — reference text normalization', () => {
+  beforeEach(() => {
+    mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
+  })
+
+  it('strips control characters from referenceText', async () => {
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: makeValidWavBuffer(2000) },
+      { name: 'referenceText', data: Buffer.from('Hello\r\nworld') },
+    ])
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await handler(makeEvent())
+    expect(mockRunAssessment).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'Hello world',
+      expect.any(String),
+      expect.any(String),
+    )
+  })
+
+  it('NFC-normalizes referenceText', async () => {
+    // 'é' as decomposed (U+0065 U+0301) should become NFC composed (U+00E9)
+    const decomposed = 'café'
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: makeValidWavBuffer(2000) },
+      { name: 'referenceText', data: Buffer.from(decomposed, 'utf-8') },
+    ])
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await handler(makeEvent())
+    const passed = mockRunAssessment.mock.calls[0][1] as string
+    expect(passed).toBe('café')
+    expect(passed.length).toBe(4)
   })
 })

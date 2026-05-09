@@ -51,11 +51,29 @@ export default defineEventHandler(async (event) => {
     if (audioPart.data.length > 4 * 1024 * 1024) {
       throw createError({ statusCode: 413, message: 'Audio file too large (max 4 MB).' })
     }
+    if (audioPart.data.length < 1024) {
+      throw createError({ statusCode: 400, message: 'Audio too short.' })
+    }
+    if (audioPart.type && !audioPart.type.startsWith('audio/')) {
+      throw createError({ statusCode: 415, message: 'Unsupported audio type.' })
+    }
+    const head = audioPart.data.subarray(0, 12)
+    if (
+      head.length < 12 ||
+      head.toString('ascii', 0, 4) !== 'RIFF' ||
+      head.toString('ascii', 8, 12) !== 'WAVE'
+    ) {
+      throw createError({ statusCode: 400, message: 'Invalid WAV.' })
+    }
     if (!textPart?.data) {
       throw createError({ statusCode: 400, message: 'Missing referenceText field.' })
     }
 
-    const referenceText = textPart.data.toString('utf-8').trim()
+    const referenceText = textPart.data.toString('utf-8')
+      .normalize('NFC')
+      .replace(/[\x00-\x1F\x7F‎‏‪-‮⁦-⁩]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     if (!referenceText) {
       throw createError({ statusCode: 400, message: 'referenceText must not be empty.' })
     }
