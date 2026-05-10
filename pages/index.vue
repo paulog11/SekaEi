@@ -1,5 +1,10 @@
 <script setup lang="ts">
 useHead({ title: 'SekaEi — English Pronunciation Practice' })
+
+const user = useSupabaseUser()
+onMounted(() => {
+  if (user.value) navigateTo('/practice')
+})
 </script>
 
 <template>

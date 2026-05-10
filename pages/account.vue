@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { useHistory } from '~/composables/useHistory'
 import { useStreak } from '~/composables/useStreak'
-import { usePhonemeStats } from '~/composables/usePhonemeStats'
 import { useCustomPassages } from '~/composables/useCustomPassages'
-import { passageStars } from '~/composables/useProgress'
 import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 
 useHead({ title: 'Account — SekaEi' })
@@ -38,7 +35,6 @@ async function handleSignIn() {
     if (error) {
       authError.value = error.message
     } else {
-      // Claim any pre-auth anonymous device attempts — idempotent, safe to call each sign-in
       try {
         await apiFetch('/api/devices/claim', { method: 'POST', body: { deviceId: getOrCreateDeviceId() } })
       } catch { /* non-fatal */ }
@@ -64,8 +60,6 @@ async function handleSignUp() {
     if (error) {
       authError.value = error.message
     } else {
-      // Email confirmation is required — session is null until the user clicks the link.
-      // Device claim will happen in /confirm once the session is established.
       signupPending.value = true
       authError.value = null
     }
@@ -79,13 +73,8 @@ async function handleSignOut() {
 }
 
 // ── Authenticated user data ──────────────────────────────────────────────────
-const { getHistory } = useHistory()
 const { streak, fetchStreak, setGoal } = useStreak()
-const { weakest, fetchStats } = usePhonemeStats()
 const { items: customPassages, loading: passagesLoading, fetchPassages, addPassage, deletePassage } = useCustomPassages()
-
-const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
-const historyLoading = ref(false)
 
 const newPassageTitle = ref('')
 const newPassageText = ref('')
@@ -96,28 +85,10 @@ const goalInput = ref(5)
 
 watch(user, async (u) => {
   if (u) {
-    historyLoading.value = true
-    ;[history.value] = await Promise.all([
-      getHistory(),
-      fetchStreak(),
-      fetchStats(),
-      fetchPassages(),
-    ])
+    await Promise.all([fetchStreak(), fetchPassages()])
     goalInput.value = streak.value.goalMinutes
-    historyLoading.value = false
   }
 }, { immediate: true })
-
-const masteryRows = computed(() => {
-  const seen = new Map<string, { passageId: string; passageTitle: string; attempts: import('~/composables/useHistory').AttemptRecord[] }>()
-  for (const record of history.value) {
-    if (!seen.has(record.passageId)) {
-      seen.set(record.passageId, { passageId: record.passageId, passageTitle: record.passageTitle, attempts: [] })
-    }
-    seen.get(record.passageId)!.attempts.push(record)
-  }
-  return [...seen.values()].sort((a, b) => passageStars(b.attempts) - passageStars(a.attempts))
-})
 
 async function saveGoal() {
   await setGoal(goalInput.value)
@@ -143,6 +114,7 @@ async function handleAddPassage() {
 
     <!-- ── Signed-in view ── -->
     <template v-if="user">
+      <!-- Profile header -->
       <div class="w-full max-w-2xl flex items-center justify-between">
         <div>
           <p class="text-sm text-ink-light m-0">Signed in as</p>
@@ -151,26 +123,11 @@ async function handleAddPassage() {
         <button class="btn-secondary btn-sm" @click="handleSignOut">Sign out</button>
       </div>
 
-      <!-- Streak -->
+      <!-- Daily goal -->
       <section class="w-full max-w-2xl card">
-        <h2 class="text-base font-semibold text-ink mb-4">Practice Streak</h2>
-        <div class="flex gap-6 flex-wrap">
-          <div class="text-center">
-            <p class="text-3xl font-bold text-primary m-0">{{ streak.current }}</p>
-            <p class="text-xs text-ink-lighter m-0">Current streak</p>
-          </div>
-          <div class="text-center">
-            <p class="text-3xl font-bold text-ink m-0">{{ streak.longest }}</p>
-            <p class="text-xs text-ink-lighter m-0">Longest streak</p>
-          </div>
-          <div class="text-center">
-            <p class="text-sm font-semibold m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
-              {{ streak.todayMet ? '✓ Goal met today' : '○ Not yet today' }}
-            </p>
-          </div>
-        </div>
-        <div class="mt-4 flex items-center gap-3">
-          <label class="text-sm text-ink-medium" for="goal-input">Daily goal (minutes):</label>
+        <h2 class="text-base font-semibold text-ink mb-4">Daily Goal</h2>
+        <div class="flex items-center gap-3">
+          <label class="text-sm text-ink-medium" for="goal-input">Practice minutes per day:</label>
           <input
             id="goal-input"
             v-model.number="goalInput"
@@ -181,41 +138,11 @@ async function handleAddPassage() {
           >
           <button class="btn-secondary btn-sm" @click="saveGoal">Save</button>
         </div>
-      </section>
-
-      <!-- Phoneme focus list -->
-      <section v-if="weakest.length" class="w-full max-w-2xl card">
-        <h2 class="text-base font-semibold text-ink mb-3">Phonemes to Focus On</h2>
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="stat in weakest"
-            :key="stat.phoneme"
-            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-mono bg-red-50 border border-red-200 text-red-700"
-          >
-            /{{ stat.phoneme }}/ <span class="text-xs text-red-400">{{ stat.avgScore }}%</span>
+        <p class="text-xs text-ink-lighter mt-2 m-0">
+          Today's goal: <span :class="streak.todayMet ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'">
+            {{ streak.todayMet ? 'Met ✓' : 'Not yet' }}
           </span>
-        </div>
-      </section>
-
-      <!-- Passage mastery -->
-      <section v-if="historyLoading || masteryRows.length" class="w-full max-w-2xl">
-        <h2 class="text-base font-semibold text-ink-medium mb-3">Passage Mastery</h2>
-        <p v-if="historyLoading" class="text-sm text-ink-lighter m-0">Loading…</p>
-        <div v-else class="flex flex-col gap-2">
-          <div
-            v-for="row in masteryRows"
-            :key="row.passageId"
-            class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5"
-          >
-            <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink mr-3">{{ row.passageTitle }}</span>
-            <div class="flex items-center gap-3 shrink-0">
-              <span class="text-xs text-ink-lighter">{{ row.attempts.length }} attempt{{ row.attempts.length !== 1 ? 's' : '' }}</span>
-              <span class="flex gap-px" :aria-label="`${passageStars(row.attempts)} out of 3 stars`">
-                <span v-for="n in 3" :key="n" :class="['star text-sm', { 'star-lit': passageStars(row.attempts) >= n }]">★</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        </p>
       </section>
 
       <!-- Custom passages -->

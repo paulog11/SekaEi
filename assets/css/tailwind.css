@@ -8,13 +8,23 @@
   html, body {
     @apply bg-white text-ink font-sans antialiased;
     margin: 0;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @layer components {
   /* Layout */
   .container-page {
-    @apply max-w-page mx-auto px-5 pt-8 pb-16;
+    @apply max-w-page mx-auto px-5 pt-8 pb-28 sm:pb-16 overflow-x-hidden;
   }
 
   /* Buttons */
@@ -77,6 +87,15 @@
            rounded-md min-h-[44px] hover:bg-surface;
   }
   .nav-link-mobile.router-link-exact-active { @apply text-primary bg-primary-50; }
+
+  /* Bottom tab bar */
+  .bottom-tab {
+    @apply flex-1 flex flex-col items-center justify-center gap-1
+           py-2 min-h-[56px] min-w-[44px]
+           text-ink-light no-underline
+           transition-colors duration-150;
+  }
+  .bottom-tab-active { @apply text-primary; }
 
   /* Toggle buttons */
   .toggle-btn {
