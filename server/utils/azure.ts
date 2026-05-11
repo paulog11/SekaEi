@@ -27,7 +27,7 @@ export async function runPronunciationAssessment(
   // Azure SDK expects the WAV data without the 44-byte header when using PushStream with explicit format
   // We strip the header here
   const pcmData = wavBuffer.slice(44)
-  pushStream.write(pcmData)
+  pushStream.write(pcmData.buffer.slice(pcmData.byteOffset, pcmData.byteOffset + pcmData.byteLength) as ArrayBuffer)
   pushStream.close()
 
   const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream)

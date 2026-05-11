@@ -31,7 +31,7 @@ export function useApi() {
           await navigateTo('/account')
         }
       },
-    })
+    }) as Promise<T>
   }
 
   return { apiFetch, getDeviceId: getOrCreateDeviceId }

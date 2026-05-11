@@ -4,9 +4,10 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const tabs = [
-  { to: '/practice', label: 'Practice', aria: 'Practice tab' },
-  { to: '/progress', label: 'Progress', aria: 'Progress tab' },
-  { to: '/account',  label: 'Account',  aria: 'Account tab'  },
+  { to: '/practice',     label: 'Practice',     aria: 'Practice tab'     },
+  { to: '/real-english', label: 'Idioms',        aria: 'Real English tab' },
+  { to: '/progress',     label: 'Progress',      aria: 'Progress tab'     },
+  { to: '/account',      label: 'Account',       aria: 'Account tab'      },
 ]
 
 function isActive(to: string) {
@@ -30,8 +31,15 @@ function isActive(to: string) {
         class="bottom-tab"
         :class="{ 'bottom-tab-active': isActive(tab.to) }"
       >
+        <!-- Real English: speech bubble -->
+        <template v-if="tab.to === '/real-english'">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 4.5A9 9 0 1 0 12 3a9 9 0 0 0-9 9c0 1.7.47 3.29 1.29 4.64L3 21l4.36-1.29A8.96 8.96 0 0 0 12 21" />
+          </svg>
+        </template>
+
         <!-- Practice: microphone -->
-        <template v-if="tab.to === '/practice'">
+        <template v-else-if="tab.to === '/practice'">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="9" y="2" width="6" height="11" rx="3" />
             <path stroke-linecap="round" d="M5 10a7 7 0 0 0 14 0" />

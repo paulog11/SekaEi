@@ -162,8 +162,8 @@ describe('runPronunciationAssessment — header stripping', () => {
     await runPronunciationAssessment(wav, FAKE_TEXT, FAKE_KEY, FAKE_REGION)
 
     expect(mockPushStream.write).toHaveBeenCalledOnce()
-    const writtenArg = mockPushStream.write.mock.calls[0][0] as Buffer
-    expect(writtenArg.length).toBe(200) // stripped 44-byte header
+    const writtenArg = mockPushStream.write.mock.calls[0][0] as ArrayBuffer
+    expect(writtenArg.byteLength).toBe(200) // stripped 44-byte header
   })
 
   it('closes the push stream after writing', async () => {
@@ -179,8 +179,8 @@ describe('runPronunciationAssessment — header stripping', () => {
       onSuccess(makeResult('RecognizedSpeech'))
     })
     await runPronunciationAssessment(makeWavBuffer(0), FAKE_TEXT, FAKE_KEY, FAKE_REGION)
-    const writtenArg = mockPushStream.write.mock.calls[0][0] as Buffer
-    expect(writtenArg.length).toBe(0)
+    const writtenArg = mockPushStream.write.mock.calls[0][0] as ArrayBuffer
+    expect(writtenArg.byteLength).toBe(0)
   })
 })
 

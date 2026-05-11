@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AssessmentResult } from '~/types/assessment'
+import type { AssessmentResult, OverallPronunciationAssessment } from '~/types/assessment'
 
 const props = defineProps<{
   result: AssessmentResult
@@ -39,13 +39,13 @@ function diffWordClass(errorType: string): string {
   return 'diff-word-ok'
 }
 
-const scoreKeys = {
-  AccuracyScore:    'Accuracy',
-  FluencyScore:     'Fluency',
-  CompletenessScore:'Completeness',
-  PronScore:        'Overall',
-  ProsodyScore:     'Prosody',
-} as const
+const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: string }> = [
+  { key: 'AccuracyScore',     label: 'Accuracy'     },
+  { key: 'FluencyScore',      label: 'Fluency'      },
+  { key: 'CompletenessScore', label: 'Completeness' },
+  { key: 'PronScore',         label: 'Overall'      },
+  { key: 'ProsodyScore',      label: 'Prosody'      },
+]
 </script>
 
 <template>
@@ -59,16 +59,16 @@ const scoreKeys = {
     <!-- Score grid: 2-up on mobile, 5-up on sm+ -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
       <div
-        v-for="(label, key) in scoreKeys"
+        v-for="{ key, label } in scoreKeys"
         :key="key"
         class="card-soft flex flex-col items-center py-3"
       >
-        <template v-if="result.PronunciationAssessment[key as keyof typeof result.PronunciationAssessment] !== undefined">
+        <template v-if="result.PronunciationAssessment[key] !== undefined">
           <span
             class="text-3xl font-bold leading-none"
-            :style="{ color: scoreColor(result.PronunciationAssessment[key as keyof typeof result.PronunciationAssessment] as number) }"
+            :style="{ color: scoreColor(result.PronunciationAssessment[key] as number) }"
           >
-            {{ Math.round(result.PronunciationAssessment[key as keyof typeof result.PronunciationAssessment] as number) }}
+            {{ Math.round(result.PronunciationAssessment[key] as number) }}
           </span>
           <span class="text-xs text-ink-light mt-1">{{ label }}</span>
         </template>

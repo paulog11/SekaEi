@@ -2,15 +2,16 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
+const alias = { '~': resolve(__dirname, '.') }
+
 export default defineConfig({
   plugins: [vue()],
+  resolve: { alias },
   test: {
-    alias: {
-      '~': resolve(__dirname, '.'),
-    },
     projects: [
       {
         plugins: [vue()],
+        resolve: { alias },
         test: {
           name: 'node',
           include: [
@@ -28,6 +29,7 @@ export default defineConfig({
       },
       {
         plugins: [vue()],
+        resolve: { alias },
         test: {
           name: 'dom',
           include: [

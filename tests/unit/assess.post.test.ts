@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { H3Event } from 'h3'
 import { mockAssessmentResult } from '../fixtures/mockAssessmentResult'
 
 // ---------------------------------------------------------------------------
@@ -59,7 +60,7 @@ const { default: handler } = await import('~/server/api/assess.post')
 const FAKE_USER = { id: 'user-123' }
 
 function makeEvent() {
-  return {} // Nitro event object; mocked utilities ignore it
+  return {} as unknown as H3Event // Nitro event object; mocked utilities ignore it
 }
 
 function makeValidWavBuffer(size = 2000): Buffer {
