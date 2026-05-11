@@ -6,11 +6,13 @@ const route = useRoute()
 const tabs = [
   { to: '/practice',     label: 'Practice',     aria: 'Practice tab'     },
   { to: '/real-english', label: 'Idioms',        aria: 'Real English tab' },
-  { to: '/progress',     label: 'Progress',      aria: 'Progress tab'     },
+  { to: '/',             label: 'Progress',      aria: 'Progress tab'     },
+  { to: '/dashboard',    label: 'Dashboard',     aria: 'Dashboard tab'    },
   { to: '/account',      label: 'Account',       aria: 'Account tab'      },
 ]
 
 function isActive(to: string) {
+  if (to === '/') return route.path === '/'
   return route.path === to || route.path.startsWith(to + '/')
 }
 </script>
@@ -49,11 +51,21 @@ function isActive(to: string) {
         </template>
 
         <!-- Progress: bar chart -->
-        <template v-else-if="tab.to === '/progress'">
+        <template v-else-if="tab.to === '/'">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3"  y="12" width="4" height="9" rx="1" />
             <rect x="10" y="7"  width="4" height="14" rx="1" />
             <rect x="17" y="3"  width="4" height="18" rx="1" />
+          </svg>
+        </template>
+
+        <!-- Dashboard: grid squares -->
+        <template v-else-if="tab.to === '/dashboard'">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
           </svg>
         </template>
 

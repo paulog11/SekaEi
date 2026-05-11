@@ -2,7 +2,10 @@
 
 ## What this app is
 
-SekaEi is an English pronunciation practice tool. A user reads a passage aloud into their webcam; the app returns per-word and per-phoneme accuracy scores powered by Azure AI Speech Pronunciation Assessment.
+SekaEi is an English learning tool for Japanese learners. It currently has two tracks:
+
+1. **Pronunciation Practice** — a user reads a passage aloud; the app returns per-word and per-phoneme accuracy scores powered by Azure AI Speech Pronunciation Assessment.
+2. **Real English** — an idiom/slang challenge. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
 
 The name "SekaEi" is intentionally unexplained — treat it as a proper noun.
 
@@ -13,8 +16,8 @@ The name "SekaEi" is intentionally unexplained — treat it as a proper noun.
 - **Privacy first.** Video recordings never leave the browser. Only the extracted audio WAV is sent to the server (and discarded after scoring). Do not add any video upload or storage feature without explicit instruction.
 - **Azure key must stay server-side.** The key lives in `runtimeConfig` (Nitro), never in `runtimeConfig.public`. Never move it to the client bundle.
 - **Styling: Tailwind CSS.** The project uses `@nuxtjs/tailwindcss` (v3). Token config lives in `tailwind.config.ts`; the component layer (`@layer components`) is in `assets/css/tailwind.css`. When touching a component, migrate its `<style scoped>` to Tailwind utilities. Do not introduce a separate component library (shadcn, etc.) without being asked.
-- **No auth.** There are no user accounts for the MVP. Don't add auth plumbing unless asked.
 - **TypeScript strict.** All new files must pass `vue-tsc --noEmit` in strict mode.
+- **State management: Pinia.** Feature-level state lives in `stores/`. Use the Vue 3 setup store syntax (`defineStore('id', () => { ... })`).
 
 ---
 
@@ -59,6 +62,8 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 
 ## Key files and their roles
 
+### Pronunciation track
+
 | File | Purpose |
 |------|---------|
 | `server/utils/azure.ts` | Azure SDK invocation. Change here to swap pronunciation providers. |
@@ -67,12 +72,37 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `composables/useWavEncoder.ts` | Accepts `Float32Array` + source sample rate → returns 16 kHz mono WAV `Blob`. Downsamples if needed. |
 | `public/worklets/pcm-capture.js` | `AudioWorkletProcessor`. Slices input buffer and posts `{ type: 'pcm', data: Float32Array }` to main thread. |
 | `components/Recorder.vue` | Camera preview (`srcObject` live stream) + post-recording `<video controls>` playback. |
-| `components/WordChip.vue` | Colour-coded word badge. Green ≥80, amber 60–79, red <60. Phoneme breakdown in CSS tooltip on hover. |
-| `components/ScoreDisplay.vue` | Renders overall score cards (Accuracy, Fluency, Completeness, Prosody, Overall) + word grid. |
-| `pages/index.vue` | Single page. Passage selector (radio cards) + freeform textarea. Wires Recorder → assess → ScoreDisplay. |
+| `components/WordChip.vue` | Colour-coded word badge. Green ≥80, amber 60–79, red <60. Phoneme breakdown in popover on tap/hover. |
+| `components/ScoreDisplay.vue` | Overall score cards (Accuracy, Fluency, Completeness, Prosody, Overall) + word grid + diff view. |
+| `pages/practice.vue` | Passage selector (radio cards) + freeform textarea. Wires Recorder → assess → ScoreDisplay. |
 | `types/assessment.ts` | `AzureWord`, `AzurePhoneme`, `AssessmentResult` — shape returned by `/api/assess`. |
-| `types/passages.ts` | `SAMPLE_PASSAGES` array. Three built-in passages: Interstellar, The Great Dictator, Rocky Balboa. |
-| `nuxt.config.ts` | `runtimeConfig.azureSpeechKey` and `runtimeConfig.azureSpeechRegion` (server-only). |
+| `types/passages.ts` | `Passage` interface + `SAMPLE_PASSAGES` array (Interstellar, The Great Dictator, Rocky Balboa). |
+
+### Real English track
+
+| File | Purpose |
+|------|---------|
+| `types/idioms.ts` | `IdiomChallenge` interface — `id`, `phrase`, `literalImageUrl`, `figurativeImageUrl`, `distractorImageUrls`, `audioUrl?`, `explanation`. |
+| `mocks/mockIdioms.ts` | `MOCK_IDIOMS: IdiomChallenge[]` — 3 seed entries (Cold feet, Break a leg, Bite the bullet) using `placehold.co` URLs. Replace with real image paths under `public/images/idioms/` as assets are added. |
+| `stores/idiomLabStore.ts` | Pinia store. Manages `currentIndex`, `hasGuessedCorrectly`, `selectedAnswer`. Computes `currentChallenge` and `shuffledOptions` (Fisher-Yates on figurative + distractors). Actions: `submitAnswer`, `nextChallenge`. |
+| `components/IdiomLabView.vue` | Split-screen UI: literal image + blurred phrase on left; 2×2 option grid on right. Phrase revealed only after "Play Audio" is clicked. Correct answer → green border + checkmark + explanation card. Wrong answer → red border + ✗. |
+| `pages/real-english.vue` | Route `/real-english`. Renders `<IdiomLabView />`. |
+| `public/images/idioms/` | Static image assets for idiom challenges. Target: WebP, 800×800px, <150 KB per image. |
+
+### Shared / infrastructure
+
+| File | Purpose |
+|------|---------|
+| `nuxt.config.ts` | Modules: `tailwindcss`, `supabase`, `pinia`. Server-only `runtimeConfig`: `azureSpeechKey`, `azureSpeechRegion`, `supabaseServiceKey`. |
+| `types/database.types.ts` | Supabase DB type stub. Regenerate with `pnpm dlx supabase gen types typescript --project-id <id>` when schema changes. |
+| `composables/useApi.ts` | Typed `$fetch` wrapper used by client composables. |
+| `composables/useHistory.ts` | Fetches attempt history for the current user. |
+| `composables/useProgress.ts` | Aggregates score trends for the progress page. |
+| `composables/useStreak.ts` | Computes daily practice streak. |
+| `composables/usePhonemeStats.ts` | Per-phoneme accuracy aggregation across attempts. |
+| `server/api/attempts.post.ts` | Saves a completed attempt to Supabase. |
+| `server/api/attempts.get.ts` | Returns attempt history for the authenticated user. |
+| `server/api/me.get.ts` | Returns the current user profile. |
 
 ---
 
@@ -93,11 +123,11 @@ Used in `WordChip.vue` and consistently throughout the UI:
 
 | Threshold | Class | Colour |
 |-----------|-------|--------|
-| AccuracyScore ≥ 80 | `chip--good` | Green `#d1fae5 / #065f46` |
-| AccuracyScore 60–79 | `chip--ok` | Amber `#fef3c7 / #92400e` |
-| AccuracyScore < 60 | `chip--bad` | Red `#fee2e2 / #991b1b` |
-| ErrorType = Omission | `chip--omission` | Grey + strikethrough |
-| ErrorType = Insertion | `chip--insertion` | Purple |
+| AccuracyScore ≥ 80 | `chip-good` | Green `#d1fae5 / #065f46` |
+| AccuracyScore 60–79 | `chip-ok` | Amber `#fef3c7 / #92400e` |
+| AccuracyScore < 60 | `chip-bad` | Red `#fee2e2 / #991b1b` |
+| ErrorType = Omission | `chip-omission` | Grey + strikethrough |
+| ErrorType = Insertion | `chip-insertion` | Purple |
 
 ---
 
@@ -117,9 +147,11 @@ pnpm test:coverage # coverage report
 
 ## Testing
 
-Framework: **Vitest 2.x** with two environments:
+Framework: **Vitest 3.x** with two environments:
 - `node` — server files and pure JS (WAV encoder, Azure util, Nitro handler, worklet, passages)
 - `happy-dom` — Vue composables that use `ref`/`watch`
+
+The `resolve.alias` (`~` → repo root) must be declared on **both** the root config and each `projects` entry in `vitest.config.ts` — Vitest 3 does not inherit root alias into project entries.
 
 | Test file | What it covers |
 |-----------|---------------|
@@ -136,13 +168,11 @@ Shared fixture: `tests/fixtures/mockAssessmentResult.ts` — typed helper to bui
 
 ---
 
-## What's out of scope (MVP)
+## What's out of scope (deferred)
 
 Do not add these unless explicitly asked:
 
-- User accounts or auth
 - Cloud storage / video upload
 - Streaming / real-time scoring (current flow is record-then-score)
 - Multi-language support (Azure supports 33 locales — just change `speechRecognitionLanguage` in `azure.ts`)
-- Tests (Vitest / Playwright)
-- A UI component library
+- Real English quiz logic beyond what exists: audio playback, scoring persistence, spaced repetition

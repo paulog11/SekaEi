@@ -16,10 +16,10 @@ onMounted(() => {
       <NuxtLink to="/" class="text-lg font-bold tracking-tight text-ink no-underline">SekaEi</NuxtLink>
 
       <nav class="flex gap-1">
-        <NuxtLink to="/" class="nav-link">Home</NuxtLink>
+        <NuxtLink to="/" class="nav-link">Progress</NuxtLink>
         <NuxtLink to="/practice" class="nav-link">Practice</NuxtLink>
         <NuxtLink to="/real-english" class="nav-link">Real English</NuxtLink>
-        <NuxtLink to="/progress" class="nav-link">Progress</NuxtLink>
+        <NuxtLink to="/dashboard" class="nav-link">Dashboard</NuxtLink>
         <NuxtLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</NuxtLink>
       </nav>
     </div>
