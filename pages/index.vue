@@ -3,9 +3,10 @@ import { useHistory } from '~/composables/useHistory'
 import { useStreak } from '~/composables/useStreak'
 import { usePhonemeStats } from '~/composables/usePhonemeStats'
 import { passageStars } from '~/composables/useProgress'
+import { SAMPLE_PASSAGES } from '~/types/passages'
 
 definePageMeta({ middleware: 'auth' })
-useHead({ title: 'Progress — SekaEi' })
+useHead({ title: 'Dashboard — SekaEi' })
 
 const user = useSupabaseUser()
 const { getHistory } = useHistory()
@@ -13,19 +14,29 @@ const { streak, fetchStreak } = useStreak()
 const { weakest, fetchStats } = usePhonemeStats()
 
 const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
-const historyLoading = ref(false)
+const loading = ref(false)
 
 watch(user, async (u) => {
   if (u) {
-    historyLoading.value = true
+    loading.value = true
     ;[history.value] = await Promise.all([
       getHistory(),
       fetchStreak(),
       fetchStats(),
     ])
-    historyLoading.value = false
+    loading.value = false
   }
 }, { immediate: true })
+
+const totalAttempts = computed(() => history.value.length)
+
+const avgOverall = computed(() => {
+  if (!history.value.length) return 0
+  const sum = history.value.reduce((acc, r) => acc + r.scores.overall, 0)
+  return Math.round(sum / history.value.length)
+})
+
+const recentAttempts = computed(() => [...history.value].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5))
 
 const masteryRows = computed(() => {
   const seen = new Map<string, { passageId: string; passageTitle: string; attempts: import('~/composables/useHistory').AttemptRecord[] }>()
@@ -37,35 +48,71 @@ const masteryRows = computed(() => {
   }
   return [...seen.values()].sort((a, b) => passageStars(b.attempts) - passageStars(a.attempts))
 })
+
+const passagesStarted = computed(() => masteryRows.value.length)
+const passagesMastered = computed(() => masteryRows.value.filter(r => passageStars(r.attempts) === 3).length)
+
+function scoreColor(score: number) {
+  if (score >= 80) return 'text-green-600'
+  if (score >= 60) return 'text-amber-600'
+  return 'text-red-600'
+}
+
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+const suggestedPassage = computed(() => {
+  if (!history.value.length) return SAMPLE_PASSAGES[0]
+  const practicedIds = new Set(history.value.map(r => r.passageId))
+  return SAMPLE_PASSAGES.find(p => !practicedIds.has(p.id)) ?? null
+})
 </script>
 
 <template>
-  <main class="container-page flex flex-col gap-8">
-    <h1 class="sr-only">Progress</h1>
+  <main class="container-page flex flex-col gap-6">
+    <h1 class="text-lg font-bold text-ink m-0">Dashboard</h1>
 
-    <!-- Streak -->
-    <section class="card">
-      <h2 class="text-base font-semibold text-ink mb-4">Practice Streak</h2>
-      <div class="flex gap-6 flex-wrap">
-        <div class="text-center">
-          <p class="text-3xl font-bold text-primary m-0">{{ streak.current }}</p>
-          <p class="text-xs text-ink-lighter m-0">Current streak</p>
-        </div>
-        <div class="text-center">
-          <p class="text-3xl font-bold text-ink m-0">{{ streak.longest }}</p>
-          <p class="text-xs text-ink-lighter m-0">Longest streak</p>
-        </div>
-        <div class="text-center self-center">
-          <p class="text-sm font-semibold m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
-            {{ streak.todayMet ? '✓ Goal met today' : '○ Not yet today' }}
-          </p>
-        </div>
+    <!-- Stat tiles -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="card-soft flex flex-col gap-0.5">
+        <p class="text-2xl font-bold text-primary m-0">{{ streak.current }}</p>
+        <p class="text-xs text-ink-lighter m-0">Day streak</p>
+        <p class="text-[11px] m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
+          {{ streak.todayMet ? '✓ done today' : '○ not yet' }}
+        </p>
       </div>
+      <div class="card-soft flex flex-col gap-0.5">
+        <p class="text-2xl font-bold text-ink m-0">{{ totalAttempts }}</p>
+        <p class="text-xs text-ink-lighter m-0">Total sessions</p>
+      </div>
+      <div class="card-soft flex flex-col gap-0.5">
+        <p class="text-2xl font-bold m-0" :class="avgOverall ? scoreColor(avgOverall) : 'text-ink-lighter'">
+          {{ avgOverall || '—' }}
+        </p>
+        <p class="text-xs text-ink-lighter m-0">Avg. score</p>
+      </div>
+      <div class="card-soft flex flex-col gap-0.5">
+        <p class="text-2xl font-bold text-ink m-0">
+          {{ passagesMastered }}<span class="text-base text-ink-lighter font-normal">/{{ passagesStarted }}</span>
+        </p>
+        <p class="text-xs text-ink-lighter m-0">Mastered</p>
+      </div>
+    </div>
+
+    <!-- Suggested next passage -->
+    <section v-if="suggestedPassage" class="card flex items-center gap-4">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs uppercase tracking-wider text-ink-lighter m-0 mb-1">Up next</p>
+        <p class="text-sm font-semibold text-ink m-0 truncate">{{ suggestedPassage.title }}</p>
+        <p class="text-xs text-ink-light m-0 mt-0.5 line-clamp-2">{{ suggestedPassage.text }}</p>
+      </div>
+      <NuxtLink to="/practice" class="btn-primary btn-sm shrink-0">Practice</NuxtLink>
     </section>
 
-    <!-- Phoneme focus list -->
+    <!-- Weak phonemes -->
     <section v-if="weakest.length" class="card">
-      <h2 class="text-base font-semibold text-ink mb-3">Phonemes to Focus On</h2>
+      <h2 class="text-sm font-semibold text-ink mb-3">Phonemes to work on</h2>
       <div class="flex flex-wrap gap-2">
         <span
           v-for="stat in weakest"
@@ -77,10 +124,30 @@ const masteryRows = computed(() => {
       </div>
     </section>
 
+    <!-- Recent sessions -->
+    <section v-if="recentAttempts.length">
+      <h2 class="text-sm font-semibold text-ink-medium mb-3">Recent sessions</h2>
+      <div class="flex flex-col gap-2">
+        <div
+          v-for="attempt in recentAttempts"
+          :key="attempt.timestamp"
+          class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5"
+        >
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-ink m-0 truncate">{{ attempt.passageTitle }}</p>
+            <p class="text-xs text-ink-lighter m-0">{{ formatDate(attempt.timestamp) }}</p>
+          </div>
+          <span class="text-sm font-bold shrink-0" :class="scoreColor(attempt.scores.overall)">
+            {{ attempt.scores.overall }}
+          </span>
+        </div>
+      </div>
+    </section>
+
     <!-- Passage mastery -->
-    <section v-if="historyLoading || masteryRows.length">
-      <h2 class="text-base font-semibold text-ink-medium mb-3">Passage Mastery</h2>
-      <p v-if="historyLoading" class="text-sm text-ink-lighter m-0">Loading…</p>
+    <section v-if="loading || masteryRows.length">
+      <h2 class="text-sm font-semibold text-ink-medium mb-3">Passage mastery</h2>
+      <p v-if="loading" class="text-sm text-ink-lighter m-0">Loading…</p>
       <div v-else class="flex flex-col gap-2">
         <NuxtLink
           v-for="row in masteryRows"
@@ -88,7 +155,7 @@ const masteryRows = computed(() => {
           :to="`/attempt/${row.passageId}`"
           class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
         >
-          <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink mr-3">{{ row.passageTitle }}</span>
+          <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink">{{ row.passageTitle }}</span>
           <div class="flex items-center gap-3 shrink-0">
             <span class="text-xs text-ink-lighter">{{ row.attempts.length }} attempt{{ row.attempts.length !== 1 ? 's' : '' }}</span>
             <span class="flex gap-px" :aria-label="`${passageStars(row.attempts)} out of 3 stars`">
@@ -100,7 +167,7 @@ const masteryRows = computed(() => {
     </section>
 
     <!-- Empty state -->
-    <section v-if="!historyLoading && !masteryRows.length && !weakest.length" class="text-center py-16 text-ink-lighter">
+    <section v-if="!loading && !history.length" class="text-center py-16 text-ink-lighter">
       <p class="text-base m-0">No practice sessions yet.</p>
       <NuxtLink to="/practice" class="btn-primary mt-4 inline-flex">Start practising</NuxtLink>
     </section>
