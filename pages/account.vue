@@ -72,6 +72,43 @@ async function handleSignOut() {
   await supabase.auth.signOut()
 }
 
+// ── Display name ─────────────────────────────────────────────────────────────
+const displayName = ref('')
+const displayNameInput = ref('')
+const displayNameSaving = ref(false)
+const displayNameError = ref<string | null>(null)
+const displayNameSuccess = ref(false)
+
+async function fetchDisplayName() {
+  const { apiFetch: fetch } = useApi()
+  try {
+    const data = await fetch<{ user: { displayName: string | null } }>('/api/me')
+    displayName.value = data.user.displayName ?? ''
+    displayNameInput.value = data.user.displayName ?? ''
+  } catch { /* non-fatal */ }
+}
+
+async function saveDisplayName() {
+  displayNameError.value = null
+  displayNameSuccess.value = false
+  const trimmed = displayNameInput.value.trim()
+  if (!trimmed) { displayNameError.value = 'Display name cannot be empty.'; return }
+  if (trimmed.length > 30) { displayNameError.value = 'Must be 30 characters or fewer.'; return }
+  displayNameSaving.value = true
+  try {
+    const data = await apiFetch<{ displayName: string }>('/api/me', { method: 'PATCH', body: { displayName: trimmed } })
+    displayName.value = data.displayName
+    displayNameInput.value = data.displayName
+    displayNameSuccess.value = true
+    setTimeout(() => { displayNameSuccess.value = false }, 3000)
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string } })?.data?.message
+    displayNameError.value = msg ?? 'Failed to save display name.'
+  } finally {
+    displayNameSaving.value = false
+  }
+}
+
 // ── Authenticated user data ──────────────────────────────────────────────────
 const { streak, fetchStreak, setGoal } = useStreak()
 const { items: customPassages, loading: passagesLoading, fetchPassages, addPassage, deletePassage } = useCustomPassages()
@@ -85,7 +122,7 @@ const goalInput = ref(5)
 
 watch(user, async (u) => {
   if (u) {
-    await Promise.all([fetchStreak(), fetchPassages()])
+    await Promise.all([fetchStreak(), fetchPassages(), fetchDisplayName()])
     goalInput.value = streak.value.goalMinutes
   }
 }, { immediate: true })
@@ -122,6 +159,32 @@ async function handleAddPassage() {
         </div>
         <button class="btn-secondary btn-sm" @click="handleSignOut">Sign out</button>
       </div>
+
+      <!-- Display name -->
+      <section class="w-full max-w-2xl card">
+        <h2 class="text-base font-semibold text-ink mb-4">Display Name</h2>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="displayNameInput"
+            class="field-input flex-1"
+            type="text"
+            placeholder="Choose a display name"
+            maxlength="30"
+            :disabled="displayNameSaving"
+            @keydown.enter="saveDisplayName"
+          >
+          <button
+            class="btn-secondary btn-sm shrink-0"
+            :disabled="displayNameSaving || !displayNameInput.trim() || displayNameInput.trim() === displayName"
+            @click="saveDisplayName"
+          >
+            {{ displayNameSaving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+        <p class="text-xs text-ink-lighter mt-1.5 m-0">{{ displayNameInput.trim().length }}/30 characters. Letters, numbers, spaces, hyphens, underscores, and periods only.</p>
+        <p v-if="displayNameError" class="text-sm text-red-600 mt-2 m-0">{{ displayNameError }}</p>
+        <p v-if="displayNameSuccess" class="text-sm text-green-600 mt-2 m-0">Display name saved.</p>
+      </section>
 
       <!-- Daily goal -->
       <section class="w-full max-w-2xl card">
