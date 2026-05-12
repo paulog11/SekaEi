@@ -84,44 +84,6 @@ function optionClass(url: string): string {
             class="w-full aspect-video object-cover"
           />
         </div>
-
-        <!-- Play Audio + phrase -->
-        <div class="flex flex-col items-center gap-3">
-          <button
-            class="btn-secondary flex items-center gap-2 self-stretch sm:self-auto"
-            @click="onPlayAudio"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-5 h-5 shrink-0"
-              aria-hidden="true"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-            Play Audio
-          </button>
-
-          <p
-            :class="[
-              'text-2xl sm:text-3xl font-bold text-ink text-center transition-all duration-300',
-              phraseRevealed ? 'blur-none' : 'blur-sm select-none',
-            ]"
-            :aria-hidden="!phraseRevealed"
-          >
-            {{ challenge.phrase }}
-          </p>
-          <p v-if="!phraseRevealed" class="text-xs text-ink-lighter -mt-2">
-            Press Play Audio to reveal
-          </p>
-        </div>
       </div>
 
       <!-- Right: Figurative options grid -->

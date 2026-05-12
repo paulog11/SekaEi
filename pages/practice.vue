@@ -151,7 +151,7 @@ function onRecordAgain() {
     <section class="mb-5">
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Choose a passage</h2>
 
-      <div class="flex gap-2 -mx-5 px-5 pb-1 overflow-x-auto snap-x snap-mandatory scrollbar-none">
+      <div class="flex gap-2 px-1 pb-1 overflow-x-auto snap-x snap-mandatory scrollbar-none">
         <!-- Passage chips -->
         <button
           v-for="passage in allPassages"
