@@ -7,3 +7,9 @@ export interface IdiomChallenge {
   audioUrl?: string
   explanation: string
 }
+
+export interface IdiomPack {
+  id: string
+  title: string
+  challenges: IdiomChallenge[]
+}
