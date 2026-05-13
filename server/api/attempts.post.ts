@@ -1,6 +1,6 @@
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 import { computeStreak } from '../utils/updateStreak'
-import { extractPhonemeUpserts } from '../utils/updatePhonemeStats'
+import { extractPhonemeDelta } from '../utils/updatePhonemeStats'
 import type { AssessmentResult } from '~/types/assessment'
 
 export default defineEventHandler(async (event) => {
@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
     updatePhonemeStatsSilently(db, authUser.id, azureResult as AssessmentResult)
   }
 
+
   return { attempt: data }
 })
 
@@ -80,29 +81,7 @@ async function updatePhonemeStatsSilently(
   result: AssessmentResult,
 ) {
   try {
-    const upserts = extractPhonemeUpserts(userId, result)
-
-    // Fetch existing counts for the affected phonemes
-    const phonemes = upserts.map(u => u.phoneme)
-    const { data: existing } = await db
-      .from('phoneme_stats')
-      .select('phoneme, attempts_count, score_sum')
-      .eq('user_id', userId)
-      .in('phoneme', phonemes)
-
-    const existingMap = new Map((existing ?? []).map(r => [r.phoneme, r]))
-
-    const rows = upserts.map(u => {
-      const prev = existingMap.get(u.phoneme)
-      return {
-        user_id: userId,
-        phoneme: u.phoneme,
-        attempts_count: (prev?.attempts_count ?? 0) + u.attempts_count,
-        score_sum: (prev?.score_sum ?? 0) + u.score_sum,
-        last_seen: u.last_seen,
-      }
-    })
-
-    await db.from('phoneme_stats').upsert(rows, { onConflict: 'user_id,phoneme' })
+    const delta = extractPhonemeDelta(result)
+    await db.rpc('merge_phoneme_stats', { p_user_id: userId, p_delta: delta })
   } catch { /* non-fatal */ }
 }

@@ -5,14 +5,17 @@ import { useHistory } from '~/composables/useHistory'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useStreak } from '~/composables/useStreak'
 import { passageStars } from '~/composables/useProgress'
+import { useApi } from '~/composables/useApi'
 
 definePageMeta({ middleware: 'auth' })
-useHead({ title: 'Practice — SekaEi' })
+useHead({ title: 'Pronunciation — SekaEi' })
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
 
 const { items: customPassages, fetchPassages, addPassage } = useCustomPassages()
 const { fetchStreak } = useStreak()
+
+const { apiFetch } = useApi()
 
 onMounted(() => {
   fetchPassages()
@@ -113,7 +116,7 @@ async function assess() {
     const form = new FormData()
     form.append('audio', audioWav.value, 'recording.wav')
     form.append('referenceText', referenceText.value)
-    const data = await $fetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
+    const data = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
     assessmentResult.value = data
     await addAttempt({
       passageId: activePassageId.value,
@@ -145,7 +148,7 @@ function onRecordAgain() {
 
 <template>
   <main class="container-page">
-    <h1 class="sr-only">Practice</h1>
+    <h1 class="sr-only">Pronunciation</h1>
 
     <!-- Passage picker — horizontal scroll row of compact chips -->
     <section class="mb-5">

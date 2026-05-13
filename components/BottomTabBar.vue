@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const tabs = [
-  { to: '/practice',     label: 'Practice',     aria: 'Practice tab'     },
+  { to: '/practice',     label: 'Pronunciation', aria: 'Pronunciation tab' },
   { to: '/real-english', label: 'Idioms',        aria: 'Real English tab' },
   { to: '/',             label: 'Dashboard',     aria: 'Dashboard tab'    },
   { to: '/account',      label: 'Account',       aria: 'Account tab'      },

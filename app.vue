@@ -17,8 +17,8 @@ onMounted(() => {
 
       <nav class="flex gap-1">
         <NuxtLink to="/" class="nav-link">Dashboard</NuxtLink>
-        <NuxtLink to="/practice" class="nav-link">Practice</NuxtLink>
-        <NuxtLink to="/real-english" class="nav-link">Real English</NuxtLink>
+        <NuxtLink to="/practice" class="nav-link">Pronunciation</NuxtLink>
+        <NuxtLink to="/real-english" class="nav-link">Idioms</NuxtLink>
         <NuxtLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</NuxtLink>
       </nav>
     </div>

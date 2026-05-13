@@ -1,4 +1,5 @@
 import { useSupabase, useSupabaseUser } from '../../utils/supabase'
+import type { PhonemeDelta } from '../../utils/updatePhonemeStats'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
@@ -6,17 +7,21 @@ export default defineEventHandler(async (event) => {
 
   const { data, error } = await db
     .from('phoneme_stats')
-    .select('phoneme, attempts_count, score_sum, last_seen')
+    .select('stats')
     .eq('user_id', authUser.id)
-    .gte('attempts_count', 3) // Minimum 3 attempts for meaningful stats
+    .maybeSingle()
 
   if (error) throw createError({ statusCode: 500, message: error.message })
 
-  const rows = (data ?? []).map(r => ({
-    phoneme: r.phoneme,
-    avgScore: r.attempts_count > 0 ? Math.round(r.score_sum / r.attempts_count) : 0,
-    attemptsCount: r.attempts_count,
-  }))
+  const stats = (data?.stats ?? {}) as PhonemeDelta
+
+  const rows = Object.entries(stats)
+    .filter(([, v]) => v.c >= 3) // minimum 3 attempts for meaningful stats
+    .map(([phoneme, v]) => ({
+      phoneme,
+      avgScore: Math.round(v.s / v.c),
+      attemptsCount: v.c,
+    }))
 
   rows.sort((a, b) => a.avgScore - b.avgScore)
 
