@@ -9,6 +9,19 @@ export const IDIOM_PACK_1: IdiomPack = {
   title: 'Idiom Pack 1',
   challenges: [
     {
+      id: 'bite-the-bullet',
+      phrase: 'Bite the bullet',
+      literalImageUrl: placeholder('Literal: Person biting a bullet'),
+      figurativeImageUrl: placeholder('Figurative: Person facing a difficult situation'),
+      distractorImageUrls: [
+        placeholder('Distractor: Athlete with quick reactions'),
+        placeholder('Distractor: Frustrated woman'),
+        placeholder('Distractor: Archer missing a target'),
+      ],
+      explanation:
+        'To get "cold feet" means to suddenly feel too nervous or scared to do something you had planned. It is often used when someone is afraid to go through with a big decision, like getting married or starting a new job.',
+    },
+    {
       id: 'cold-feet',
       phrase: 'Cold feet',
       literalImageUrl: placeholder('Literal: Frozen feet in snow'),
