@@ -6,8 +6,9 @@ import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useStreak } from '~/composables/useStreak'
 import { passageStars } from '~/composables/useProgress'
 import { useApi } from '~/composables/useApi'
+import { useFlaggedWords } from '~/composables/useFlaggedWords'
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: ['stage', 'auth'] })
 useHead({ title: 'Pronunciation — SekaEi' })
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
@@ -78,8 +79,12 @@ const assessError = ref<string | null>(null)
 const { addAttempt, getHistory } = useHistory()
 const allHistory = ref<import('~/composables/useHistory').AttemptRecord[]>([])
 
+const { words: flaggedWordsList, fetchWords: fetchFlaggedWords, flag: flagWord } = useFlaggedWords()
+const flaggedWordsSet = computed(() => new Set(flaggedWordsList.value.map(w => w.word)))
+
 onMounted(async () => {
   allHistory.value = await getHistory()
+  fetchFlaggedWords()
 })
 
 function starsForPassage(passageId: string) {
@@ -235,6 +240,8 @@ function onRecordAgain() {
       <ScoreDisplay
         :result="assessmentResult"
         :ipa="selectedPassage?.ipa"
+        :flagged-words="flaggedWordsSet"
+        @flag="(payload) => flagWord({ ...payload, passageId: activePassageId })"
       />
       <PassageHistory
         :passage-id="activePassageId"

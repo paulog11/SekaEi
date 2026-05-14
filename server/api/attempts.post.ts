@@ -1,6 +1,7 @@
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 import { computeStreak } from '../utils/updateStreak'
 import { extractPhonemeDelta } from '../utils/updatePhonemeStats'
+import { flagDifficultWordsSilently } from '../utils/flagDifficultWords'
 import type { AssessmentResult } from '~/types/assessment'
 
 export default defineEventHandler(async (event) => {
@@ -50,6 +51,7 @@ export default defineEventHandler(async (event) => {
   // Update phoneme stats if azure result provided
   if (azureResult) {
     updatePhonemeStatsSilently(db, authUser.id, azureResult as AssessmentResult)
+    flagDifficultWordsSilently(db, authUser.id, azureResult as AssessmentResult, passageId.trim())
   }
 
 

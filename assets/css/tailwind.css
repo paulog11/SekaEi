@@ -71,8 +71,11 @@
   .chip-good      { @apply bg-chip-good-bg      text-chip-good-fg; }
   .chip-ok        { @apply bg-chip-ok-bg        text-chip-ok-fg; }
   .chip-bad       { @apply bg-chip-bad-bg       text-chip-bad-fg; }
-  .chip-omission  { @apply bg-chip-omission-bg  text-chip-omission-fg line-through; }
-  .chip-insertion { @apply bg-chip-insertion-bg text-chip-insertion-fg; }
+  .chip-omission        { @apply bg-chip-omission-bg  text-chip-omission-fg line-through; }
+  .chip-insertion       { @apply bg-chip-insertion-bg text-chip-insertion-fg; }
+  .chip-monotone        { @apply bg-indigo-100 text-indigo-900 underline decoration-dotted; }
+  .chip-unexpected-break{ @apply bg-amber-100 text-amber-900 border-l-2 border-amber-500; }
+  .chip-missing-break   { @apply bg-amber-100 text-amber-900 border-r-2 border-amber-500; }
 
   /* Nav links */
   .nav-link {
@@ -124,5 +127,10 @@
   /* Section title */
   .section-title {
     @apply text-base font-semibold text-ink-medium mb-4;
+  }
+
+  /* Coach card */
+  .coach-card {
+    @apply bg-primary-50 border border-primary-200 rounded-xl p-5;
   }
 }

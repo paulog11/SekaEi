@@ -34,6 +34,12 @@ export default defineNuxtConfig({
     azureSpeechKey: '',
     azureSpeechRegion: '',
     supabaseServiceKey: '',
+    anthropicApiKey: '',
+    public: {
+      // 'development' | 'production'
+      // Pages marked stage: 'development' redirect to /dev-only in production.
+      appStage: process.env.NUXT_PUBLIC_APP_STAGE ?? 'development',
+    },
   },
   nitro: {
     experimental: {

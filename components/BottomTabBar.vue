@@ -4,10 +4,11 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const tabs = [
-  { to: '/practice',     label: 'Pronunciation', aria: 'Pronunciation tab' },
-  { to: '/real-english', label: 'Idioms',        aria: 'Real English tab' },
-  { to: '/',             label: 'Dashboard',     aria: 'Dashboard tab'    },
-  { to: '/account',      label: 'Account',       aria: 'Account tab'      },
+  { to: '/practice',       label: 'Pronunciation', aria: 'Pronunciation tab' },
+  { to: '/practice/words', label: 'Words',         aria: 'Difficult Words tab' },
+  { to: '/real-english',   label: 'Idioms',        aria: 'Real English tab'  },
+  { to: '/',               label: 'Dashboard',     aria: 'Dashboard tab'     },
+  { to: '/account',        label: 'Account',       aria: 'Account tab'       },
 ]
 
 function isActive(to: string) {
@@ -36,6 +37,13 @@ function isActive(to: string) {
         <template v-if="tab.to === '/real-english'">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 4.5A9 9 0 1 0 12 3a9 9 0 0 0-9 9c0 1.7.47 3.29 1.29 4.64L3 21l4.36-1.29A8.96 8.96 0 0 0 12 21" />
+          </svg>
+        </template>
+
+        <!-- Words: bookmark/star -->
+        <template v-else-if="tab.to === '/practice/words'">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
           </svg>
         </template>
 

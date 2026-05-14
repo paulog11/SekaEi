@@ -1,16 +1,27 @@
 <script setup lang="ts">
 import type { AssessmentResult, OverallPronunciationAssessment } from '~/types/assessment'
+import type { FlagWordPayload } from '~/types/flaggedWord'
 
 const props = defineProps<{
   result: AssessmentResult
   ipa?: Record<string, string>
+  flaggedWords?: Set<string>
 }>()
 
 const emit = defineEmits<{
   (e: 'replay', offsetSec: number, durationSec: number): void
+  (e: 'flag', payload: FlagWordPayload): void
 }>()
 
 const showDiff = ref(false)
+
+// Words flagged newly in this result (for the "Practice difficult words" link)
+const autoFlaggedCount = computed(() =>
+  props.result.Words.filter(
+    w => w.PronunciationAssessment.AccuracyScore < 60 &&
+         (w.PronunciationAssessment.ErrorType === 'None' || w.PronunciationAssessment.ErrorType === 'Mispronunciation')
+  ).length
+)
 
 function scoreColor(s: number) {
   if (s >= 80) return '#059669'
@@ -22,6 +33,12 @@ function ipaForWord(word: string): string | undefined {
   if (!props.ipa) return undefined
   const key = word.toLowerCase().replace(/[^a-z']/g, '')
   return props.ipa[key]
+}
+
+function isWordFlagged(word: string): boolean {
+  if (!props.flaggedWords) return false
+  const normalized = word.toLowerCase().replace(/[^a-z']/g, '')
+  return props.flaggedWords.has(normalized)
 }
 
 const referenceWords = computed(() =>
@@ -75,6 +92,12 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
       </div>
     </div>
 
+    <!-- Difficult words nudge -->
+    <div v-if="autoFlaggedCount > 0" class="mb-4 flex items-center gap-2 text-sm text-primary">
+      <span>★ {{ autoFlaggedCount }} difficult word{{ autoFlaggedCount > 1 ? 's' : '' }} saved for drill.</span>
+      <NuxtLink to="/practice/words" class="underline font-medium">Practice them →</NuxtLink>
+    </div>
+
     <!-- View toggle -->
     <div class="flex gap-0.5 mb-4">
       <button :class="['toggle-btn', { 'toggle-btn-active': !showDiff }]" @click="showDiff = false">Words</button>
@@ -88,7 +111,9 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
         :key="`${word.Word}-${word.Offset}`"
         :word="word"
         :ipa="ipaForWord(word.Word)"
+        :is-flagged="isWordFlagged(word.Word)"
         @replay="(o, d) => emit('replay', o, d)"
+        @flag="(payload) => emit('flag', { ...payload, source: 'manual' })"
       />
     </div>
 
@@ -122,7 +147,7 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
     </div>
 
     <p class="mt-3 text-xs text-ink-lighter">
-      <template v-if="!showDiff">Tap a word to see phoneme scores.</template>
+      <template v-if="!showDiff">Tap a word to see phoneme scores. Use ☆ Save to add it to your drill list.</template>
       <template v-else>Reference is what you should have said. Recognized is what Azure heard.</template>
     </p>
   </section>

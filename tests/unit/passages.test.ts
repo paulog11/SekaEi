@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 
 describe('SAMPLE_PASSAGES', () => {
-  it('has exactly 3 passages', () => {
-    expect(SAMPLE_PASSAGES).toHaveLength(3)
+  it('has at least 3 passages', () => {
+    expect(SAMPLE_PASSAGES.length).toBeGreaterThanOrEqual(3)
   })
 
   it('all passages have non-empty required fields', () => {

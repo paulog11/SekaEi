@@ -3,6 +3,7 @@ import { useStreak } from '~/composables/useStreak'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 
+definePageMeta({ middleware: 'stage' })
 useHead({ title: 'Account — SekaEi' })
 
 const supabase = useSupabaseClient()
