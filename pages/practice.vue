@@ -200,15 +200,7 @@ function onRecordAgain() {
         <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1 m-0">
           {{ selectedPassage?.title ?? 'No passage selected' }}
         </p>
-        <p class="text-sm text-ink leading-relaxed m-0 line-clamp-3">{{ referenceText }}</p>
-        <button
-          v-if="referenceText"
-          type="button"
-          class="mt-1.5 text-xs text-primary font-medium"
-          @click="detailPassage = selectedPassage"
-        >
-          Read full text
-        </button>
+        <p class="text-sm text-ink leading-relaxed m-0">{{ referenceText }}</p>
       </div>
     </section>
 
@@ -336,19 +328,25 @@ function onRecordAgain() {
                 >
               </div>
               <div>
-                <label class="field-label block mb-1">Text</label>
+                <div class="flex items-baseline justify-between mb-1">
+                  <label class="field-label">Text</label>
+                  <span class="text-xs" :class="newPassageText.length > 500 ? 'text-red-500 font-semibold' : 'text-ink-lighter'">
+                    {{ newPassageText.length }}/500
+                  </span>
+                </div>
                 <textarea
                   v-model="newPassageText"
                   class="field-input resize-none"
                   rows="5"
                   placeholder="Type or paste any English text here…"
+                  maxlength="500"
                 />
               </div>
             </div>
             <div class="px-5 pb-5">
               <button
                 class="btn-primary w-full"
-                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || addingPassage"
+                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 500 || addingPassage"
                 @click="submitNewPassage"
               >
                 {{ addingPassage ? 'Adding…' : 'Add passage' }}

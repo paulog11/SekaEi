@@ -128,10 +128,11 @@ const suggestedPassage = computed(() => {
     <section v-if="recentAttempts.length">
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Recent sessions</h2>
       <div class="flex flex-col gap-2">
-        <div
+        <NuxtLink
           v-for="attempt in recentAttempts"
           :key="attempt.timestamp"
-          class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5"
+          :to="attempt.id ? `/attempt/${attempt.id}` : '/practice'"
+          class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
         >
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-ink m-0 truncate">{{ attempt.passageTitle }}</p>
@@ -140,7 +141,7 @@ const suggestedPassage = computed(() => {
           <span class="text-sm font-bold shrink-0" :class="scoreColor(attempt.scores.overall)">
             {{ attempt.scores.overall }}
           </span>
-        </div>
+        </NuxtLink>
       </div>
     </section>
 
@@ -152,7 +153,7 @@ const suggestedPassage = computed(() => {
         <NuxtLink
           v-for="row in masteryRows"
           :key="row.passageId"
-          :to="`/attempt/${row.passageId}`"
+          :to="row.attempts[0]?.id ? `/attempt/${row.attempts[0].id}` : '/practice'"
           class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
         >
           <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink">{{ row.passageTitle }}</span>

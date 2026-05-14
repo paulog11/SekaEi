@@ -6,7 +6,7 @@ import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useCoach } from '~/composables/useCoach'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({ middleware: ['auth'] })
+definePageMeta({ middleware: ['stage', 'auth'] })
 useHead({ title: 'Difficult Words — SekaEi' })
 
 const { words, loading, error, fetchWords, flag, unflag } = useFlaggedWords()
