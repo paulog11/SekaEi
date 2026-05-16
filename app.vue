@@ -13,7 +13,7 @@ onMounted(() => {
   <!-- Top header — desktop only -->
   <header class="hidden sm:block border-b border-border bg-white sticky top-0 z-30">
     <div class="max-w-page mx-auto px-5 h-14 flex items-center justify-between">
-      <NuxtLink to="/" class="text-lg font-bold tracking-tight text-ink no-underline">SekaEi</NuxtLink>
+      <NuxtLink to="/" class="text-lg font-bold tracking-tight text-ink no-underline">セカトーク</NuxtLink>
 
       <nav class="flex gap-1">
         <NuxtLink to="/" class="nav-link">Dashboard</NuxtLink>
