@@ -5,7 +5,7 @@ definePageMeta({ middleware: 'stage' })
 <template>
   <main class="container-page">
     <div class="mb-8">
-      <p class="text-ink-light text-sm sm:text-base">Idioms &amp; slang — pick the right meaning</p>
+      <h1 class="text-2xl font-bold text-ink">Idioms</h1>
     </div>
 
     <IdiomLabView />

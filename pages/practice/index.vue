@@ -157,6 +157,7 @@ function onRecordAgain() {
 
     <!-- Passage picker — horizontal scroll row of compact chips -->
     <section class="mb-5">
+      <h1 class="text-2xl font-bold text-ink">Pronunciation Practice</h1>
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Choose a passage</h2>
 
       <div class="flex gap-2 px-1 pb-1 overflow-x-auto snap-x snap-mandatory scrollbar-none">

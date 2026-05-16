@@ -7,7 +7,7 @@ import { useCoach } from '~/composables/useCoach'
 import { useApi } from '~/composables/useApi'
 
 definePageMeta({ middleware: ['stage', 'auth'] })
-useHead({ title: 'Difficult Words — SekaEi' })
+useHead({ title: 'Word Review' })
 
 const { words, loading, error, fetchWords, flag, unflag } = useFlaggedWords()
 const { result: coachResult, loading: coachLoading, error: coachError, requestCoach } = useCoach()
@@ -53,10 +53,8 @@ async function handleUnflag(word: FlaggedWord) {
   <main class="container-page">
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-ink">Difficult Words</h1>
-        <p class="text-sm text-ink-light mt-0.5">Words you've struggled with — drill them until they stick.</p>
+        <h1 class="text-2xl font-bold text-ink">Word Review</h1>
       </div>
-      <NuxtLink to="/practice" class="btn-secondary btn-sm">← Back</NuxtLink>
     </div>
 
     <!-- Loading -->
