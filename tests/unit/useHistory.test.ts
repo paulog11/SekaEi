@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ---------------------------------------------------------------------------
-// Mock useApi so tests don't need a real browser or server
+// Mocks — must be declared before dynamic imports
 // ---------------------------------------------------------------------------
 
 const mockApiFetch = vi.fn()
@@ -10,11 +11,19 @@ vi.mock('~/composables/useApi', () => ({
   useApi: () => ({ apiFetch: mockApiFetch, getDeviceId: () => 'test-device-id' }),
 }))
 
+vi.mock('~/stores/streakStore', () => ({
+  useStreakStore: () => ({ invalidate: vi.fn() }),
+}))
+
+vi.mock('~/stores/phonemeStatsStore', () => ({
+  usePhonemeStatsStore: () => ({ invalidate: vi.fn() }),
+}))
+
 // ---------------------------------------------------------------------------
 // Import after mocks are set up
 // ---------------------------------------------------------------------------
 
-const { useHistory, _cache } = await import('~/composables/useHistory')
+const { useHistory } = await import('~/composables/useHistory')
 import type { AttemptRecord } from '~/composables/useHistory'
 
 // ---------------------------------------------------------------------------
@@ -37,9 +46,7 @@ function makeAttempt(overrides?: Partial<AttemptRecord>): AttemptRecord {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  _cache.all = null
-  _cache.passageId = null
-  _cache.passageData = null
+  setActivePinia(createPinia()) // fresh store state between each test
 })
 
 describe('useHistory — getHistory', () => {
@@ -62,6 +69,22 @@ describe('useHistory — getHistory', () => {
     const { getHistory } = useHistory()
     expect(await getHistory()).toEqual([])
   })
+
+  it('returns cached result without a second API call', async () => {
+    mockApiFetch.mockResolvedValue({ attempts: [makeAttempt()] })
+    const { getHistory } = useHistory()
+    await getHistory()
+    await getHistory()
+    expect(mockApiFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-fetches when force: true', async () => {
+    mockApiFetch.mockResolvedValue({ attempts: [makeAttempt()] })
+    const { getHistory } = useHistory()
+    await getHistory()
+    await getHistory({ force: true })
+    expect(mockApiFetch).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('useHistory — addAttempt', () => {
@@ -81,6 +104,15 @@ describe('useHistory — addAttempt', () => {
     mockApiFetch.mockRejectedValue(new Error('Server down'))
     const { addAttempt } = useHistory()
     await expect(addAttempt(makeAttempt())).resolves.not.toThrow()
+  })
+
+  it('invalidates the cache so next getHistory re-fetches', async () => {
+    mockApiFetch.mockResolvedValue({ attempts: [makeAttempt()] })
+    const { getHistory, addAttempt } = useHistory()
+    await getHistory()           // populates cache
+    await addAttempt(makeAttempt()) // should invalidate
+    await getHistory()           // should re-fetch
+    expect(mockApiFetch).toHaveBeenCalledTimes(3) // getHistory + addAttempt + getHistory
   })
 })
 
