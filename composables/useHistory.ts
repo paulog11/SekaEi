@@ -1,8 +1,6 @@
 import type { AssessmentResult } from '~/types/assessment'
 import { useHistoryStore } from '~/stores/historyStore'
 
-// Re-export type for backwards compatibility
-export type { AttemptRecord } from '~/stores/historyStore'
 
 export function useHistory() {
   const store = useHistoryStore()

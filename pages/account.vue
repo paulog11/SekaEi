@@ -153,12 +153,19 @@ async function handleAddPassage() {
     <!-- ── Signed-in view ── -->
     <template v-if="user">
       <!-- Profile header -->
-      <div class="w-full max-w-2xl flex items-center justify-between">
-        <div>
-          <p class="text-sm text-ink-light m-0">Signed in as</p>
-          <p class="font-semibold text-ink m-0">{{ user.email }}</p>
+      <div class="w-full max-w-2xl flex items-center gap-5">
+        <div class="avatar placeholder">
+          <div class="w-20 rounded-full bg-gradient-to-br from-violet-200 to-emerald-200">
+            <span class="font-heading font-bold text-2xl text-violet-700">
+              {{ (displayName || user.email || '?')[0].toUpperCase() }}
+            </span>
+          </div>
         </div>
-        <button class="btn-secondary btn-sm" @click="handleSignOut">Sign out</button>
+        <div class="flex-1 min-w-0">
+          <p class="font-heading text-xl font-bold text-ink m-0">{{ displayName || 'Learner' }}</p>
+          <p class="text-sm text-ink-light m-0 truncate">{{ user.email }}</p>
+        </div>
+        <button class="btn-secondary btn-sm shrink-0" @click="handleSignOut">Sign out</button>
       </div>
 
       <!-- Display name -->
@@ -188,8 +195,8 @@ async function handleAddPassage() {
       </section>
 
       <!-- Daily goal -->
-      <section class="w-full max-w-2xl card">
-        <h2 class="text-base font-semibold text-ink mb-4">Daily Goal</h2>
+      <section class="w-full max-w-2xl card-pop bg-white p-6">
+        <h2 class="text-base font-semibold text-ink mb-4">🎯 Daily Goal</h2>
         <div class="flex items-center gap-3">
           <label class="text-sm text-ink-medium" for="goal-input">Practice minutes per day:</label>
           <input

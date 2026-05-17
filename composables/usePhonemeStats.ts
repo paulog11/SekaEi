@@ -1,8 +1,6 @@
 import { storeToRefs } from 'pinia'
 import { usePhonemeStatsStore } from '~/stores/phonemeStatsStore'
 
-// Re-export type for backwards compatibility
-export type { PhonemeStat } from '~/stores/phonemeStatsStore'
 
 export function usePhonemeStats() {
   const store = usePhonemeStatsStore()

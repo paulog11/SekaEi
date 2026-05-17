@@ -12,6 +12,7 @@ const user = useSupabaseUser()
 const { getHistory } = useHistory()
 const { streak, fetchStreak } = useStreak()
 const { weakest, fetchStats } = usePhonemeStats()
+const weakPhonemes = computed(() => weakest.value.filter(s => s.avgScore < 70))
 
 const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
 const loading = ref(false)
@@ -147,11 +148,11 @@ function formatDate(ts: number) {
     </section>
 
     <!-- Weak phonemes -->
-    <section v-if="weakest.length" class="card">
+    <section v-if="weakPhonemes.length" class="card">
       <h2 class="text-sm font-semibold text-ink mb-3">Phonemes to work on</h2>
       <div class="flex flex-wrap gap-2">
         <span
-          v-for="stat in weakest"
+          v-for="stat in weakPhonemes"
           :key="stat.phoneme"
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-mono bg-red-50 border border-red-200 text-red-700"
         >

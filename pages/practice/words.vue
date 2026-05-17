@@ -67,11 +67,13 @@ async function handleUnflag(word: FlaggedWord) {
     <p v-else-if="error" class="text-sm text-red-700">{{ error }}</p>
 
     <!-- Empty state -->
-    <div v-else-if="words.length === 0" class="text-center py-12">
-      <p class="text-4xl mb-3">🎉</p>
-      <p class="text-lg font-semibold text-ink mb-1">No difficult words yet!</p>
-      <p class="text-sm text-ink-light mb-5">Words scoring below 60 will appear here automatically after you practice a passage.</p>
-      <NuxtLink to="/practice" class="btn-primary">Practice a passage</NuxtLink>
+    <div v-else-if="words.length === 0" class="flex flex-col items-center text-center py-16 gap-4">
+      <p class="text-8xl leading-none" aria-hidden="true">📖</p>
+      <div>
+        <p class="font-heading text-2xl font-bold text-ink mb-1">You haven't learned any words yet!</p>
+        <p class="text-sm text-ink-light">Words scoring below 60 will appear here automatically after you practice a passage.</p>
+      </div>
+      <NuxtLink to="/practice" class="btn btn-primary">Start Exploring</NuxtLink>
     </div>
 
     <template v-else>

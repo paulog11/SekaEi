@@ -41,6 +41,12 @@ const activePassageId = computed(() => selectedPassage.value?.id ?? '')
 // Passage detail popup
 const detailPassage = ref<typeof allPassages.value[0] | null>(null)
 
+const detailPassageAttempts = computed(() =>
+  detailPassage.value
+    ? allHistory.value.filter(r => r.passageId === detailPassage.value!.id).slice(0, 15)
+    : []
+)
+
 function openDetail(passage: typeof allPassages.value[0]) {
   detailPassage.value = passage
 }
@@ -48,6 +54,16 @@ function openDetail(passage: typeof allPassages.value[0]) {
 function selectAndClose() {
   if (detailPassage.value) selectedPassageId.value = detailPassage.value.id
   detailPassage.value = null
+}
+
+function scoreChipClass(score: number): string {
+  if (score >= 80) return 'chip-good'
+  if (score >= 60) return 'chip-ok'
+  return 'chip-bad'
+}
+
+function formatAttemptDate(ts: number): string {
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 // Add custom passage popup
@@ -285,6 +301,33 @@ function onRecordAgain() {
             <div class="overflow-y-auto px-5 py-4 flex-1">
               <p class="text-sm text-ink leading-relaxed m-0">{{ detailPassage.text }}</p>
             </div>
+
+            <!-- Previous attempts -->
+            <div v-if="detailPassageAttempts.length" class="border-t border-border px-5 pt-3 pb-2">
+              <p class="text-xs font-semibold text-ink-medium mb-2">
+                Previous attempts ({{ detailPassageAttempts.length }})
+              </p>
+              <div class="flex flex-col gap-1 max-h-44 overflow-y-auto">
+                <NuxtLink
+                  v-for="a in detailPassageAttempts"
+                  :key="a.id"
+                  :to="`/attempt/${a.id}`"
+                  class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-surface transition-colors no-underline"
+                  @click="detailPassage = null"
+                >
+                  <span class="text-xs text-ink-lighter">{{ formatAttemptDate(a.timestamp) }}</span>
+                  <div class="flex items-center gap-2">
+                    <span :class="['chip text-xs px-2 py-0.5', scoreChipClass(a.scores.overall)]">
+                      {{ a.scores.overall }}
+                    </span>
+                    <svg class="w-3.5 h-3.5 text-ink-lighter" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </NuxtLink>
+              </div>
+            </div>
+
             <div class="px-5 py-4 border-t border-border">
               <button class="btn-primary w-full" @click="selectAndClose">
                 Practice this passage

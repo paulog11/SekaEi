@@ -40,9 +40,12 @@ onMounted(async () => {
 
 <template>
   <main class="container-page">
-    <NuxtLink to="/practice" class="inline-flex items-center gap-1 text-sm text-ink-light hover:text-ink mb-6">
-      ← Back to practice
-    </NuxtLink>
+    <button
+      class="inline-flex items-center gap-1 text-sm text-ink-light hover:text-ink mb-6"
+      @click="$router.back()"
+    >
+      ← Back
+    </button>
 
     <div v-if="loading" class="flex flex-col gap-3">
       <div class="skeleton h-20 motion-reduce:animate-none" />
