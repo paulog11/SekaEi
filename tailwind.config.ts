@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import daisyui from 'daisyui'
 
 export default {
   content: [
@@ -43,7 +44,8 @@ export default {
         danger: '#dc2626',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans:    ['Nunito', 'system-ui', 'sans-serif'],
+        heading: ['Poppins', 'system-ui', 'sans-serif'],
       },
       maxWidth: {
         page: '780px',
@@ -65,5 +67,9 @@ export default {
       },
     },
   },
-  plugins: [],
-} satisfies Config
+  plugins: [daisyui],
+  daisyui: {
+    themes: ['pastel --default'],
+    logs: false,
+  },
+} as Config

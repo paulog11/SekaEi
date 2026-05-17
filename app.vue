@@ -4,6 +4,17 @@ import { useApi } from '~/composables/useApi'
 const { apiFetch } = useApi()
 const user = useSupabaseUser()
 
+useHead({
+  link: [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito:wght@400;500;600;700&display=swap',
+    },
+  ],
+})
+
 onMounted(() => {
   apiFetch('/api/me').catch(() => {})
 })

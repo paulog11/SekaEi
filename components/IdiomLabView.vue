@@ -7,7 +7,8 @@ const store = useIdiomLabStore()
 const phraseRevealed = ref(false)
 
 const challenge = computed(() => store.currentChallenge)
-const progress = computed(() => `${store.currentIndex + 1} / ${store.challenges.length}`)
+const progressValue = computed(() => store.currentIndex)
+const progressMax = computed(() => store.challenges.length)
 
 function onPlayAudio() {
   phraseRevealed.value = true
@@ -60,17 +61,15 @@ function optionClass(url: string): string {
   <!-- Challenge UI -->
   <div v-else class="flex flex-col gap-6">
 
-    <!-- Pack header + progress bar -->
-    <div class="flex items-center justify-between gap-4">
+    <!-- Pack header + DaisyUI progress bar -->
+    <div>
       <span class="text-xs font-semibold text-ink-light uppercase tracking-wider">{{ store.currentPack.title }}</span>
-      <span class="text-xs text-ink-lighter tabular-nums">{{ progress }}</span>
     </div>
-    <div class="w-full h-1.5 bg-border rounded-full overflow-hidden -mt-4">
-      <div
-        class="h-full bg-primary rounded-full transition-all duration-300"
-        :style="{ width: `${((store.currentIndex) / store.challenges.length) * 100}%` }"
-      />
-    </div>
+    <progress
+      class="progress progress-primary w-full -mt-2"
+      :value="progressValue"
+      :max="progressMax"
+    />
 
     <!-- Split layout -->
     <div class="flex flex-col lg:flex-row gap-6 lg:gap-10 lg:items-start">
@@ -96,7 +95,7 @@ function optionClass(url: string): string {
           <button
             v-for="url in store.shuffledOptions"
             :key="url"
-            :class="['option-btn', optionClass(url)]"
+            :class="['card-pop', 'option-choice', optionClass(url)]"
             :disabled="store.hasGuessedCorrectly"
             :aria-pressed="store.selectedAnswer === url || (store.hasGuessedCorrectly && url === challenge.figurativeImageUrl)"
             @click="onSelectOption(url)"
@@ -173,14 +172,13 @@ function optionClass(url: string): string {
 </template>
 
 <style scoped>
-.option-btn {
-  @apply relative aspect-square rounded-xl overflow-hidden
-         border-2 border-border transition-all duration-150
-         cursor-pointer focus-visible:outline-none focus-visible:ring-2
-         focus-visible:ring-primary focus-visible:ring-offset-2;
+.option-choice {
+  @apply relative aspect-square overflow-hidden cursor-pointer
+         focus-visible:outline-none focus-visible:ring-2
+         focus-visible:ring-offset-2 focus-visible:ring-primary;
 }
-.option-idle:hover {
-  @apply border-primary scale-[1.02] shadow-md;
+.option-idle:not(:disabled):hover {
+  border-color: var(--color-primary);
 }
 .option-correct {
   @apply border-emerald-500 ring-2 ring-emerald-400;
@@ -189,6 +187,8 @@ function optionClass(url: string): string {
   @apply border-red-400 ring-2 ring-red-300;
 }
 .option-dim {
-  @apply opacity-40 cursor-default;
+  @apply opacity-40 cursor-default pointer-events-none;
+  transform: none !important;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.8) !important;
 }
 </style>

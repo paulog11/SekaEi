@@ -155,42 +155,48 @@ function onRecordAgain() {
   <main class="container-page">
     <h1 class="sr-only">Pronunciation</h1>
 
-    <!-- Passage picker — horizontal scroll row of compact chips -->
+    <!-- Passage picker — grid of rich cards -->
     <section class="mb-5">
       <h1 class="text-2xl font-bold text-ink">Pronunciation Practice</h1>
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Choose a passage</h2>
 
-      <div class="flex gap-2 px-1 pb-1 overflow-x-auto snap-x snap-mandatory scrollbar-none">
-        <!-- Passage chips -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <!-- Passage cards -->
         <button
           v-for="passage in allPassages"
           :key="passage.id"
           type="button"
           :class="[
-            'snap-start shrink-0 flex flex-col gap-0.5 text-left',
-            'rounded-xl border-2 px-3 py-2.5 transition-colors duration-150 min-w-[120px] max-w-[160px]',
-            selectedPassageId === passage.id
-              ? 'border-primary bg-primary-50'
-              : 'border-border bg-white hover:border-primary-300',
+            'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
+            selectedPassageId === passage.id ? 'border-primary' : '',
           ]"
           @click="openDetail(passage)"
         >
-          <span class="text-xs font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
-          <span class="flex gap-px mt-1" :aria-label="`${starsForPassage(passage.id)} stars`">
-            <span v-for="n in 3" :key="n" :class="['text-[10px]', starsForPassage(passage.id) >= n ? 'text-star-lit' : 'text-star-unlit']">★</span>
-          </span>
+          <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
+          <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
+          <div
+            class="rating rating-sm pointer-events-none mt-1"
+            :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
+          >
+            <span
+              v-for="n in 3"
+              :key="n"
+              class="mask mask-star bg-amber-400"
+              :aria-checked="starsForPassage(passage.id) >= n"
+            />
+          </div>
         </button>
 
-        <!-- Add passage chip -->
+        <!-- Add passage card -->
         <button
           type="button"
-          class="snap-start shrink-0 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border px-4 py-2.5 min-w-[80px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
+          class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
           @click="showAddPassage = true"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          <span class="text-[10px] font-medium">Add</span>
+          <span class="text-[11px] font-medium">Add passage</span>
         </button>
       </div>
     </section>

@@ -51,6 +51,18 @@ const masteryRows = computed(() => {
 
 const passagesStarted = computed(() => masteryRows.value.length)
 const passagesMastered = computed(() => masteryRows.value.filter(r => passageStars(r.attempts) === 3).length)
+const masteredPercent = computed(() =>
+  Math.round((passagesMastered.value / SAMPLE_PASSAGES.length) * 100)
+)
+
+const thumbnailColors = [
+  'bg-violet-100',
+  'bg-emerald-100',
+  'bg-orange-100',
+  'bg-blue-100',
+  'bg-pink-100',
+  'bg-yellow-100',
+]
 
 function scoreColor(score: number) {
   if (score >= 80) return 'text-green-600'
@@ -62,11 +74,6 @@ function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-const suggestedPassage = computed(() => {
-  if (!history.value.length) return SAMPLE_PASSAGES[0]
-  const practicedIds = new Set(history.value.map(r => r.passageId))
-  return SAMPLE_PASSAGES.find(p => !practicedIds.has(p.id)) ?? null
-})
 </script>
 
 <template>
@@ -75,39 +82,68 @@ const suggestedPassage = computed(() => {
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="card-soft flex flex-col gap-0.5">
-        <p class="text-2xl font-bold text-primary m-0">{{ streak.current }}</p>
-        <p class="text-xs text-ink-lighter m-0">Day streak</p>
+      <!-- Streak -->
+      <div class="card-pop bg-white flex flex-col gap-1 p-4">
+        <p class="font-heading text-5xl font-bold text-primary m-0 leading-none">
+          {{ streak.current }}<span class="text-4xl">🔥</span>
+        </p>
+        <p class="text-xs text-ink-lighter m-0 mt-1">Day streak</p>
         <p class="text-[11px] m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
           {{ streak.todayMet ? '✓ done today' : '○ not yet' }}
         </p>
       </div>
-      <div class="card-soft flex flex-col gap-0.5">
-        <p class="text-2xl font-bold text-ink m-0">{{ totalAttempts }}</p>
-        <p class="text-xs text-ink-lighter m-0">Total sessions</p>
+
+      <!-- Total sessions -->
+      <div class="card-pop bg-white flex flex-col gap-1 p-4">
+        <p class="font-heading text-5xl font-bold text-ink m-0 leading-none">{{ totalAttempts }}</p>
+        <p class="text-xs text-ink-lighter m-0 mt-1">Total sessions</p>
       </div>
-      <div class="card-soft flex flex-col gap-0.5">
-        <p class="text-2xl font-bold m-0" :class="avgOverall ? scoreColor(avgOverall) : 'text-ink-lighter'">
-          {{ avgOverall || '—' }}
-        </p>
+
+      <!-- Avg. score — radial progress (primary / lavender) -->
+      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
+        <div
+          class="radial-progress font-heading font-bold text-sm"
+          :style="`--value:${avgOverall}; --size:5rem; --thickness:6px; color: var(--color-primary); background-color: #f3e8ff;`"
+          role="progressbar"
+          :aria-valuenow="avgOverall"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >{{ avgOverall || '—' }}</div>
         <p class="text-xs text-ink-lighter m-0">Avg. score</p>
       </div>
-      <div class="card-soft flex flex-col gap-0.5">
-        <p class="text-2xl font-bold text-ink m-0">
-          {{ passagesMastered }}<span class="text-base text-ink-lighter font-normal">/{{ passagesStarted }}</span>
-        </p>
+
+      <!-- Mastered — radial progress (secondary / mint) -->
+      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
+        <div
+          class="radial-progress font-heading font-bold text-sm"
+          :style="`--value:${masteredPercent}; --size:5rem; --thickness:6px; color: var(--color-secondary); background-color: #d1fae5;`"
+          role="progressbar"
+          :aria-valuenow="masteredPercent"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >{{ passagesMastered }}/{{ SAMPLE_PASSAGES.length }}</div>
         <p class="text-xs text-ink-lighter m-0">Mastered</p>
       </div>
     </div>
 
-    <!-- Suggested next passage -->
-    <section v-if="suggestedPassage" class="card flex items-center gap-4">
-      <div class="flex-1 min-w-0">
-        <p class="text-xs uppercase tracking-wider text-ink-lighter m-0 mb-1">Up next</p>
-        <p class="text-sm font-semibold text-ink m-0 truncate">{{ suggestedPassage.title }}</p>
-        <p class="text-xs text-ink-light m-0 mt-0.5 line-clamp-2">{{ suggestedPassage.text }}</p>
+    <!-- Up next — all passages with pastel thumbnails -->
+    <section>
+      <p class="text-xs uppercase tracking-wider font-semibold text-ink-lighter mb-3">Up next</p>
+      <div class="flex flex-col gap-3">
+        <NuxtLink
+          v-for="(passage, i) in SAMPLE_PASSAGES"
+          :key="passage.id"
+          to="/practice"
+          class="card-pop bg-white flex items-center gap-4 p-4 no-underline"
+        >
+          <div class="w-14 h-14 rounded-xl shrink-0" :class="thumbnailColors[i % thumbnailColors.length]" />
+          <div class="flex-1 min-w-0">
+            <p class="font-heading text-sm font-semibold text-ink m-0 truncate">{{ passage.title }}</p>
+            <p class="text-xs text-ink-light m-0 mt-0.5">{{ passage.source }}</p>
+          </div>
+          <span class="btn-primary btn-sm shrink-0">Practice</span>
+        </NuxtLink>
       </div>
-      <NuxtLink to="/practice" class="btn-primary btn-sm shrink-0">Practice</NuxtLink>
     </section>
 
     <!-- Weak phonemes -->
