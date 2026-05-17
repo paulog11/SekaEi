@@ -33,7 +33,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     azureSpeechKey: '',
     azureSpeechRegion: '',
-    supabaseServiceKey: '',
+    supabaseSecretKey: '',
     anthropicApiKey: '',
     public: {
       // 'development' | 'production'

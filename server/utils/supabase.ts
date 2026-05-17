@@ -4,7 +4,7 @@ import type { H3Event } from 'h3'
 export function useSupabase() {
   const config = useRuntimeConfig()
   const supabaseUrl = process.env.SUPABASE_URL ?? ''
-  const serviceKey = config.supabaseServiceKey || (process.env.SUPABASE_SERVICE_KEY ?? '')
+  const serviceKey = config.supabaseSecretKey || (process.env.NUXT_SUPABASE_SECRET_KEY ?? '')
   return createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   })
