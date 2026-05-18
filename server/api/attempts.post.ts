@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 import { computeStreak } from '../utils/updateStreak'
 import { extractPhonemeDelta } from '../utils/updatePhonemeStats'
@@ -31,6 +32,7 @@ export default defineEventHandler(async (event) => {
     .from('attempts')
     .insert({
       user_id: authUser.id,
+      slug: nanoid(12),
       passage_id: passageId.trim(),
       passage_title: passageTitle.trim().slice(0, 120),
       accuracy_score: Math.round(accuracy),
@@ -40,7 +42,7 @@ export default defineEventHandler(async (event) => {
       overall_score: Math.round(overall),
       azure_result: azureResult ?? null,
     })
-    .select('id, user_id, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score')
+    .select('id, slug, user_id, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score')
     .single()
 
   if (error) throw createError({ statusCode: 500, message: error.message })

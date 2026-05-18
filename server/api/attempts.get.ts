@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   let q = db
     .from('attempts')
-    .select('id, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score')
+    .select('slug, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score')
     .eq('user_id', authUser.id)
 
   if (passageId) q = q.eq('passage_id', passageId)
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (error) throw createError({ statusCode: 500, message: error.message })
 
   const attempts: AttemptRecord[] = (data ?? []).map(row => ({
-    id: row.id,
+    slug: row.slug,
     passageId: row.passage_id,
     passageTitle: row.passage_title,
     timestamp: new Date(row.created_at).getTime(),

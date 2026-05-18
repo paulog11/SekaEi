@@ -14,6 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const showDiff = ref(false)
+const tooltipLang = ref<'en' | 'ja'>('en')
 
 // Words flagged newly in this result (for the "Practice difficult words" link)
 const autoFlaggedCount = computed(() =>
@@ -56,12 +57,37 @@ function diffWordClass(errorType: string): string {
   return 'diff-word-ok'
 }
 
-const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: string }> = [
-  { key: 'AccuracyScore',     label: 'Accuracy'     },
-  { key: 'FluencyScore',      label: 'Fluency'      },
-  { key: 'CompletenessScore', label: 'Completeness' },
-  { key: 'PronScore',         label: 'Overall'      },
-  { key: 'ProsodyScore',      label: 'Prosody'      },
+const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: string; en: string; ja: string }> = [
+  {
+    key: 'AccuracyScore',
+    label: 'Accuracy',
+    en: 'How closely your phonemes match a native speaker\'s pronunciation. Aggregated from phoneme-level scores for each word.',
+    ja: '各音素がネイティブの発音にどれだけ近いかを示します。単語ごとの音素スコアから算出されます。',
+  },
+  {
+    key: 'FluencyScore',
+    label: 'Fluency',
+    en: 'How naturally you use pauses between words. Unnatural silences or hesitations within the utterance lower this score.',
+    ja: '単語間のポーズの自然さを示します。不自然な沈黙や詰まりがあるとスコアが下がります。',
+  },
+  {
+    key: 'CompletenessScore',
+    label: 'Completeness',
+    en: 'Ratio of correctly pronounced words to the reference text. Omitted words lower this score.',
+    ja: 'お手本テキストに対して正しく発音できた単語の割合です。省略があるとスコアが下がります。',
+  },
+  {
+    key: 'PronScore',
+    label: 'Overall',
+    en: 'Weighted combination of Accuracy, Fluency, and Completeness — the single headline score for your pronunciation.',
+    ja: 'Accuracy・Fluency・Completenessを加重平均した総合スコアです。',
+  },
+  {
+    key: 'ProsodyScore',
+    label: 'Prosody',
+    en: 'How natural your speech sounds overall: rhythm, word stress, intonation, and speaking speed.',
+    ja: 'リズム・ストレス・イントネーション・話す速さなど、話し方の自然さを総合的に評価します。',
+  },
 ]
 </script>
 
@@ -76,9 +102,9 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
     <!-- Score grid: 2-up on mobile, 5-up on sm+ -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
       <div
-        v-for="{ key, label } in scoreKeys"
+        v-for="{ key, label, en, ja } in scoreKeys"
         :key="key"
-        class="card-soft flex flex-col items-center py-3"
+        class="card-soft flex flex-col items-center py-3 relative group"
       >
         <template v-if="result.PronunciationAssessment[key] !== undefined">
           <span
@@ -87,7 +113,28 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
           >
             {{ Math.round(result.PronunciationAssessment[key] as number) }}
           </span>
-          <span class="text-xs text-ink-light mt-1">{{ label }}</span>
+          <span class="text-xs text-ink-light mt-1 flex items-center gap-0.5">
+            {{ label }}
+            <span class="text-ink-lighter text-[0.65rem] cursor-help select-none" aria-hidden="true">ⓘ</span>
+          </span>
+          <!-- Tooltip -->
+          <div
+            class="absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 px-2.5 py-2 text-center text-xs leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+            role="tooltip"
+          >
+            <div class="flex justify-center gap-1 mb-1.5">
+              <button
+                :class="['px-1.5 py-0.5 rounded text-[0.6rem] font-semibold transition-colors', tooltipLang === 'en' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-gray-200']"
+                @click.stop="tooltipLang = 'en'"
+              >EN</button>
+              <button
+                :class="['px-1.5 py-0.5 rounded text-[0.6rem] font-semibold transition-colors', tooltipLang === 'ja' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-gray-200']"
+                @click.stop="tooltipLang = 'ja'"
+              >日本語</button>
+            </div>
+            {{ tooltipLang === 'en' ? en : ja }}
+            <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900" aria-hidden="true" />
+          </div>
         </template>
       </div>
     </div>

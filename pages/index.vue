@@ -168,7 +168,7 @@ function formatDate(ts: number) {
         <NuxtLink
           v-for="attempt in recentAttempts"
           :key="attempt.timestamp"
-          :to="attempt.id ? `/attempt/${attempt.id}` : '/practice'"
+          :to="attempt.slug ? `/attempt/${attempt.slug}` : '/practice'"
           class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
         >
           <div class="flex-1 min-w-0">
@@ -190,7 +190,7 @@ function formatDate(ts: number) {
         <NuxtLink
           v-for="row in masteryRows"
           :key="row.passageId"
-          :to="row.attempts[0]?.id ? `/attempt/${row.attempts[0].id}` : '/practice'"
+          :to="row.attempts[0]?.slug ? `/attempt/${row.attempts[0].slug}` : '/practice'"
           class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
         >
           <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink">{{ row.passageTitle }}</span>

@@ -6,7 +6,7 @@ import { useStreakStore } from '~/stores/streakStore'
 import { usePhonemeStatsStore } from '~/stores/phonemeStatsStore'
 
 export interface AttemptRecord {
-  id?: string
+  slug?: string
   passageId: string
   passageTitle: string
   timestamp: number
