@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const passageId = typeof query.passageId === 'string' ? query.passageId : undefined
   const limit = Math.min(Number(query.limit) || 100, 500)
 
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   let q = db
     .from('attempts')

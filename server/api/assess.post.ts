@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Per-user daily quota via atomic increment
-    const db = useSupabase()
+    const db = useSupabase(event)
     const today = new Date().toISOString().slice(0, 10)
     const { data: usage, error: usageErr } = await db.rpc('increment_assess_usage', {
       p_user_id: user.id,

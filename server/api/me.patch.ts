@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Display name contains disallowed words.' })
   }
 
-  const db = useSupabase()
+  const db = useSupabase(event)
   const { error } = await db
     .from('profiles')
     .update({ display_name: name })

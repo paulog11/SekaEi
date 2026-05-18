@@ -4,7 +4,7 @@ import type { WeakPhonemeHit } from '~/types/flaggedWord'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const body = await readBody(event)
   const { word, displayWord, source, score, ipa, passageId, weakPhonemes } = body ?? {}

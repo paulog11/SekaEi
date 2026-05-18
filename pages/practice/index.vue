@@ -380,8 +380,8 @@ function onRecordAgain() {
               <div>
                 <div class="flex items-baseline justify-between mb-1">
                   <label class="field-label">Text</label>
-                  <span class="text-xs" :class="newPassageText.length > 500 ? 'text-red-500 font-semibold' : 'text-ink-lighter'">
-                    {{ newPassageText.length }}/500
+                  <span class="text-xs" :class="newPassageText.length > 300 ? 'text-red-500 font-semibold' : 'text-ink-lighter'">
+                    {{ newPassageText.length }}/300
                   </span>
                 </div>
                 <textarea
@@ -389,14 +389,14 @@ function onRecordAgain() {
                   class="field-input resize-none"
                   rows="5"
                   placeholder="Type or paste any English text here…"
-                  maxlength="500"
+                  maxlength="300"
                 />
               </div>
             </div>
             <div class="px-5 pb-5">
               <button
                 class="btn-primary w-full"
-                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 500 || addingPassage"
+                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 300 || addingPassage"
                 @click="submitNewPassage"
               >
                 {{ addingPassage ? 'Adding…' : 'Add passage' }}

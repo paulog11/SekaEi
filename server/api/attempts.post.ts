@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'scores must include accuracy, fluency, completeness, and overall.' })
   }
 
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const { data, error } = await db
     .from('attempts')

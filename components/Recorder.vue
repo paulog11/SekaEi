@@ -30,7 +30,7 @@ function handleReset() {
     <!-- Mic level row -->
     <div v-if="state === 'recording'" class="flex items-center gap-3">
       <span :class="['text-sm font-semibold tabular-nums whitespace-nowrap', durationWarning ? 'text-amber-700' : 'text-ink-medium']">
-        {{ formattedDuration }} / 01:00
+        {{ formattedDuration }} / 00:45
       </span>
       <div class="flex-1 h-2 bg-border rounded overflow-hidden" aria-label="Microphone level">
         <div
@@ -50,8 +50,9 @@ function handleReset() {
     </p>
 
     <!-- Controls -->
-    <div class="flex justify-center gap-3">
+    <div class="flex flex-col items-center gap-2">
       <button v-if="state === 'idle'"      class="btn-primary"   @click="start">Start Recording</button>
+      <p v-if="state === 'idle'" class="m-0 text-xs text-ink-lighter">45 second limit</p>
       <button v-if="state === 'recording'" class="btn-danger"    @click="stop">Stop Recording</button>
       <button v-if="state === 'stopped'"   class="btn-secondary" @click="handleReset">Record Again</button>
     </div>

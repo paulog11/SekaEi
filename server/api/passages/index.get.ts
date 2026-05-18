@@ -2,7 +2,7 @@ import { useSupabase, useSupabaseUser } from '../../utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const { data, error } = await db
     .from('custom_passages')

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'id is required.' })
   }
 
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const { data, error } = await db
     .from('attempts')

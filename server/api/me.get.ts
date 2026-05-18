@@ -2,7 +2,7 @@ import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const [profileRes, streakRes] = await Promise.all([
     db.from('profiles').select('display_name, created_at').eq('id', authUser.id).maybeSingle(),

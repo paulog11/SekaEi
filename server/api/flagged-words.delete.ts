@@ -3,7 +3,7 @@ import { normalizeWord } from '../utils/flagDifficultWords'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const body = await readBody(event)
   const { word } = body ?? {}

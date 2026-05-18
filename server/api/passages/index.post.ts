@@ -11,11 +11,11 @@ export default defineEventHandler(async (event) => {
   if (typeof text !== 'string' || !text.trim()) {
     throw createError({ statusCode: 400, message: 'text is required.' })
   }
-  if (text.trim().length > 2000) {
-    throw createError({ statusCode: 400, message: 'text too long (max 2000 characters).' })
+  if (text.trim().length > 300) {
+    throw createError({ statusCode: 400, message: 'text too long (max 300 characters).' })
   }
 
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const { data, error } = await db
     .from('custom_passages')

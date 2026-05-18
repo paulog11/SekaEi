@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import type { H3Event } from 'h3'
 
-export function useSupabase() {
-  const config = useRuntimeConfig()
+export function useSupabase(event: H3Event) {
   const supabaseUrl = process.env.SUPABASE_URL ?? ''
-  const serviceKey = config.supabaseSecretKey || (process.env.NUXT_SUPABASE_SECRET_KEY ?? '')
-  return createClient(supabaseUrl, serviceKey, {
+  const anonKey = process.env.SUPABASE_KEY ?? ''
+  const authHeader = getHeader(event, 'authorization') ?? ''
+  return createClient(supabaseUrl, anonKey, {
     auth: { persistSession: false },
+    global: { headers: { Authorization: authHeader } },
   })
 }
 

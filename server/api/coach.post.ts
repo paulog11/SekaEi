@@ -3,7 +3,7 @@ import { generateCoachReply, COACH_DAILY_LIMIT } from '../utils/coach'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
   const config = useRuntimeConfig()
 
   if (!config.anthropicApiKey) {

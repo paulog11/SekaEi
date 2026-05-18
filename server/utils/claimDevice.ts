@@ -1,7 +1,8 @@
+import type { H3Event } from 'h3'
 import { useSupabase } from './supabase'
 
-export async function claimDevice(deviceId: string, userId: string): Promise<void> {
-  const db = useSupabase()
+export async function claimDevice(event: H3Event, deviceId: string, userId: string): Promise<void> {
+  const db = useSupabase(event)
 
   // Record the claim
   await db.from('device_claims').upsert({ device_id: deviceId, user_id: userId, claimed_at: new Date().toISOString() })

@@ -2,7 +2,7 @@ import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const authUser = await useSupabaseUser(event)
-  const db = useSupabase()
+  const db = useSupabase(event)
 
   const query = getQuery(event)
   const status = (query.status as string) ?? 'active'

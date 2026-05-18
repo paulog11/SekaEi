@@ -9,6 +9,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid deviceId.' })
   }
 
-  await claimDevice(deviceId, user.id)
+  await claimDevice(event, deviceId, user.id)
   return { ok: true }
 })
