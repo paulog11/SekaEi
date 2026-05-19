@@ -100,7 +100,7 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
     </p>
 
     <!-- Score grid: 2-up on mobile, 5-up on sm+ -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6" data-tutorial="score-grid">
       <div
         v-for="{ key, label, en, ja } in scoreKeys"
         :key="key"
@@ -154,11 +154,12 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
     <!-- Word chip grid -->
     <div v-if="!showDiff" class="flex flex-wrap items-start gap-0.5 leading-[2.2]">
       <WordChip
-        v-for="word in result.Words"
+        v-for="(word, idx) in result.Words"
         :key="`${word.Word}-${word.Offset}`"
         :word="word"
         :ipa="ipaForWord(word.Word)"
         :is-flagged="isWordFlagged(word.Word)"
+        :is-tutorial-target="idx === 0"
         @replay="(o, d) => emit('replay', o, d)"
         @flag="(payload) => emit('flag', { ...payload, source: 'manual' })"
       />

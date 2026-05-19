@@ -65,6 +65,11 @@ export default {
       animation: {
         shimmer: 'shimmer 1.4s infinite linear',
       },
+      zIndex: {
+        60: '60',
+        61: '61',
+        62: '62',
+      },
     },
   },
   plugins: [daisyui],

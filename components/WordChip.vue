@@ -7,6 +7,7 @@ const props = defineProps<{
   word: AzureWord
   ipa?: string
   isFlagged?: boolean
+  isTutorialTarget?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -112,6 +113,7 @@ onUnmounted(() => { document.removeEventListener('click', handleOutsideClick) })
       colorClass,
       isOmission ? 'cursor-default' : 'cursor-pointer hover:shadow-chip',
     ]"
+    :data-tutorial="isTutorialTarget ? 'word-chip' : undefined"
     :role="isOmission ? undefined : 'button'"
     :tabindex="isOmission ? undefined : 0"
     :aria-expanded="isOmission ? undefined : popoverOpen"

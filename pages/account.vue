@@ -2,6 +2,7 @@
 import { useStreak } from '~/composables/useStreak'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
+import { useTutorialStore } from '~/stores/tutorialStore'
 
 definePageMeta({ middleware: 'stage' })
 useHead({ title: 'Account — SekaEi' })
@@ -9,6 +10,7 @@ useHead({ title: 'Account — SekaEi' })
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const { apiFetch } = useApi()
+const tutorialStore = useTutorialStore()
 
 // ── Auth form state ──────────────────────────────────────────────────────────
 const activeTab = ref<'signin' | 'signup'>('signin')
@@ -165,7 +167,12 @@ async function handleAddPassage() {
           <p class="font-heading text-xl font-bold text-ink m-0">{{ displayName || 'Learner' }}</p>
           <p class="text-sm text-ink-light m-0 truncate">{{ user.email }}</p>
         </div>
-        <button class="btn-secondary btn-sm shrink-0" @click="handleSignOut">Sign out</button>
+        <div class="flex flex-col items-end gap-1.5 shrink-0">
+          <button class="btn-secondary btn-sm" @click="handleSignOut">Sign out</button>
+          <NuxtLink to="/practice" class="text-xs text-ink-lighter hover:text-primary underline" @click="tutorialStore.replay()">
+            Replay tutorial
+          </NuxtLink>
+        </div>
       </div>
 
       <!-- Display name -->

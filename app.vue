@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
+import { useTutorialStore } from '~/stores/tutorialStore'
 
-const { apiFetch } = useApi()
 const user = useSupabaseUser()
+const tutorialStore = useTutorialStore()
 
 useHead({
   link: [
@@ -16,7 +16,11 @@ useHead({
 })
 
 onMounted(() => {
-  apiFetch('/api/me').catch(() => {})
+  if (user.value) tutorialStore.fetch()
+})
+
+watch(user, (u) => {
+  if (u) tutorialStore.fetch()
 })
 </script>
 
@@ -40,4 +44,7 @@ onMounted(() => {
 
   <!-- Bottom tab bar — mobile only -->
   <BottomTabBar />
+
+  <!-- First-time user tutorial overlay -->
+  <TutorialOverlay />
 </template>

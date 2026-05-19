@@ -7,9 +7,19 @@ import { useStreak } from '~/composables/useStreak'
 import { passageStars } from '~/composables/useProgress'
 import { useApi } from '~/composables/useApi'
 import { useFlaggedWords } from '~/composables/useFlaggedWords'
+import { useTutorialStore } from '~/stores/tutorialStore'
 
 definePageMeta({ middleware: ['stage', 'auth'] })
 useHead({ title: 'Pronunciation — SekaEi' })
+
+const tutorialStore = useTutorialStore()
+
+// Auto-start tour when store finishes loading and user hasn't done it yet
+watchEffect(() => {
+  if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
+    tutorialStore.start()
+  }
+})
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
 
@@ -49,12 +59,21 @@ const detailPassageAttempts = computed(() =>
 
 function openDetail(passage: typeof allPassages.value[0]) {
   detailPassage.value = passage
+  tutorialStore.advanceIfOnStep(0)
 }
 
 function selectAndClose() {
+  tutorialStore.advanceIfOnStep(1)
   if (detailPassage.value) selectedPassageId.value = detailPassage.value.id
   detailPassage.value = null
 }
+
+// If user closes modal without selecting (X or backdrop), go back to step 0 in the tour
+watch(detailPassage, (val, prev) => {
+  if (prev !== null && val === null && tutorialStore.currentStep === 1) {
+    tutorialStore.goTo(0)
+  }
+})
 
 function scoreChipClass(score: number): string {
   if (score >= 80) return 'chip-good'
@@ -123,10 +142,15 @@ function friendlyError(err: unknown): string {
   return msg || 'Assessment failed. Please try again.'
 }
 
+function onRecordingStarted() {
+  tutorialStore.advanceIfOnStep(3)
+}
+
 function onRecorded(wav: Blob) {
   audioWav.value = wav
   assessmentResult.value = null
   assessError.value = null
+  tutorialStore.advanceIfOnStep(4)
 }
 
 async function assess() {
@@ -139,6 +163,7 @@ async function assess() {
     form.append('referenceText', referenceText.value)
     const data = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
     assessmentResult.value = data
+    tutorialStore.advanceIfOnStep(5)
     await addAttempt({
       passageId: activePassageId.value,
       passageTitle: selectedPassage.value?.title ?? '',
@@ -179,9 +204,10 @@ function onRecordAgain() {
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <!-- Passage cards -->
         <button
-          v-for="passage in allPassages"
+          v-for="(passage, idx) in allPassages"
           :key="passage.id"
           type="button"
+          :data-tutorial="idx === 0 ? 'passage-card' : undefined"
           :class="[
             'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
             selectedPassageId === passage.id ? 'border-primary' : '',
@@ -219,7 +245,7 @@ function onRecordAgain() {
 
     <!-- Selected passage reading panel -->
     <section class="mb-5">
-      <div class="bg-surface border-l-4 border-primary rounded-md px-4 py-3">
+      <div class="bg-surface border-l-4 border-primary rounded-md px-4 py-3" data-tutorial="reference-panel">
         <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1 m-0">
           {{ selectedPassage?.title ?? 'No passage selected' }}
         </p>
@@ -230,7 +256,7 @@ function onRecordAgain() {
     <!-- Recorder -->
     <section class="mb-5">
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Record yourself</h2>
-      <Recorder @recorded="onRecorded" @reset="onRecordAgain" />
+      <Recorder @recorded="onRecorded" @reset="onRecordAgain" @recording="onRecordingStarted" />
     </section>
 
     <!-- Assess -->
@@ -240,7 +266,7 @@ function onRecordAgain() {
         <p class="mt-2 text-center text-sm text-ink-lighter">Analysing your recording…</p>
       </div>
       <template v-else>
-        <button class="btn-primary btn-large w-full" @click="assess">
+        <button class="btn-primary btn-large w-full" data-tutorial="check-pronunciation" @click="assess">
           Check My Pronunciation
         </button>
         <div v-if="assessError" class="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
@@ -262,7 +288,7 @@ function onRecordAgain() {
         :passage-id="activePassageId"
         :passage-title="selectedPassage?.title ?? ''"
       />
-      <button class="btn-secondary mt-4" @click="onRecordAgain">
+      <button class="btn-secondary mt-4" data-tutorial="try-again" @click="onRecordAgain">
         Try Again
       </button>
     </section>
@@ -329,7 +355,7 @@ function onRecordAgain() {
             </div>
 
             <div class="px-5 py-4 border-t border-border">
-              <button class="btn-primary w-full" @click="selectAndClose">
+              <button class="btn-primary w-full" data-tutorial="practice-this-passage" @click="selectAndClose">
                 Practice this passage
               </button>
             </div>

@@ -4,6 +4,7 @@ import { useRecorder } from '~/composables/useRecorder'
 const emit = defineEmits<{
   (e: 'recorded', audioWav: Blob): void
   (e: 'reset'): void
+  (e: 'recording'): void
 }>()
 
 const { state, error, result, micLevel, duration, durationWarning, start, stop, reset } = useRecorder()
@@ -17,6 +18,10 @@ const formattedDuration = computed(() => {
 watch(result, (r) => {
   if (!r) return
   emit('recorded', r.audioWav)
+})
+
+watch(state, (s) => {
+  if (s === 'recording') emit('recording')
 })
 
 function handleReset() {
@@ -51,9 +56,9 @@ function handleReset() {
 
     <!-- Controls -->
     <div class="flex flex-col items-center gap-2">
-      <button v-if="state === 'idle'"      class="btn-primary"   @click="start">Start Recording</button>
+      <button v-if="state === 'idle'"      class="btn-primary"   data-tutorial="start-recording" @click="start">Start Recording</button>
       <p v-if="state === 'idle'" class="m-0 text-xs text-ink-lighter">45 second limit</p>
-      <button v-if="state === 'recording'" class="btn-danger"    @click="stop">Stop Recording</button>
+      <button v-if="state === 'recording'" class="btn-danger"    data-tutorial="stop-recording"  @click="stop">Stop Recording</button>
       <button v-if="state === 'stopped'"   class="btn-secondary" @click="handleReset">Record Again</button>
     </div>
 
