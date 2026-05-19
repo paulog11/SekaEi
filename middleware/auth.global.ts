@@ -6,11 +6,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/account')
   }
 
-  // Skip approval check during SSR — the Supabase session isn't available
-  // server-side, so the query would fail and incorrectly block the user.
-  if (import.meta.server) return
-
-  if (user.value && !publicRoutes.includes(to.path)) {
+  if (user.value?.id && !publicRoutes.includes(to.path)) {
     const supabase = useSupabaseClient()
     const { data, error } = await supabase
       .from('profiles')

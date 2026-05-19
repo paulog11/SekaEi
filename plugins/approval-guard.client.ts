@@ -1,24 +1,29 @@
-// Route middleware skips the approval check on SSR and doesn't re-run after
-// hydration on the initial page load. This plugin fills that gap by running
-// the check once the app mounts on the client.
-export default defineNuxtPlugin((nuxtApp) => {
-  const publicRoutes = ['/account', '/confirm', '/reset', '/pending']
+import { watch } from 'vue'
 
-  nuxtApp.hook('app:mounted', async () => {
-    const user = useSupabaseUser()
-    const router = useRouter()
+// The global middleware runs on client-side navigation but Supabase restores
+// its session asynchronously after hydration, so user.value is null when the
+// middleware first runs on the initial page load. This plugin watches for the
+// user to become available and then runs the same approval check.
+export default defineNuxtPlugin(() => {
+  const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
+  const user = useSupabaseUser()
+  const router = useRouter()
+  const supabase = useSupabaseClient()
 
-    if (!user.value || publicRoutes.includes(router.currentRoute.value.path)) return
+  const unwatch = watch(user, async (newUser) => {
+    if (!newUser) return
+    unwatch()
 
-    const supabase = useSupabaseClient()
+    if (publicRoutes.includes(router.currentRoute.value.path)) return
+
     const { data, error } = await supabase
       .from('profiles')
       .select('approval_status')
-      .eq('id', user.value.id)
+      .eq('id', newUser.id)
       .single() as { data: { approval_status?: string } | null; error: unknown }
 
     if (!error && data?.approval_status !== 'approved') {
       await navigateTo('/pending')
     }
-  })
+  }, { immediate: true })
 })
