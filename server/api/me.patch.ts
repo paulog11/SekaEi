@@ -1,4 +1,5 @@
-import { useSupabase, useSupabaseUser } from '../utils/supabase'
+import { useSupabase } from '../utils/supabase'
+import { requireApprovedUser } from '../utils/approval'
 
 const DISPLAY_NAME_MAX = 30
 const DISPLAY_NAME_PATTERN = /^[\p{L}\p{N}_.\- ]+$/u
@@ -18,7 +19,7 @@ function containsBadWord(name: string): boolean {
 }
 
 export default defineEventHandler(async (event) => {
-  const authUser = await useSupabaseUser(event)
+  const authUser = await requireApprovedUser(event)
 
   const body = await readBody(event)
   const raw = body?.displayName

@@ -23,7 +23,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/account',
       callback: '/confirm',
-      exclude: ['/', '/account', '/confirm', '/reset'],
+      exclude: ['/', '/account', '/confirm', '/reset', '/pending'],
     },
   },
   typescript: {

@@ -1,8 +1,9 @@
-import { useSupabase, useSupabaseUser } from '../utils/supabase'
+import { useSupabase } from '../utils/supabase'
+import { requireApprovedUser } from '../utils/approval'
 import { normalizeWord } from '../utils/flagDifficultWords'
 
 export default defineEventHandler(async (event) => {
-  const authUser = await useSupabaseUser(event)
+  const authUser = await requireApprovedUser(event)
   const db = useSupabase(event)
 
   const body = await readBody(event)

@@ -1,11 +1,12 @@
 import { runPronunciationAssessment } from '../utils/azure'
-import { useSupabaseUser, useSupabase } from '../utils/supabase'
+import { useSupabase } from '../utils/supabase'
+import { requireApprovedUser } from '../utils/approval'
 
 const DAILY_LIMIT = 60
 const inflight = new Map<string, number>()
 
 export default defineEventHandler(async (event) => {
-  const user = await useSupabaseUser(event)
+  const user = await requireApprovedUser(event)
 
   const config = useRuntimeConfig()
   if (!config.azureSpeechKey || !config.azureSpeechRegion) {

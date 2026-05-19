@@ -1,8 +1,9 @@
-import { useSupabase, useSupabaseUser } from '../utils/supabase'
+import { useSupabase } from '../utils/supabase'
+import { requireApprovedUser } from '../utils/approval'
 import type { AttemptRecord } from '~/composables/useHistory'
 
 export default defineEventHandler(async (event) => {
-  const authUser = await useSupabaseUser(event)
+  const authUser = await requireApprovedUser(event)
 
   const query = getQuery(event)
   const passageId = typeof query.passageId === 'string' ? query.passageId : undefined
