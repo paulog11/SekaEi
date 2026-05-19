@@ -41,17 +41,20 @@ async function refreshTargetRect() {
     return
   }
 
-  const r = el.getBoundingClientRect()
+  // If a scrollAnchor is specified, scroll to that element instead of the target.
+  // This keeps context (e.g. the passage text) visible alongside the highlighted button.
+  const scrollEl = step.scrollAnchor
+    ? (queryTarget(step.scrollAnchor) ?? el)
+    : el
 
-  // Scroll into view if needed
-  if (r.top < 0 || r.bottom > window.innerHeight) {
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  const scrollR = scrollEl.getBoundingClientRect()
+  if (scrollR.top < 0 || scrollR.bottom > window.innerHeight) {
+    scrollEl.scrollIntoView({ block: 'start', behavior: 'smooth' })
     await new Promise<void>(resolve => setTimeout(resolve, 350))
-    const r2 = el.getBoundingClientRect()
-    targetRect.value = { x: r2.left, y: r2.top, w: r2.width, h: r2.height }
-  } else {
-    targetRect.value = { x: r.left, y: r.top, w: r.width, h: r.height }
   }
+
+  const r = el.getBoundingClientRect()
+  targetRect.value = { x: r.left, y: r.top, w: r.width, h: r.height }
 }
 
 const spotlightRect = computed(() => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AssessmentResult } from '~/types/assessment'
-import { SAMPLE_PASSAGES } from '~/types/passages'
+import { SAMPLE_PASSAGES, PASSAGE_CATEGORIES, CATEGORY_LABELS } from '~/types/passages'
+import type { PassageCategory } from '~/types/passages'
 import { useHistory } from '~/composables/useHistory'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useStreak } from '~/composables/useStreak'
@@ -22,6 +23,8 @@ watchEffect(() => {
 })
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
+type FilterValue = PassageCategory | 'all'
+const selectedCategory = ref<FilterValue>('all')
 
 const { items: customPassages, fetchPassages, addPassage } = useCustomPassages()
 const { fetchStreak } = useStreak()
@@ -35,8 +38,21 @@ onMounted(() => {
 
 const allPassages = computed(() => [
   ...SAMPLE_PASSAGES,
-  ...customPassages.value.map(p => ({ id: `custom:${p.id}`, title: p.title, source: 'My passages', text: p.text, ipa: p.ipa ?? undefined })),
+  ...customPassages.value.map(p => ({
+    id: `custom:${p.id}`,
+    title: p.title,
+    source: 'My passages',
+    text: p.text,
+    category: p.category,
+    ipa: p.ipa ?? undefined,
+  })),
 ])
+
+const filteredPassages = computed(() =>
+  selectedCategory.value === 'all'
+    ? allPassages.value
+    : allPassages.value.filter(p => p.category === selectedCategory.value)
+)
 
 const referenceText = computed(() =>
   allPassages.value.find(p => p.id === selectedPassageId.value)?.text ?? ''
@@ -89,16 +105,18 @@ function formatAttemptDate(ts: number): string {
 const showAddPassage = ref(false)
 const newPassageTitle = ref('')
 const newPassageText = ref('')
+const newPassageCategory = ref<PassageCategory>('custom')
 const addingPassage = ref(false)
 
 async function submitNewPassage() {
   if (!newPassageTitle.value.trim() || !newPassageText.value.trim()) return
   addingPassage.value = true
   try {
-    const added = await addPassage(newPassageTitle.value.trim(), newPassageText.value.trim())
+    const added = await addPassage(newPassageTitle.value.trim(), newPassageText.value.trim(), newPassageCategory.value)
     if (added) selectedPassageId.value = `custom:${added.id}`
     newPassageTitle.value = ''
     newPassageText.value = ''
+    newPassageCategory.value = 'custom'
     showAddPassage.value = false
   } finally {
     addingPassage.value = false
@@ -201,10 +219,36 @@ function onRecordAgain() {
       <h1 class="text-2xl font-bold text-ink">Pronunciation Practice</h1>
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Choose a passage</h2>
 
+      <!-- Category filter chips -->
+      <div class="flex gap-2 overflow-x-auto pb-1 mb-3">
+        <button
+          type="button"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+            selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+          ]"
+          @click="selectedCategory = 'all'"
+        >
+          All
+        </button>
+        <button
+          v-for="cat in PASSAGE_CATEGORIES"
+          :key="cat"
+          type="button"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+            selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+          ]"
+          @click="selectedCategory = cat"
+        >
+          {{ CATEGORY_LABELS[cat] }}
+        </button>
+      </div>
+
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <!-- Passage cards -->
         <button
-          v-for="(passage, idx) in allPassages"
+          v-for="(passage, idx) in filteredPassages"
           :key="passage.id"
           type="button"
           :data-tutorial="idx === 0 ? 'passage-card' : undefined"
@@ -216,6 +260,9 @@ function onRecordAgain() {
         >
           <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
           <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
+          <span class="inline-block self-start text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+            {{ CATEGORY_LABELS[passage.category] }}
+          </span>
           <div
             class="rating rating-sm pointer-events-none mt-1"
             :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
@@ -231,6 +278,7 @@ function onRecordAgain() {
 
         <!-- Add passage card -->
         <button
+          v-if="selectedCategory === 'all' || selectedCategory === 'custom'"
           type="button"
           class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
           @click="showAddPassage = true"
@@ -241,6 +289,14 @@ function onRecordAgain() {
           <span class="text-[11px] font-medium">Add passage</span>
         </button>
       </div>
+
+      <!-- Empty state when a filter has no passages -->
+      <p
+        v-if="filteredPassages.length === 0 && selectedCategory !== 'all'"
+        class="text-sm text-ink-lighter text-center py-6"
+      >
+        No passages in this category yet.
+      </p>
     </section>
 
     <!-- Selected passage reading panel -->
@@ -313,6 +369,9 @@ function onRecordAgain() {
               <div>
                 <h3 class="text-base font-semibold text-ink m-0">{{ detailPassage.title }}</h3>
                 <p v-if="detailPassage.source" class="text-xs text-ink-lighter mt-0.5 m-0">{{ detailPassage.source }}</p>
+                <span class="inline-block mt-1 text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+                  {{ CATEGORY_LABELS[detailPassage.category] }}
+                </span>
               </div>
               <button
                 class="text-ink-lighter hover:text-ink ml-3 shrink-0 mt-0.5"
@@ -336,8 +395,8 @@ function onRecordAgain() {
               <div class="flex flex-col gap-1 max-h-44 overflow-y-auto">
                 <NuxtLink
                   v-for="a in detailPassageAttempts"
-                  :key="a.id"
-                  :to="`/attempt/${a.id}`"
+                  :key="a.slug ?? a.timestamp"
+                  :to="`/attempt/${a.slug}`"
                   class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-surface transition-colors no-underline"
                   @click="detailPassage = null"
                 >
@@ -393,6 +452,23 @@ function onRecordAgain() {
               </button>
             </div>
             <div class="px-5 py-4 flex flex-col gap-3">
+              <div>
+                <label class="field-label block mb-1">Category</label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="cat in PASSAGE_CATEGORIES"
+                    :key="cat"
+                    type="button"
+                    :class="[
+                      'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+                      newPassageCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+                    ]"
+                    @click="newPassageCategory = cat"
+                  >
+                    {{ CATEGORY_LABELS[cat] }}
+                  </button>
+                </div>
+              </div>
               <div>
                 <label class="field-label block mb-1">Title</label>
                 <input

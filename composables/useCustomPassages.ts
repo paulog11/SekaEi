@@ -1,7 +1,6 @@
 import { storeToRefs } from 'pinia'
 import { useCustomPassagesStore } from '~/stores/customPassagesStore'
 
-
 export function useCustomPassages() {
   const store = useCustomPassagesStore()
   const { items, loading } = storeToRefs(store)

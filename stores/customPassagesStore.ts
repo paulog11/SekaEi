@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
+import type { PassageCategory } from '~/types/passages'
 
 export interface CustomPassage {
   id: string
   title: string
   text: string
+  category: PassageCategory
   ipa?: Record<string, string> | null
   created_at: string
 }
@@ -41,11 +43,11 @@ export const useCustomPassagesStore = defineStore('customPassages', () => {
     }
   }
 
-  async function addPassage(title: string, text: string): Promise<CustomPassage | null> {
+  async function addPassage(title: string, text: string, category: PassageCategory = 'custom'): Promise<CustomPassage | null> {
     try {
       const data = await apiFetch<{ passage: CustomPassage }>('/api/passages', {
         method: 'POST',
-        body: { title, text },
+        body: { title, text, category },
       })
       items.value = [data.passage, ...items.value]
       fetchedAt.value = Date.now() // in-memory is now current

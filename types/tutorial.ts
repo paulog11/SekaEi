@@ -5,6 +5,7 @@ export interface TutorialStep {
   body: string
   advanceOn?: 'event'
   waitHint?: string
+  scrollAnchor?: string  // scroll this element into view instead of the spotlight target
 }
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
@@ -37,6 +38,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     body: 'Tap "Start Recording" when you\'re ready. You have up to 45 seconds to read the passage.',
     advanceOn: 'event',
     waitHint: 'Tap "Start Recording" to continue',
+    scrollAnchor: 'reference-panel',
   },
   {
     id: 'stop-recording',
@@ -45,6 +47,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     body: 'Watch the mic bar — it shows your input level. Tap "Stop Recording" after you finish reading.',
     advanceOn: 'event',
     waitHint: 'Tap "Stop Recording" to continue',
+    scrollAnchor: 'reference-panel',
   },
   {
     id: 'check-pronunciation',

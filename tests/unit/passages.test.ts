@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SAMPLE_PASSAGES } from '~/types/passages'
+import { SAMPLE_PASSAGES, PASSAGE_CATEGORIES } from '~/types/passages'
 
 describe('SAMPLE_PASSAGES', () => {
   it('has at least 3 passages', () => {
@@ -12,6 +12,12 @@ describe('SAMPLE_PASSAGES', () => {
       expect(p.title.trim(), `${p.id} — title`).not.toBe('')
       expect(p.source.trim(), `${p.id} — source`).not.toBe('')
       expect(p.text.trim(), `${p.id} — text`).not.toBe('')
+    }
+  })
+
+  it('all passages have a valid category', () => {
+    for (const p of SAMPLE_PASSAGES) {
+      expect(PASSAGE_CATEGORIES, `${p.id} — category`).toContain(p.category)
     }
   })
 

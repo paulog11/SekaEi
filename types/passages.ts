@@ -1,8 +1,20 @@
+export type PassageCategory = 'movies-tv' | 'speeches' | 'idioms' | 'custom'
+
+export const PASSAGE_CATEGORIES: PassageCategory[] = ['movies-tv', 'speeches', 'idioms', 'custom']
+
+export const CATEGORY_LABELS: Record<PassageCategory, string> = {
+  'movies-tv': 'Movie & TV Quotes',
+  'speeches': 'Famous Speeches',
+  'idioms': 'Idioms',
+  'custom': 'Custom',
+}
+
 export interface Passage {
   id: string
   title: string
   source: string
   text: string
+  category: PassageCategory
   ipa?: Record<string, string>
 }
 
@@ -11,6 +23,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'interstellar',
     title: 'Interstellar',
     source: 'Christopher Nolan, 2014',
+    category: 'movies-tv',
     text: "We used to look up at the sky and wonder at our place in the stars. Now we just look down, and worry about our place in the dirt.",
     ipa: {
       we: '/wiː/',
@@ -39,6 +52,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'great-dictator',
     title: 'The Great Dictator',
     source: 'Charlie Chaplin, 1940',
+    category: 'movies-tv',
     text: "You, the people, have the power to make this life free and beautiful, to make this life a wonderful adventure. Let us fight to free the world, to do away with national barriers, to do away with greed, with hate and intolerance. Let us fight for a world of reason, a world where science and progress will lead to all men's happiness.",
     ipa: {
       you: '/juː/',
@@ -81,6 +95,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'rocky-balboa',
     title: 'Rocky Balboa',
     source: 'Sylvester Stallone, 2006',
+    category: 'movies-tv',
     text: "Let me tell you something you already know. The world ain't all sunshine and rainbows, it's a very mean and nasty place and I don't care how tough you are it will beat you to your knees and keep you there permanently if you let it. You, me, nobody is gonna hit as hard as life! But it ain't about how hard you can hit, it's about how hard you can get hit and keep movin' forward, how much you can take...and keep movin' forward. That's how winning is done!",
     ipa: {
       let: '/lɛt/',
@@ -125,6 +140,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'steve-jobs-stanford',
     title: 'Stanford Commencement',
     source: 'Steve Jobs, 2005',
+    category: 'speeches',
     text: "Your time is limited, so don't waste it living someone else's life. Don't be trapped by dogma, which is living with the results of other people's thinking. Don't let the noise of others' opinions drown out your own inner voice. And most importantly, have the courage to follow your heart and intuition.",
     ipa: {
       your: '/jɔːr/',
@@ -173,6 +189,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'inigo-montoya',
     title: 'The Princess Bride',
     source: 'William Goldman, 1987',
+    category: 'movies-tv',
     text: "Hello. My name is Inigo Montoya. You killed my father. Prepare to die. I have been in the revenge business so long, now that it's over, I do not know what to do with the rest of my life.",
     ipa: {
       hello: '/həˈloʊ/',
@@ -214,6 +231,7 @@ export const SAMPLE_PASSAGES: Passage[] = [
     id: 'i-have-a-dream',
     title: 'I Have a Dream',
     source: 'Martin Luther King Jr., 1963',
+    category: 'speeches',
     text: "I have a dream that one day this nation will rise up and live out the true meaning of its creed: we hold these truths to be self-evident, that all men are created equal. I have a dream that my four little children will one day live in a nation where they will not be judged by the color of their skin but by the content of their character.",
     ipa: {
       i: '/aɪ/',
