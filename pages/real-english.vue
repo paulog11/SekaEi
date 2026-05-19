@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: ['stage', 'auth'] })
+definePageMeta({ middleware: ['stage'] })
 </script>
 
 <template>

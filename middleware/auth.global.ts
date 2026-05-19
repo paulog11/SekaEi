@@ -1,6 +1,6 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser()
-  const publicRoutes = ['/account', '/confirm', '/reset', '/pending']
+  const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
 
   if (!user.value && !publicRoutes.includes(to.path)) {
     return navigateTo('/account')

@@ -1,14 +1,11 @@
+// @ts-nocheck — Deno runtime; not checked by Node/vue-tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const APP_URL = Deno.env.get('APP_URL') ?? ''
 const ADMIN_EMAIL = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') ?? ''
-const SMTP_HOST = Deno.env.get('SMTP_HOST') ?? ''
-const SMTP_PORT = parseInt(Deno.env.get('SMTP_PORT') ?? '587', 10)
-const SMTP_USER = Deno.env.get('SMTP_USER') ?? ''
-const SMTP_PASS = Deno.env.get('SMTP_PASS') ?? ''
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 
 Deno.serve(async (req) => {
   try {
@@ -19,7 +16,7 @@ Deno.serve(async (req) => {
       return new Response('Missing record fields', { status: 400 })
     }
 
-    // Fetch user email via service role (auth.users not accessible from webhook payload)
+    // Fetch user email via service role (not in webhook payload)
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: userData, error: userError } = await admin.auth.admin.getUserById(record.id)
     if (userError || !userData?.user?.email) {
@@ -42,23 +39,25 @@ Deno.serve(async (req) => {
 <p style="font-size:12px;color:#666">These links are single-use. You can also update <code>approval_status</code> directly in the Supabase dashboard.</p>
 `
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: SMTP_HOST,
-        port: SMTP_PORT,
-        tls: SMTP_PORT === 465,
-        auth: { username: SMTP_USER, password: SMTP_PASS },
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        from: 'SekaEi <onboarding@resend.dev>',
+        to: ADMIN_EMAIL,
+        subject: `[SekaEi] New signup: ${userEmail}`,
+        html,
+      }),
     })
 
-    await client.send({
-      from: SMTP_USER,
-      to: ADMIN_EMAIL,
-      subject: `[SekaEi] New signup: ${userEmail}`,
-      html,
-    })
-
-    await client.close()
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('Resend error:', res.status, body)
+      return new Response('Failed to send email', { status: 500 })
+    }
 
     return new Response('OK', { status: 200 })
   } catch (err) {

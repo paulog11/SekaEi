@@ -10,7 +10,7 @@ import { useApi } from '~/composables/useApi'
 import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 
-definePageMeta({ middleware: ['auth'] })
+definePageMeta({})
 useHead({ title: 'Pronunciation — SekaEi' })
 
 const tutorialStore = useTutorialStore()
