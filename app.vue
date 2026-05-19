@@ -4,8 +4,9 @@ import { useTutorialStore } from '~/stores/tutorialStore'
 const user = useSupabaseUser()
 const tutorialStore = useTutorialStore()
 const route = useRoute()
+const appReady = useState('appReady', () => true)
 
-const noNavRoutes = ['/account', '/pending', '/confirm', '/reset', '/dev-only']
+const noNavRoutes = ['/pending', '/confirm', '/reset', '/dev-only']
 const showNav = computed(() => !noNavRoutes.includes(route.path))
 
 useHead({
@@ -29,6 +30,9 @@ watch(user, (u) => {
 </script>
 
 <template>
+  <!-- Auth-check loading overlay — client only, covers page while /api/me is in-flight -->
+  <AppLoading v-if="!appReady" />
+
   <!-- Top header — desktop only, hidden on auth/gate pages -->
   <header v-if="showNav" class="hidden sm:block border-b border-border bg-white sticky top-0 z-30">
     <div class="max-w-page mx-auto px-5 h-14 flex items-center justify-between">

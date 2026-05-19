@@ -4,11 +4,16 @@ import { watch } from 'vue'
 // redirect to /pending if not approved. Cache the result so all subsequent
 // client-side navigations can be blocked synchronously via router.beforeEach
 // without making a network request.
+//
+// appReady drives the full-page loading overlay in app.vue. It starts true
+// (SSR renders normally), flips false while the approval fetch is in-flight
+// on a protected route, then returns to true once the check resolves.
 export default defineNuxtPlugin(() => {
   const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
   const user = useSupabaseUser()
   const router = useRouter()
   const supabase = useSupabaseClient()
+  const appReady = useState('appReady', () => true)
   let cachedStatus: string | null = null
 
   async function fetchAndGuard() {
@@ -42,8 +47,13 @@ export default defineNuxtPlugin(() => {
 
   const unwatch = watch(user, async (newUser) => {
     if (!newUser) return
+
+    const isProtected = !publicRoutes.includes(router.currentRoute.value.path)
+    if (isProtected) appReady.value = false
+
     unwatch()
     await fetchAndGuard()
+    appReady.value = true
   }, { immediate: true })
 
   // Block all subsequent client-side navigations synchronously once status is known.
