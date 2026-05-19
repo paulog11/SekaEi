@@ -23,8 +23,7 @@ defineEmits<{
       <p class="text-sm text-ink-medium mb-3">
         Get a personalized analysis of your pronunciation patterns and targeted minimal-pair drills.
       </p>
-      <button class="btn-primary btn-sm" @click="$emit('request')">Get coaching</button>
-      <p v-if="error" class="mt-2 text-xs text-red-700">{{ error }}</p>
+      <p class="text-sm text-ink-lighter italic">Coming soon!</p>
     </template>
 
     <template v-else-if="loading">
