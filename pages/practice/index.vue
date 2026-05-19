@@ -15,14 +15,15 @@ useHead({ title: 'Pronunciation — SekaEi' })
 
 const tutorialStore = useTutorialStore()
 
-// Tutorial disabled — uncomment to re-enable the first-time tour
-// watchEffect(() => {
-//   if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
-//     tutorialStore.start()
-//   }
-// })
+watchEffect(() => {
+  if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
+    tutorialStore.start()
+  }
+})
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
+const passagePickerOpen = ref(true)
+const hasConfirmedPassage = ref(false)
 type FilterValue = PassageCategory | 'all'
 const selectedCategory = ref<FilterValue>('all')
 
@@ -82,6 +83,8 @@ function selectAndClose() {
   tutorialStore.advanceIfOnStep(1)
   if (detailPassage.value) selectedPassageId.value = detailPassage.value.id
   detailPassage.value = null
+  hasConfirmedPassage.value = true
+  passagePickerOpen.value = false
 }
 
 // If user closes modal without selecting (X or backdrop), go back to step 0 in the tour
@@ -216,87 +219,134 @@ function onRecordAgain() {
 
     <!-- Passage picker — grid of rich cards -->
     <section class="mb-5">
-      <h1 class="text-2xl font-bold text-ink">Pronunciation Practice</h1>
-      <h2 class="text-sm font-semibold text-ink-medium mb-3">Choose a passage</h2>
-
-      <!-- Category filter chips -->
-      <div class="flex gap-2 overflow-x-auto pb-1 mb-3">
-        <button
-          type="button"
-          :class="[
-            'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
-            selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
-          ]"
-          @click="selectedCategory = 'all'"
-        >
-          All
-        </button>
-        <button
-          v-for="cat in PASSAGE_CATEGORIES"
-          :key="cat"
-          type="button"
-          :class="[
-            'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
-            selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
-          ]"
-          @click="selectedCategory = cat"
-        >
-          {{ CATEGORY_LABELS[cat] }}
-        </button>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <!-- Passage cards -->
-        <button
-          v-for="(passage, idx) in filteredPassages"
-          :key="passage.id"
-          type="button"
-          :data-tutorial="idx === 0 ? 'passage-card' : undefined"
-          :class="[
-            'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
-            selectedPassageId === passage.id ? 'border-primary' : '',
-          ]"
-          @click="openDetail(passage)"
-        >
-          <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
-          <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
-          <span class="inline-block self-start text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
-            {{ CATEGORY_LABELS[passage.category] }}
-          </span>
-          <div
-            class="rating rating-sm pointer-events-none mt-1"
-            :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
-          >
-            <span
-              v-for="n in 3"
-              :key="n"
-              class="mask mask-star bg-amber-400"
-              :aria-checked="starsForPassage(passage.id) >= n"
-            />
-          </div>
-        </button>
-
-        <!-- Add passage card -->
-        <button
-          v-if="selectedCategory === 'all' || selectedCategory === 'custom'"
-          type="button"
-          class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
-          @click="showAddPassage = true"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span class="text-[11px] font-medium">Add passage</span>
-        </button>
-      </div>
-
-      <!-- Empty state when a filter has no passages -->
-      <p
-        v-if="filteredPassages.length === 0 && selectedCategory !== 'all'"
-        class="text-sm text-ink-lighter text-center py-6"
+      <!-- Collapsed: compact passage summary bar -->
+      <div
+        v-if="hasConfirmedPassage && !passagePickerOpen"
+        class="flex items-center justify-between gap-3 bg-white border border-border rounded-xl px-4 py-3 shadow-sm"
       >
-        No passages in this category yet.
-      </p>
+        <div class="flex items-center gap-3 min-w-0">
+          <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <div class="min-w-0">
+            <p class="text-[11px] text-ink-lighter leading-none mb-0.5 m-0">Passage</p>
+            <p class="text-sm font-semibold text-ink truncate m-0">{{ selectedPassage?.title }}</p>
+          </div>
+          <span class="shrink-0 text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+            {{ selectedPassage ? CATEGORY_LABELS[selectedPassage.category] : '' }}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-700 transition-colors duration-150"
+          @click="passagePickerOpen = true"
+        >
+          Change
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Expanded: full passage picker -->
+      <div v-else>
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <h1 class="text-2xl font-bold text-ink">Pronunciation Practice</h1>
+            <h2 class="text-sm font-semibold text-ink-medium">Choose a passage</h2>
+          </div>
+          <button
+            v-if="hasConfirmedPassage"
+            type="button"
+            class="mt-2 flex items-center gap-1 text-xs font-medium text-ink-medium hover:text-ink transition-colors duration-150"
+            @click="passagePickerOpen = false"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+            Collapse
+          </button>
+        </div>
+
+        <!-- Category filter chips -->
+        <div class="flex gap-2 overflow-x-auto pb-1 mb-3">
+          <button
+            type="button"
+            :class="[
+              'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+              selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+            ]"
+            @click="selectedCategory = 'all'"
+          >
+            All
+          </button>
+          <button
+            v-for="cat in PASSAGE_CATEGORIES"
+            :key="cat"
+            type="button"
+            :class="[
+              'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+              selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+            ]"
+            @click="selectedCategory = cat"
+          >
+            {{ CATEGORY_LABELS[cat] }}
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <!-- Passage cards -->
+          <button
+            v-for="(passage, idx) in filteredPassages"
+            :key="passage.id"
+            type="button"
+            :data-tutorial="idx === 0 ? 'passage-card' : undefined"
+            :class="[
+              'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
+              selectedPassageId === passage.id ? 'border-primary' : '',
+            ]"
+            @click="openDetail(passage)"
+          >
+            <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
+            <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
+            <span class="inline-block self-start text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+              {{ CATEGORY_LABELS[passage.category] }}
+            </span>
+            <div
+              class="rating rating-sm pointer-events-none mt-1"
+              :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
+            >
+              <span
+                v-for="n in 3"
+                :key="n"
+                class="mask mask-star bg-amber-400"
+                :aria-checked="starsForPassage(passage.id) >= n"
+              />
+            </div>
+          </button>
+
+          <!-- Add passage card -->
+          <button
+            v-if="selectedCategory === 'all' || selectedCategory === 'custom'"
+            type="button"
+            class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
+            @click="showAddPassage = true"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="text-[11px] font-medium">Add passage</span>
+          </button>
+        </div>
+
+        <!-- Empty state when a filter has no passages -->
+        <p
+          v-if="filteredPassages.length === 0 && selectedCategory !== 'all'"
+          class="text-sm text-ink-lighter text-center py-6"
+        >
+          No passages in this category yet.
+        </p>
+      </div>
     </section>
 
     <!-- Selected passage reading panel -->
@@ -318,7 +368,13 @@ function onRecordAgain() {
     <!-- Assess -->
     <section v-if="audioWav && !assessmentResult" class="mb-5">
       <div v-if="assessing" class="flex flex-col" aria-busy="true" aria-label="Analysing your recording…">
-        <div class="skeleton h-16 mb-3 motion-reduce:animate-none" />
+        <div class="skeleton h-16 mb-3 flex items-center justify-center motion-reduce:animate-none">
+          <div class="flex items-center gap-2" role="status">
+            <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce [animation-delay:-0.32s]" />
+            <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce [animation-delay:-0.16s]" />
+            <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce" />
+          </div>
+        </div>
         <p class="mt-2 text-center text-sm text-ink-lighter">Analysing your recording…</p>
       </div>
       <template v-else>

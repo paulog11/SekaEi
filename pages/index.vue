@@ -65,6 +65,15 @@ const thumbnailColors = [
   'bg-yellow-100',
 ]
 
+const nextPassage = computed(() => {
+  const masteredIds = new Set(
+    masteryRows.value.filter(r => passageStars(r.attempts) === 3).map(r => r.passageId)
+  )
+  return SAMPLE_PASSAGES.find(p => !masteredIds.has(p.id)) ?? SAMPLE_PASSAGES[0]
+})
+
+const nextPassageIndex = computed(() => SAMPLE_PASSAGES.indexOf(nextPassage.value))
+
 function scoreColor(score: number) {
   if (score >= 80) return 'text-green-600'
   if (score >= 60) return 'text-amber-600'
@@ -130,21 +139,17 @@ function formatDate(ts: number) {
     <!-- Up next — all passages with pastel thumbnails -->
     <section>
       <p class="text-xs uppercase tracking-wider font-semibold text-ink-lighter mb-3">Up next</p>
-      <div class="flex flex-col gap-3">
-        <NuxtLink
-          v-for="(passage, i) in SAMPLE_PASSAGES"
-          :key="passage.id"
-          to="/practice"
-          class="card-pop bg-white flex items-center gap-4 p-4 no-underline"
-        >
-          <div class="w-14 h-14 rounded-xl shrink-0" :class="thumbnailColors[i % thumbnailColors.length]" />
-          <div class="flex-1 min-w-0">
-            <p class="font-heading text-sm font-semibold text-ink m-0 truncate">{{ passage.title }}</p>
-            <p class="text-xs text-ink-light m-0 mt-0.5">{{ passage.source }}</p>
-          </div>
-          <span class="btn-primary btn-sm shrink-0">Practice</span>
-        </NuxtLink>
-      </div>
+      <NuxtLink
+        to="/practice"
+        class="card-pop bg-white flex items-center gap-4 p-4 no-underline"
+      >
+        <div class="w-14 h-14 rounded-xl shrink-0" :class="thumbnailColors[nextPassageIndex % thumbnailColors.length]" />
+        <div class="flex-1 min-w-0">
+          <p class="font-heading text-sm font-semibold text-ink m-0 truncate">{{ nextPassage.title }}</p>
+          <p class="text-xs text-ink-light m-0 mt-0.5">{{ nextPassage.source }}</p>
+        </div>
+        <span class="btn-primary btn-sm shrink-0">Practice</span>
+      </NuxtLink>
     </section>
 
     <!-- Weak phonemes -->

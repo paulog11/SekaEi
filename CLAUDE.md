@@ -89,6 +89,25 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `pages/real-english.vue` | Route `/real-english`. Renders `<IdiomLabView />`. |
 | `public/images/idioms/` | Static image assets for idiom challenges. Target: WebP, 800×800px, <150 KB per image. |
 
+### Auth / access control
+
+The app enforces two checks on every protected route: (1) the user is logged in, (2) `profiles.approval_status = 'approved'`. This is implemented in three layers that compound — each layer is defence-in-depth, not a replacement for the others.
+
+| Layer | File | When it runs |
+|-------|------|-------------|
+| Reactive state | `stores/authStore.ts` | Always; tri-state `null \| true \| false` — `null` means "not yet checked" |
+| State initialiser | `plugins/auth-state.client.ts` | Client boot; awaits `supabase.auth.getSession()` before flipping `isLoggedIn` off `null` to prevent hydration false-negatives. Also resets all per-user Pinia stores on sign-out or account switch. |
+| Store-driven guard | `middleware/auth-state.global.ts` | Every navigation; redirects only on definitive `false` — ignores `null` so the other two guards (below) handle the hydration window. |
+| Inline query guard | `middleware/auth.global.ts` | Every navigation; queries `profiles.approval_status` directly. Primary server-side + hydration-window guard. |
+| Post-hydration guard | `plugins/approval-guard.client.ts` | Client boot; watches `useSupabaseUser()` and re-checks approval once the Supabase session restores. |
+| Server enforcement | `server/utils/approval.ts` | Called by API handlers via `requireApprovedUser(event)`. Throws 403 if unapproved. |
+
+**Redirect targets:** unauthenticated → `/account`; authenticated but unapproved → `/pending`.
+
+**Public routes** (excluded from all guards): `/account`, `/confirm`, `/reset`, `/pending`, `/dev-only`.
+
+**`authStore` internals:** `refreshApproval()` calls `GET /api/me` (not a raw Supabase query) so approval status is derived from the same endpoint used by the rest of the app. On error it conservatively sets `isApproved = false`.
+
 ### Shared / infrastructure
 
 | File | Purpose |
@@ -102,7 +121,7 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `composables/usePhonemeStats.ts` | Per-phoneme accuracy aggregation across attempts. |
 | `server/api/attempts.post.ts` | Saves a completed attempt to Supabase. |
 | `server/api/attempts.get.ts` | Returns attempt history for the authenticated user. |
-| `server/api/me.get.ts` | Returns the current user profile. |
+| `server/api/me.get.ts` | Returns the current user profile (id, email, displayName, approvalStatus, tutorialCompletedAt) + streak data. |
 
 ---
 
