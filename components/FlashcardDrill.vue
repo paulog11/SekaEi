@@ -94,7 +94,7 @@ const scoreColor = computed(() => {
     <div v-if="result" class="flex flex-col items-center gap-3">
       <p :class="['text-5xl font-bold', scoreColor]">{{ Math.round(wordScore ?? 0) }}</p>
       <p class="text-sm text-ink-medium">
-        <template v-if="(wordScore ?? 0) >= 85">Excellent! This word may graduate soon.</template>
+        <template v-if="(wordScore ?? 0) >= 85">Excellent! Keep it up.</template>
         <template v-else-if="(wordScore ?? 0) >= 60">Good progress — keep practicing.</template>
         <template v-else>Keep going — consistency is the key.</template>
       </p>

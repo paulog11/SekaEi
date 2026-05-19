@@ -1,11 +1,12 @@
-export type PassageCategory = 'movies-tv' | 'speeches' | 'idioms' | 'custom'
+export type PassageCategory = 'movies-tv' | 'speeches' | 'idioms' | 'tongue-twisters' | 'custom'
 
-export const PASSAGE_CATEGORIES: PassageCategory[] = ['movies-tv', 'speeches', 'idioms', 'custom']
+export const PASSAGE_CATEGORIES: PassageCategory[] = ['movies-tv', 'speeches', 'idioms', 'tongue-twisters', 'custom']
 
 export const CATEGORY_LABELS: Record<PassageCategory, string> = {
   'movies-tv': 'Movie & TV Quotes',
   'speeches': 'Famous Speeches',
   'idioms': 'Idioms',
+  'tongue-twisters': 'Tongue Twisters',
   'custom': 'Custom',
 }
 
@@ -283,6 +284,69 @@ export const SAMPLE_PASSAGES: Passage[] = [
       but: '/bʌt/',
       content: '/ˈkɒntɛnt/',
       character: '/ˈkærɪktər/',
+    },
+  },
+  {
+    id: 'she-sells-seashells',
+    title: 'She Sells Seashells',
+    source: 'Traditional',
+    category: 'tongue-twisters',
+    text: "She sells seashells by the seashore. The shells she sells are surely seashells. So if she sells shells on the seashore, I'm sure she sells seashore shells.",
+    ipa: {
+      she: '/ʃiː/',
+      sells: '/sɛlz/',
+      seashells: '/ˈsiːʃɛlz/',
+      by: '/baɪ/',
+      the: '/ðə/',
+      seashore: '/ˈsiːʃɔːr/',
+      shells: '/ʃɛlz/',
+      are: '/ɑːr/',
+      surely: '/ˈʃʊərli/',
+      so: '/soʊ/',
+      if: '/ɪf/',
+      on: '/ɒn/',
+      sure: '/ʃʊər/',
+    },
+  },
+  {
+    id: 'peter-piper',
+    title: 'Peter Piper',
+    source: 'Traditional',
+    category: 'tongue-twisters',
+    text: "Peter Piper picked a peck of pickled peppers. A peck of pickled peppers Peter Piper picked. If Peter Piper picked a peck of pickled peppers, where's the peck of pickled peppers Peter Piper picked?",
+    ipa: {
+      peter: '/ˈpiːtər/',
+      piper: '/ˈpaɪpər/',
+      picked: '/pɪkt/',
+      a: '/ə/',
+      peck: '/pɛk/',
+      of: '/ʌv/',
+      pickled: '/ˈpɪkəld/',
+      peppers: '/ˈpɛpərz/',
+      if: '/ɪf/',
+      where: '/wɛr/',
+      the: '/ðə/',
+    },
+  },
+  {
+    id: 'woodchuck',
+    title: 'How Much Wood',
+    source: 'Traditional',
+    category: 'tongue-twisters',
+    text: "How much wood would a woodchuck chuck if a woodchuck could chuck wood? He would chuck, he would, as much as he could, and chuck as much wood as a woodchuck would if a woodchuck could chuck wood.",
+    ipa: {
+      how: '/haʊ/',
+      much: '/mʌtʃ/',
+      wood: '/wʊd/',
+      would: '/wʊd/',
+      a: '/ə/',
+      woodchuck: '/ˈwʊdtʃʌk/',
+      chuck: '/tʃʌk/',
+      if: '/ɪf/',
+      could: '/kʊd/',
+      he: '/hiː/',
+      as: '/æz/',
+      and: '/ænd/',
     },
   },
 ]

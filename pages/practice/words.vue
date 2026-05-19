@@ -40,7 +40,6 @@ async function onScored(word: FlaggedWord, result: AssessmentResult) {
     ipa: word.ipa ?? undefined,
     passageId: word.source_passage_id ?? undefined,
   })
-  // Refresh to pick up retirement
   await fetchWords('active')
 }
 
@@ -110,13 +109,13 @@ async function handleUnflag(word: FlaggedWord) {
             @next="goNext"
           />
 
-          <!-- Unflag -->
+          <!-- Archive -->
           <div v-if="activeWord" class="flex justify-end">
             <button
               class="text-xs text-ink-lighter underline hover:text-ink"
               @click="handleUnflag(activeWord)"
             >
-              Remove from list
+              Archive word
             </button>
           </div>
         </div>
