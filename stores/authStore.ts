@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useApi } from '~/composables/useApi'
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref<boolean | null>(null)
@@ -10,14 +11,14 @@ export const useAuthStore = defineStore('auth', () => {
     if (!value) isApproved.value = null
   }
 
-  async function refreshApproval(userId: string) {
-    const supabase = useSupabaseClient()
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('approval_status')
-      .eq('id', userId)
-      .single() as { data: { approval_status?: string } | null; error: unknown }
-    isApproved.value = !error && data?.approval_status === 'approved'
+  async function refreshApproval() {
+    const { apiFetch } = useApi()
+    try {
+      const data = await apiFetch<{ user: { approvalStatus: string } }>('/api/me')
+      isApproved.value = data.user.approvalStatus === 'approved'
+    } catch {
+      isApproved.value = false
+    }
   }
 
   function reset() {

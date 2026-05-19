@@ -11,7 +11,7 @@ export default defineNuxtPlugin(async () => {
 
   authStore.setLoggedIn(!!user.value)
   if (user.value?.id) {
-    await authStore.refreshApproval(user.value.id)
+    await authStore.refreshApproval()
   }
 
   function resetUserStores() {
@@ -36,7 +36,7 @@ export default defineNuxtPlugin(async () => {
 
     authStore.setLoggedIn(!!newUser)
     if (newUser?.id) {
-      await authStore.refreshApproval(newUser.id)
+      await authStore.refreshApproval()
     }
   })
 })
