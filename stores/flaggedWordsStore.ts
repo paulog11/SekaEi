@@ -30,6 +30,14 @@ export const useFlaggedWordsStore = defineStore('flaggedWords', () => {
     fetchedAt.value = null
   }
 
+  function reset() {
+    words.value = []
+    fetchedAt.value = null
+    lastStatus.value = null
+    loading.value = false
+    error.value = null
+  }
+
   async function fetchWords(status: 'active' | 'retired' | 'all' = 'active', { force = false } = {}): Promise<void> {
     if (!force && !isStale(status)) return
     loading.value = true
@@ -79,5 +87,5 @@ export const useFlaggedWordsStore = defineStore('flaggedWords', () => {
     }
   }
 
-  return { words, loading, error, fetchedAt, isFlagged, isStale, invalidate, fetchWords, flag, unflag }
+  return { words, loading, error, fetchedAt, isFlagged, isStale, invalidate, reset, fetchWords, flag, unflag }
 })

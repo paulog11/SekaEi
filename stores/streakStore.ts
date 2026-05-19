@@ -26,6 +26,12 @@ export const useStreakStore = defineStore('streak', () => {
     fetchedAt.value = null
   }
 
+  function reset() {
+    streak.value = { current: 0, longest: 0, goalMinutes: 5, todayMet: false }
+    fetchedAt.value = null
+    loading.value = false
+  }
+
   async function fetchStreak({ force = false } = {}): Promise<void> {
     if (!force && !isStale()) return
     loading.value = true
@@ -49,5 +55,5 @@ export const useStreakStore = defineStore('streak', () => {
     }
   }
 
-  return { streak, loading, fetchedAt, isStale, invalidate, fetchStreak, setGoal }
+  return { streak, loading, fetchedAt, isStale, invalidate, reset, fetchStreak, setGoal }
 })

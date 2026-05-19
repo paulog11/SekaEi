@@ -26,6 +26,13 @@ export const usePhonemeStatsStore = defineStore('phonemeStats', () => {
     fetchedAt.value = null
   }
 
+  function reset() {
+    weakest.value = []
+    strongest.value = []
+    fetchedAt.value = null
+    loading.value = false
+  }
+
   async function fetchStats({ force = false } = {}): Promise<void> {
     if (!force && !isStale()) return
     loading.value = true
@@ -41,5 +48,5 @@ export const usePhonemeStatsStore = defineStore('phonemeStats', () => {
     }
   }
 
-  return { weakest, strongest, loading, fetchedAt, isStale, invalidate, fetchStats }
+  return { weakest, strongest, loading, fetchedAt, isStale, invalidate, reset, fetchStats }
 })

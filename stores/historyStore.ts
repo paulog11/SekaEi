@@ -40,6 +40,13 @@ export const useHistoryStore = defineStore('history', () => {
     for (const key in byPassageCache) delete byPassageCache[key]
   }
 
+  function reset() {
+    attempts.value = []
+    fetchedAt.value = null
+    loading.value = false
+    for (const key in byPassageCache) delete byPassageCache[key]
+  }
+
   async function fetchAll({ force = false } = {}): Promise<AttemptRecord[]> {
     if (!force && !isStale()) return attempts.value
     loading.value = true
@@ -87,5 +94,5 @@ export const useHistoryStore = defineStore('history', () => {
     }
   }
 
-  return { attempts, loading, fetchedAt, isStale, invalidate, fetchAll, fetchByPassage, addAttempt }
+  return { attempts, loading, fetchedAt, isStale, invalidate, reset, fetchAll, fetchByPassage, addAttempt }
 })

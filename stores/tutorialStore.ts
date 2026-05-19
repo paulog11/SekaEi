@@ -70,6 +70,13 @@ export const useTutorialStore = defineStore('tutorial', () => {
     return complete()
   }
 
+  function reset() {
+    completed.value = false
+    loaded.value = false
+    active.value = false
+    currentStep.value = 0
+  }
+
   return {
     completed,
     loaded,
@@ -84,5 +91,6 @@ export const useTutorialStore = defineStore('tutorial', () => {
     advanceIfOnStep,
     complete,
     skip,
+    reset,
   }
 })

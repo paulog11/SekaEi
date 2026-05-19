@@ -29,6 +29,12 @@ export const useCustomPassagesStore = defineStore('customPassages', () => {
     fetchedAt.value = null
   }
 
+  function reset() {
+    items.value = []
+    fetchedAt.value = null
+    loading.value = false
+  }
+
   async function fetchPassages({ force = false } = {}): Promise<void> {
     if (!force && !isStale()) return
     loading.value = true
@@ -67,5 +73,5 @@ export const useCustomPassagesStore = defineStore('customPassages', () => {
     }
   }
 
-  return { items, loading, fetchedAt, isStale, invalidate, fetchPassages, addPassage, deletePassage }
+  return { items, loading, fetchedAt, isStale, invalidate, reset, fetchPassages, addPassage, deletePassage }
 })
