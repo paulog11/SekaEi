@@ -4,9 +4,14 @@ import { useApi } from '~/composables/useApi'
 
 useHead({ title: 'Confirming — SekaEi' })
 
+const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const { apiFetch, getDeviceId } = useApi()
 const error = ref<string | null>(null)
+const resendEmail = ref('')
+const resendLoading = ref(false)
+const resendSent = ref(false)
+const resendCooldown = ref(0)
 
 onMounted(async () => {
   // Supabase populates the session from the URL fragment before this fires.
@@ -20,14 +25,67 @@ onMounted(async () => {
   } catch { /* non-fatal — device claim failure doesn't block access */ }
   await navigateTo('/practice')
 })
+
+async function handleResend() {
+  if (!resendEmail.value) return
+  resendLoading.value = true
+  try {
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: resendEmail.value,
+      options: { emailRedirectTo: `${window.location.origin}/confirm` },
+    })
+    if (!resendError) {
+      resendSent.value = true
+      resendCooldown.value = 60
+      const timer = setInterval(() => {
+        resendCooldown.value--
+        if (resendCooldown.value <= 0) clearInterval(timer)
+      }, 1000)
+    }
+  } finally {
+    resendLoading.value = false
+  }
+}
 </script>
 
 <template>
   <main class="container-page flex flex-col items-center justify-center py-24 gap-4">
     <template v-if="error">
-      <p class="text-lg font-semibold text-red-600">Link invalid or expired</p>
-      <p class="text-sm text-ink-light">{{ error }}</p>
-      <NuxtLink to="/account" class="btn-primary btn-sm mt-2">Back to sign in</NuxtLink>
+      <div class="card w-full max-w-sm flex flex-col items-center gap-4 text-center">
+        <p class="text-lg font-semibold text-red-600">Link invalid or expired</p>
+        <p class="text-sm text-ink-light m-0">Enter your email to receive a new confirmation link.</p>
+        <template v-if="resendSent">
+          <p class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 w-full m-0">
+            Sent! Check your inbox.
+          </p>
+          <button
+            v-if="resendCooldown > 0"
+            class="btn-secondary btn-sm"
+            disabled
+          >
+            Resend in {{ resendCooldown }}s
+          </button>
+          <button v-else class="btn-secondary btn-sm" @click="handleResend">Resend again</button>
+        </template>
+        <template v-else>
+          <input
+            v-model="resendEmail"
+            type="email"
+            class="field-input w-full"
+            placeholder="you@example.com"
+            @keydown.enter="handleResend"
+          >
+          <button
+            class="btn-primary btn-sm w-full"
+            :disabled="resendLoading || !resendEmail"
+            @click="handleResend"
+          >
+            {{ resendLoading ? 'Sending…' : 'Resend confirmation email' }}
+          </button>
+        </template>
+        <NuxtLink to="/account" class="text-sm text-ink-light hover:text-ink underline">Back to sign in</NuxtLink>
+      </div>
     </template>
     <template v-else>
       <p class="text-lg font-semibold text-ink">Email confirmed!</p>

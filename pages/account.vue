@@ -20,6 +20,9 @@ const confirmPassword = ref('')
 const authError = ref<string | null>(null)
 const authLoading = ref(false)
 const signupPending = ref(false)
+const resendLoading = ref(false)
+const resendCooldown = ref(0)
+let resendTimer: ReturnType<typeof setInterval> | null = null
 
 function switchTab(tab: 'signin' | 'signup') {
   activeTab.value = tab
@@ -44,6 +47,29 @@ async function handleSignIn() {
     }
   } finally {
     authLoading.value = false
+  }
+}
+
+async function handleResend() {
+  resendLoading.value = true
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.value,
+      options: { emailRedirectTo: `${window.location.origin}/confirm` },
+    })
+    if (!error) {
+      resendCooldown.value = 60
+      resendTimer = setInterval(() => {
+        resendCooldown.value--
+        if (resendCooldown.value <= 0 && resendTimer) {
+          clearInterval(resendTimer)
+          resendTimer = null
+        }
+      }, 1000)
+    }
+  } finally {
+    resendLoading.value = false
   }
 }
 
@@ -322,9 +348,16 @@ async function handleAddPassage() {
 
         <!-- Sign up form -->
         <template v-else>
-          <div v-if="signupPending" class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-4 text-sm text-center">
+          <div v-if="signupPending" class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-4 text-sm text-center flex flex-col items-center gap-3">
             <p class="font-semibold mb-1">Check your inbox</p>
-            <p>We've sent a confirmation link to <strong>{{ email }}</strong>. Click it to finish creating your account.</p>
+            <p class="m-0">We've sent a confirmation link to <strong>{{ email }}</strong>. Click it to finish creating your account.</p>
+            <button
+              class="btn-secondary btn-sm mt-1"
+              :disabled="resendLoading || resendCooldown > 0"
+              @click="handleResend"
+            >
+              {{ resendLoading ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend confirmation email' }}
+            </button>
           </div>
           <form v-else class="flex flex-col gap-4" @submit.prevent="handleSignUp">
             <div class="flex flex-col gap-1.5">
