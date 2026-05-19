@@ -4,7 +4,7 @@ import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 import { useTutorialStore } from '~/stores/tutorialStore'
 
-definePageMeta({ middleware: 'stage' })
+definePageMeta({})
 useHead({ title: 'Account — SekaEi' })
 
 const supabase = useSupabaseClient()

@@ -6,7 +6,7 @@ import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useCoach } from '~/composables/useCoach'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({ middleware: ['stage', 'auth'] })
+definePageMeta({ middleware: ['auth'] })
 useHead({ title: 'Word Review' })
 
 const { words, loading, error, fetchWords, flag, unflag } = useFlaggedWords()

@@ -5,7 +5,7 @@ import { usePhonemeStats } from '~/composables/usePhonemeStats'
 import { passageStars } from '~/composables/useProgress'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 
-definePageMeta({ middleware: ['stage', 'auth'] })
+definePageMeta({ middleware: ['auth'] })
 useHead({ title: 'Dashboard — SekaEi' })
 
 const user = useSupabaseUser()

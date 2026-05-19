@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'stage' })
+definePageMeta({})
 useHead({ title: 'Awaiting Approval — SekaEi' })
 
 const supabase = useSupabaseClient()
