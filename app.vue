@@ -3,6 +3,10 @@ import { useTutorialStore } from '~/stores/tutorialStore'
 
 const user = useSupabaseUser()
 const tutorialStore = useTutorialStore()
+const route = useRoute()
+
+const noNavRoutes = ['/account', '/pending', '/confirm', '/reset', '/dev-only']
+const showNav = computed(() => !noNavRoutes.includes(route.path))
 
 useHead({
   link: [
@@ -25,8 +29,8 @@ watch(user, (u) => {
 </script>
 
 <template>
-  <!-- Top header — desktop only -->
-  <header class="hidden sm:block border-b border-border bg-white sticky top-0 z-30">
+  <!-- Top header — desktop only, hidden on auth/gate pages -->
+  <header v-if="showNav" class="hidden sm:block border-b border-border bg-white sticky top-0 z-30">
     <div class="max-w-page mx-auto px-5 h-14 flex items-center justify-between">
       <NuxtLink to="/" class="text-lg font-bold tracking-tight text-ink no-underline">セカトーク</NuxtLink>
 
@@ -42,8 +46,8 @@ watch(user, (u) => {
 
   <NuxtPage />
 
-  <!-- Bottom tab bar — mobile only -->
-  <BottomTabBar />
+  <!-- Bottom tab bar — mobile only, hidden on auth/gate pages -->
+  <BottomTabBar v-if="showNav" />
 
   <!-- First-time user tutorial overlay -->
   <TutorialOverlay />

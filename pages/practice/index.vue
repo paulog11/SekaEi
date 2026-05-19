@@ -15,12 +15,12 @@ useHead({ title: 'Pronunciation — SekaEi' })
 
 const tutorialStore = useTutorialStore()
 
-// Auto-start tour when store finishes loading and user hasn't done it yet
-watchEffect(() => {
-  if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
-    tutorialStore.start()
-  }
-})
+// Tutorial disabled — uncomment to re-enable the first-time tour
+// watchEffect(() => {
+//   if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
+//     tutorialStore.start()
+//   }
+// })
 
 const selectedPassageId = ref(SAMPLE_PASSAGES[0].id)
 type FilterValue = PassageCategory | 'all'

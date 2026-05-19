@@ -6,14 +6,27 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/account')
   }
 
+  // Approval check runs client-only — it uses the user's JWT via apiFetch,
+  // which isn't reliably available in SSR route middleware.
+  if (import.meta.server) return
+
   if (user.value?.id && !publicRoutes.includes(to.path)) {
     const supabase = useSupabaseClient()
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('approval_status')
-      .eq('id', user.value.id)
-      .single() as { data: { approval_status?: string } | null; error: unknown }
-    if (!error && data?.approval_status !== 'approved') {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) return navigateTo('/account')
+
+    try {
+      const me = await $fetch<{ user: { approvalStatus: string } }>('/api/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (me.user.approvalStatus !== 'approved') {
+        return navigateTo('/pending')
+      }
+    } catch (err) {
+      const status = (err as { statusCode?: number })?.statusCode
+      if (status === 401) return navigateTo('/account')
+      // Fail-closed: any other failure (403, network, RLS) sends to /pending
       return navigateTo('/pending')
     }
   }
