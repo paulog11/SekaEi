@@ -9,6 +9,7 @@ import { passageStars } from '~/composables/useProgress'
 import { useApi } from '~/composables/useApi'
 import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
+import { containsBadWords } from '~/utils/contentFilter'
 
 definePageMeta({})
 useHead({ title: 'Pronunciation — SekaEi' })
@@ -110,6 +111,10 @@ const newPassageTitle = ref('')
 const newPassageText = ref('')
 const newPassageCategory = ref<PassageCategory>('custom')
 const addingPassage = ref(false)
+
+const passageHasBadWords = computed(() =>
+  containsBadWords(newPassageTitle.value) || containsBadWords(newPassageText.value)
+)
 
 async function submitNewPassage() {
   if (!newPassageTitle.value.trim() || !newPassageText.value.trim()) return
@@ -551,10 +556,20 @@ function onRecordAgain() {
                 />
               </div>
             </div>
-            <div class="px-5 pb-5">
+            <div class="px-5 pb-5 flex flex-col gap-3">
+              <div
+                v-if="passageHasBadWords"
+                class="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5"
+                role="alert"
+              >
+                <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+                <p class="text-sm text-red-700 m-0">Please refrain from using bad language.</p>
+              </div>
               <button
                 class="btn-primary w-full"
-                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 300 || addingPassage"
+                :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 300 || addingPassage || passageHasBadWords"
                 @click="submitNewPassage"
               >
                 {{ addingPassage ? 'Adding…' : 'Add passage' }}
