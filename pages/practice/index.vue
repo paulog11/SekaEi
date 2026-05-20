@@ -82,6 +82,11 @@ function openDetail(passage: typeof allPassages.value[0]) {
 
 function selectAndClose() {
   tutorialStore.advanceIfOnStep(1)
+  if (detailPassage.value && detailPassage.value.id !== selectedPassageId.value) {
+    audioWav.value = null
+    assessmentResult.value = null
+    assessError.value = null
+  }
   if (detailPassage.value) selectedPassageId.value = detailPassage.value.id
   detailPassage.value = null
   hasConfirmedPassage.value = true
