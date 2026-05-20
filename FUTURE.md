@@ -1,6 +1,9 @@
 # Future / Out of Scope
 
-Items deferred from the approval-gated access implementation.
+- Cloud storage / audio upload
+- Streaming / real-time scoring (current flow is record-then-score)
+- Multi-language support (Azure supports 33 locales — just change `speechRecognitionLanguage` in `azure.ts`)
+- Real English quiz logic beyond what exists: audio playback, scoring persistence, spaced repetition
 
 ## User approval
 

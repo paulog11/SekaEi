@@ -1,19 +1,72 @@
-# CLAUDE.md — SekaEi
+# CLAUDE.md — SekaToku
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ## What this app is
 
-SekaEi is an English learning tool for Japanese learners. It currently has two tracks:
+SekaToku is an English learning tool for Japanese learners. It currently has two tracks:
 
 1. **Pronunciation Practice** — a user reads a passage aloud; the app returns per-word and per-phoneme accuracy scores powered by Azure AI Speech Pronunciation Assessment.
-2. **Real English** — an idiom/slang challenge. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
-
-The name "SekaEi" is intentionally unexplained — treat it as a proper noun.
+2. **Idioms & Slang** — (This is a work in progress) an idiom/slang challenge. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
 
 ---
 
 ## Core intent and constraints
 
-- **Privacy first.** Video recordings never leave the browser. Only the extracted audio WAV is sent to the server (and discarded after scoring). Do not add any video upload or storage feature without explicit instruction.
 - **Azure key must stay server-side.** The key lives in `runtimeConfig` (Nitro), never in `runtimeConfig.public`. Never move it to the client bundle.
 - **Styling: Tailwind CSS.** The project uses `@nuxtjs/tailwindcss` (v3). Token config lives in `tailwind.config.ts`; the component layer (`@layer components`) is in `assets/css/tailwind.css`. When touching a component, migrate its `<style scoped>` to Tailwind utilities. Do not introduce a separate component library (shadcn, etc.) without being asked.
 - **TypeScript strict.** All new files must pass `vue-tsc --noEmit` in strict mode.
@@ -26,20 +79,16 @@ The name "SekaEi" is intentionally unexplained — treat it as a proper noun.
 ```
 Browser                          Nuxt/Nitro server          Azure
 ───────                          ─────────────────          ─────
-getUserMedia (camera + mic)
-  ├─ MediaRecorder ──────────► local <video> playback only
+getUserMedia (mic only)
   └─ AudioContext + Worklet ──► 16 kHz mono WAV Blob
                                   POST /api/assess ────────► Azure Speech SDK
                                                   ◄────────── NBest[0].Words[].Phonemes[]
 ScoreDisplay renders results
 ```
 
-### Why dual audio consumers
+### Audio capture
 
-`MediaRecorder` outputs webm/opus — Azure's SDK won't ingest it cleanly. So the stream is split:
-
-1. `MediaRecorder` → webm Blob → local video playback only.
-2. `AudioContext (16 kHz)` + `AudioWorkletNode ('pcm-capture-processor')` → Float32 PCM chunks → `useWavEncoder` assembles a 16-bit PCM WAV → uploaded to `/api/assess`.
+`AudioContext (16 kHz)` + `AudioWorkletNode ('pcm-capture-processor')` → Float32 PCM chunks → `useWavEncoder` assembles a 16-bit PCM WAV → uploaded to `/api/assess`.
 
 The worklet is served from `public/worklets/pcm-capture.js` (static asset, loaded via `audioContext.audioWorklet.addModule()`).
 
@@ -68,10 +117,10 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 |------|---------|
 | `server/utils/azure.ts` | Azure SDK invocation. Change here to swap pronunciation providers. |
 | `server/api/assess.post.ts` | Nitro POST handler. Reads `audio` (WAV) and `referenceText` from multipart form. |
-| `composables/useRecorder.ts` | `getUserMedia`, dual-consumer wiring, state machine (`idle → recording → stopped`). |
+| `composables/useRecorder.ts` | `getUserMedia` (mic only), AudioContext wiring, state machine (`idle → recording → stopped`). |
 | `composables/useWavEncoder.ts` | Accepts `Float32Array` + source sample rate → returns 16 kHz mono WAV `Blob`. Downsamples if needed. |
 | `public/worklets/pcm-capture.js` | `AudioWorkletProcessor`. Slices input buffer and posts `{ type: 'pcm', data: Float32Array }` to main thread. |
-| `components/Recorder.vue` | Camera preview (`srcObject` live stream) + post-recording `<video controls>` playback. |
+| `components/Recorder.vue` | Microphone recording UI; wires recorder state to the record/stop controls. |
 | `components/WordChip.vue` | Colour-coded word badge. Green ≥80, amber 60–79, red <60. Phoneme breakdown in popover on tap/hover. |
 | `components/ScoreDisplay.vue` | Overall score cards (Accuracy, Fluency, Completeness, Prosody, Overall) + word grid + diff view. |
 | `pages/practice.vue` | Passage selector (radio cards) + freeform textarea. Wires Recorder → assess → ScoreDisplay. |
@@ -176,7 +225,7 @@ The `resolve.alias` (`~` → repo root) must be declared on **both** the root co
 |-----------|---------------|
 | `tests/unit/useWavEncoder.test.ts` | Float32→int16 clamping, downsampling, WAV header byte layout, performance smoke |
 | `tests/unit/pcmCapture.test.ts` | AudioWorklet processor logic via a hand-rolled `AudioWorkletProcessor` mock (no browser needed) |
-| `tests/unit/useRecorder.test.ts` | Recorder state machine, PCM chunk concatenation, media track teardown |
+| `tests/unit/useRecorder.test.ts` | Recorder state machine, PCM chunk concatenation, mic track teardown |
 | `tests/unit/azure.test.ts` | All Azure SDK result branches mocked (happy path, NoMatch, Canceled, SDK error, missing NBest), header stripping, config flags |
 | `tests/unit/assess.post.test.ts` | Nitro handler field validation (missing key/region, missing fields, empty text), successful proxy, Azure error → 422 |
 | `tests/unit/passages.test.ts` | Data integrity of SAMPLE_PASSAGES (non-empty fields, unique ids, content checks) |
@@ -184,14 +233,3 @@ The `resolve.alias` (`~` → repo root) must be declared on **both** the root co
 Shared fixture: `tests/fixtures/mockAssessmentResult.ts` — typed helper to build Azure NBest JSON for mocks.
 
 **Key constraint:** `composables/useRecorder.ts` must explicitly import `{ ref, watch }` from `vue` (not rely on Nuxt auto-imports) so Vitest can resolve them outside Nuxt context.
-
----
-
-## What's out of scope (deferred)
-
-Do not add these unless explicitly asked:
-
-- Cloud storage / video upload
-- Streaming / real-time scoring (current flow is record-then-score)
-- Multi-language support (Azure supports 33 locales — just change `speechRecognitionLanguage` in `azure.ts`)
-- Real English quiz logic beyond what exists: audio playback, scoring persistence, spaced repetition
