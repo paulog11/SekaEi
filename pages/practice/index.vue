@@ -240,45 +240,44 @@ function onRecordAgain() {
 
     <!-- Passage picker — grid of rich cards -->
     <section class="mb-5">
-      <!-- Collapsed: compact passage summary bar -->
-      <div
-        v-if="hasConfirmedPassage && !passagePickerOpen"
-        class="flex items-center justify-between gap-3 bg-white border border-border rounded-xl px-4 py-3 shadow-sm"
-      >
-        <div class="flex items-center gap-3 min-w-0">
-          <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <div class="min-w-0">
-            <p class="text-[11px] text-ink-lighter leading-none mb-0.5 m-0">Passage</p>
-            <p class="text-sm font-semibold text-ink truncate m-0">{{ selectedPassage?.title }}</p>
+      <!-- Collapsed: compact passage summary bar + optional YouTube embed -->
+      <template v-if="hasConfirmedPassage && !passagePickerOpen">
+        <div class="flex items-center justify-between gap-3 bg-white border border-border rounded-xl px-4 py-3 shadow-sm">
+          <div class="flex items-center gap-3 min-w-0">
+            <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <div class="min-w-0">
+              <p class="text-[11px] text-ink-lighter leading-none mb-0.5 m-0">Passage</p>
+              <p class="text-sm font-semibold text-ink truncate m-0">{{ selectedPassage?.title }}</p>
+            </div>
+            <span class="shrink-0 text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+              {{ selectedPassage ? CATEGORY_LABELS[selectedPassage.category] : '' }}
+            </span>
           </div>
-          <span class="shrink-0 text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
-            {{ selectedPassage ? CATEGORY_LABELS[selectedPassage.category] : '' }}
-          </span>
+          <button
+            type="button"
+            class="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-700 transition-colors duration-150"
+            @click="passagePickerOpen = true"
+          >
+            Change
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
-        <button
-          type="button"
-          class="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-700 transition-colors duration-150"
-          @click="passagePickerOpen = true"
-        >
-          Change
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
 
-      <!-- YouTube clip embed (movies-tv passages only) -->
-      <div v-if="youtubeEmbedUrl" class="mt-3 rounded-xl overflow-hidden aspect-video shadow-sm">
-        <iframe
-          :src="youtubeEmbedUrl"
-          class="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-          title="Clip from passage"
-        />
-      </div>
+        <!-- YouTube clip embed (movies-tv passages only) -->
+        <div v-if="youtubeEmbedUrl" class="mt-3 rounded-xl overflow-hidden aspect-video shadow-sm">
+          <iframe
+            :src="youtubeEmbedUrl"
+            class="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            title="Clip from passage"
+          />
+        </div>
+      </template>
 
       <!-- Expanded: full passage picker -->
       <div v-else>
