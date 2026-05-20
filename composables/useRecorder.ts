@@ -7,8 +7,8 @@ export interface RecorderResult {
   audioWav: Blob
 }
 
-const MAX_DURATION_S = 45
-const WARN_DURATION_S = 35
+const MAX_DURATION_S = 60
+const WARN_DURATION_S = 50
 
 export function useRecorder() {
   const state = ref<RecorderState>('idle')

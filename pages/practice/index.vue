@@ -47,6 +47,8 @@ const allPassages = computed(() => [
     text: p.text,
     category: p.category,
     ipa: p.ipa ?? undefined,
+    youtubeId: undefined,
+    youtubeStart: undefined,
   })),
 ])
 
@@ -65,6 +67,15 @@ const selectedPassage = computed(() =>
 )
 
 const activePassageId = computed(() => selectedPassage.value?.id ?? '')
+
+const youtubeEmbedUrl = computed(() => {
+  const p = selectedPassage.value
+  if (!p || p.category !== 'movies-tv' || !p.youtubeId) return null
+  const params = new URLSearchParams({ rel: '0' })
+  if (p.youtubeStart != null) params.set('start', String(p.youtubeStart))
+  if (p.youtubeEnd != null) params.set('end', String(p.youtubeEnd))
+  return `https://www.youtube.com/embed/${p.youtubeId}?${params}`
+})
 
 // Passage detail popup
 const detailPassage = ref<typeof allPassages.value[0] | null>(null)
@@ -256,6 +267,17 @@ function onRecordAgain() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
+      </div>
+
+      <!-- YouTube clip embed (movies-tv passages only) -->
+      <div v-if="youtubeEmbedUrl" class="mt-3 rounded-xl overflow-hidden aspect-video shadow-sm">
+        <iframe
+          :src="youtubeEmbedUrl"
+          class="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          title="Clip from passage"
+        />
       </div>
 
       <!-- Expanded: full passage picker -->

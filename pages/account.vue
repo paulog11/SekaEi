@@ -89,8 +89,11 @@ async function handleSignUp() {
     if (error) {
       authError.value = error.message
     } else {
-      signupPending.value = true
       authError.value = null
+      try {
+        await apiFetch('/api/devices/claim', { method: 'POST', body: { deviceId: getOrCreateDeviceId() } })
+      } catch { /* non-fatal */ }
+      await navigateTo('/pending')
     }
   } finally {
     authLoading.value = false

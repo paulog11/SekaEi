@@ -19,6 +19,9 @@ export interface Passage {
   text: string
   category: PassageCategory
   ipa?: Record<string, string>
+  youtubeId?: string
+  youtubeStart?: number
+  youtubeEnd?: number
 }
 
 export const SAMPLE_PASSAGES: Passage[] = [
@@ -28,6 +31,9 @@ export const SAMPLE_PASSAGES: Passage[] = [
     source: 'Christopher Nolan, 2014',
     category: 'movies-tv',
     text: "We used to look up at the sky and wonder at our place in the stars. Now we just look down, and worry about our place in the dirt.",
+    youtubeId: 'MIDrL5zRwxU',
+    youtubeStart: 59,
+    youtubeEnd: 72,
     ipa: {
       we: '/wiː/',
       used: '/juːzd/',
@@ -100,6 +106,9 @@ export const SAMPLE_PASSAGES: Passage[] = [
     source: 'Sylvester Stallone, 2006',
     category: 'movies-tv',
     text: "Let me tell you something you already know. The world ain't all sunshine and rainbows, it's a very mean and nasty place and I don't care how tough you are it will beat you to your knees and keep you there permanently if you let it. You, me, nobody is gonna hit as hard as life! But it ain't about how hard you can hit, it's about how hard you can get hit and keep movin' forward, how much you can take...and keep movin' forward. That's how winning is done!",
+    youtubeId: 'D_Vg4uyYwEk',
+    youtubeStart: 98,
+    youtubeEnd: 126,
     ipa: {
       let: '/lɛt/',
       me: '/miː/',
@@ -827,7 +836,10 @@ export const SAMPLE_PASSAGES: Passage[] = [
     title: 'Kung Fu Panda',
     source: 'Kung Fu Panda, 2008',
     category: 'movies-tv',
-    text: "Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present. You must let go of the illusion of control.",
+    text: "Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present.",
+    youtubeId: 'PSBfcpqICvY',
+    youtubeStart: 66,
+    youtubeEnd: 88,
     ipa: {
       yesterday: '/ˈjɛstərdeɪ/',
       is: '/ɪz/',
@@ -844,13 +856,6 @@ export const SAMPLE_PASSAGES: Passage[] = [
       called: '/kɔːld/',
       the: '/ðə/',
       present: '/ˈprɛzənt/',
-      you: '/juː/',
-      must: '/mʌst/',
-      let: '/lɛt/',
-      go: '/ɡoʊ/',
-      of: '/ʌv/',
-      illusion: '/ɪˈluːʒən/',
-      control: '/kənˈtroʊl/',
     },
   },
   {
@@ -858,7 +863,10 @@ export const SAMPLE_PASSAGES: Passage[] = [
     title: 'The Lion King',
     source: 'The Lion King, 1994',
     category: 'movies-tv',
-    text: "The past can hurt. But the way I see it, you can either run from it or learn from it. You see? The future is a choice.",
+    text: "The past can hurt. But the way I see it, you can either run from it or learn from it. You see? So what are you going to do?",
+    youtubeId: 'dZfGTL2PY3E',
+    youtubeStart: 31,
+    youtubeEnd: 0,
     ipa: {
       the: '/ðə/',
       past: '/pæst/',
@@ -875,10 +883,12 @@ export const SAMPLE_PASSAGES: Passage[] = [
       from: '/frʌm/',
       or: '/ɔːr/',
       learn: '/lɜːrn/',
-      future: '/ˈfjuːtʃər/',
-      is: '/ɪz/',
-      a: '/ə/',
-      choice: '/tʃɔɪs/',
+      so: '/soʊ/',
+      what: '/wʌt/',
+      are: '/ɑːr/',
+      going: '/ˈɡoʊɪŋ/',
+      to: '/tuː/',
+      do: '/duː/',
     },
   },
   {
