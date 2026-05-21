@@ -45,10 +45,8 @@ function setupProfileChain(profileData: unknown, streakData: unknown) {
   mockFrom.mockImplementation(() => {
     callCount++
     if (callCount === 1) {
-      // profiles query
       c.maybeSingle = vi.fn().mockResolvedValue({ data: profileData, error: null })
     } else {
-      // daily_streaks query
       c.maybeSingle = vi.fn().mockResolvedValue({ data: streakData, error: null })
     }
     return c
@@ -70,10 +68,16 @@ describe('GET /api/me', () => {
     await expect((handler as Function)({})).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('returns user and streak when authenticated', async () => {
+  it('returns all user fields and streak when authenticated', async () => {
     vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupProfileChain(
-      { display_name: 'Test User', created_at: '2024-01-01T00:00:00Z' },
+      {
+        display_name: 'Test User',
+        university: 'MIT',
+        created_at: '2024-01-01T00:00:00Z',
+        approval_status: 'approved',
+        tutorial_completed_at: '2024-01-02T00:00:00Z',
+      },
       { current_streak: 3, longest_streak: 7, daily_goal_minutes: 10, last_practice_date: '2024-01-01' },
     )
 
@@ -84,17 +88,36 @@ describe('GET /api/me', () => {
         id: VALID_UUID,
         email: 'test@example.com',
         displayName: 'Test User',
+        university: 'MIT',
+        approvalStatus: 'approved',
+        tutorialCompletedAt: '2024-01-02T00:00:00Z',
       },
       streak: 3,
       longestStreak: 7,
       goalMinutes: 10,
     })
+    expect(result.user.createdAt).toBe('2024-01-01T00:00:00Z')
+  })
+
+  it('returns null for optional fields when profile has none', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    setupProfileChain(
+      { display_name: null, university: null, created_at: '2024-01-01T00:00:00Z', approval_status: null, tutorial_completed_at: null },
+      null,
+    )
+
+    const result = await (handler as Function)({})
+
+    expect(result.user.displayName).toBeNull()
+    expect(result.user.university).toBeNull()
+    expect(result.user.tutorialCompletedAt).toBeNull()
+    expect(result.user.approvalStatus).toBe('pending')
   })
 
   it('returns zeros for streak when no streak row exists', async () => {
     vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupProfileChain(
-      { display_name: null, created_at: '2024-01-01T00:00:00Z' },
+      { display_name: null, university: null, created_at: '2024-01-01T00:00:00Z', approval_status: 'approved', tutorial_completed_at: null },
       null,
     )
 
