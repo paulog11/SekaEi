@@ -111,12 +111,21 @@ const displayNameSaving = ref(false)
 const displayNameError = ref<string | null>(null)
 const displayNameSuccess = ref(false)
 
+// ── University ────────────────────────────────────────────────────────────────
+const university = ref('')
+const universityInput = ref('')
+const universitySaving = ref(false)
+const universityError = ref<string | null>(null)
+const universitySuccess = ref(false)
+
 async function fetchDisplayName() {
   const { apiFetch: fetch } = useApi()
   try {
-    const data = await fetch<{ user: { displayName: string | null } }>('/api/me')
+    const data = await fetch<{ user: { displayName: string | null; university: string | null } }>('/api/me')
     displayName.value = data.user.displayName ?? ''
     displayNameInput.value = data.user.displayName ?? ''
+    university.value = data.user.university ?? ''
+    universityInput.value = data.user.university ?? ''
   } catch { /* non-fatal */ }
 }
 
@@ -138,6 +147,26 @@ async function saveDisplayName() {
     displayNameError.value = msg ?? 'Failed to save display name.'
   } finally {
     displayNameSaving.value = false
+  }
+}
+
+async function saveUniversity() {
+  universityError.value = null
+  universitySuccess.value = false
+  const trimmed = universityInput.value.trim()
+  if (trimmed.length > 100) { universityError.value = 'Must be 100 characters or fewer.'; return }
+  universitySaving.value = true
+  try {
+    const data = await apiFetch<{ university: string }>('/api/me', { method: 'PATCH', body: { university: trimmed } })
+    university.value = data.university
+    universityInput.value = data.university
+    universitySuccess.value = true
+    setTimeout(() => { universitySuccess.value = false }, 3000)
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string } })?.data?.message
+    universityError.value = msg ?? 'Failed to save university.'
+  } finally {
+    universitySaving.value = false
   }
 }
 
@@ -228,6 +257,32 @@ async function handleAddPassage() {
         <p class="text-xs text-ink-lighter mt-1.5 m-0">{{ displayNameInput.trim().length }}/30 characters. Letters, numbers, spaces, hyphens, underscores, and periods only.</p>
         <p v-if="displayNameError" class="text-sm text-red-600 mt-2 m-0">{{ displayNameError }}</p>
         <p v-if="displayNameSuccess" class="text-sm text-green-600 mt-2 m-0">Display name saved.</p>
+      </section>
+
+      <!-- University -->
+      <section class="w-full max-w-2xl card">
+        <h2 class="text-base font-semibold text-ink mb-4">University</h2>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="universityInput"
+            class="field-input flex-1"
+            type="text"
+            placeholder="Your university or school"
+            maxlength="100"
+            :disabled="universitySaving"
+            @keydown.enter="saveUniversity"
+          >
+          <button
+            class="btn-secondary btn-sm shrink-0"
+            :disabled="universitySaving || universityInput.trim() === university"
+            @click="saveUniversity"
+          >
+            {{ universitySaving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+        <p class="text-xs text-ink-lighter mt-1.5 m-0">{{ universityInput.trim().length }}/100 characters. Leave blank to clear.</p>
+        <p v-if="universityError" class="text-sm text-red-600 mt-2 m-0">{{ universityError }}</p>
+        <p v-if="universitySuccess" class="text-sm text-green-600 mt-2 m-0">University saved.</p>
       </section>
 
       <!-- Daily goal -->
