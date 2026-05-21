@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { mockAssessmentResult } from '../fixtures/mockAssessmentResult'
 
 // ---------------------------------------------------------------------------
-// Mock dependencies before importing the handler
+// Mocks — before importing handler
 // ---------------------------------------------------------------------------
 
 const mockRunAssessment = vi.fn()
@@ -12,17 +12,22 @@ vi.mock('~/server/utils/azure', () => ({
   runPronunciationAssessment: mockRunAssessment,
 }))
 
-const mockSupabaseUser = vi.fn()
+// Mock requireApprovedUser so tests don't need the full Supabase approval chain
+const mockRequireApprovedUser = vi.fn()
+
+vi.mock('~/server/utils/approval', () => ({
+  requireApprovedUser: mockRequireApprovedUser,
+}))
+
 const mockRpcFn = vi.fn()
 const mockSupabaseClient = { rpc: mockRpcFn }
 const mockUseSupabase = vi.fn(() => mockSupabaseClient)
 
 vi.mock('~/server/utils/supabase', () => ({
-  useSupabaseUser: mockSupabaseUser,
+  useSupabaseUser: vi.fn(),
   useSupabase: mockUseSupabase,
 }))
 
-// Mock Nuxt/h3 server utilities that are auto-imported in Nitro context
 const mockRuntimeConfig = vi.fn()
 
 vi.mock('#imports', () => ({
@@ -36,8 +41,6 @@ vi.mock('#imports', () => ({
   },
 }))
 
-// h3 globals used inside the handler are not auto-imported in tests —
-// we stub them on globalThis so the handler can call them directly.
 const mockReadMultipart = vi.fn()
 const createError = (opts: { statusCode: number; message: string }) => {
   const err = new Error(opts.message) as Error & { statusCode: number }
@@ -50,7 +53,6 @@ vi.stubGlobal('readMultipartFormData', mockReadMultipart)
 vi.stubGlobal('createError', createError)
 vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
 
-// Import after stubbing
 const { default: handler } = await import('~/server/api/assess.post')
 
 // ---------------------------------------------------------------------------
@@ -60,7 +62,7 @@ const { default: handler } = await import('~/server/api/assess.post')
 const FAKE_USER = { id: 'user-123' }
 
 function makeEvent() {
-  return {} as unknown as H3Event // Nitro event object; mocked utilities ignore it
+  return {} as unknown as H3Event
 }
 
 function makeValidWavBuffer(size = 2000): Buffer {
@@ -89,8 +91,7 @@ function makeMultipartParts(overrides?: {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Default: authenticated user, under daily limit
-  mockSupabaseUser.mockResolvedValue(FAKE_USER)
+  mockRequireApprovedUser.mockResolvedValue(FAKE_USER)
   mockRpcFn.mockResolvedValue({ data: 1, error: null })
   mockUseSupabase.mockReturnValue(mockSupabaseClient)
 })
@@ -101,11 +102,16 @@ beforeEach(() => {
 
 describe('assess.post — authentication', () => {
   it('throws 401 when user is not authenticated', async () => {
-    const err = new Error('Not authenticated.') as Error & { statusCode: number }
-    err.statusCode = 401
-    mockSupabaseUser.mockRejectedValue(err)
+    const err = createError({ statusCode: 401, message: 'Not authenticated.' })
+    mockRequireApprovedUser.mockRejectedValue(err)
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 401 })
     expect(mockRunAssessment).not.toHaveBeenCalled()
+  })
+
+  it('throws 403 when user is not approved', async () => {
+    const err = createError({ statusCode: 403, message: 'Account pending approval.' })
+    mockRequireApprovedUser.mockRejectedValue(err)
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 403 })
   })
 })
 
@@ -118,6 +124,39 @@ describe('assess.post — credential validation', () => {
   it('throws 500 when azureSpeechRegion is missing', async () => {
     mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: '' })
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 500 })
+  })
+})
+
+describe('assess.post — rate limiting', () => {
+  beforeEach(() => {
+    mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
+  })
+
+  it('throws 429 when daily usage exceeds DAILY_LIMIT', async () => {
+    mockRpcFn.mockResolvedValue({ data: 61, error: null }) // > 60 limit
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
+  })
+
+  it('throws 429 when per-user inflight count reaches 3', async () => {
+    // Make readMultipartFormData hang so handlers stay in-flight
+    const resolvers: Array<(v: null) => void> = []
+    mockReadMultipart.mockImplementation(
+      () => new Promise(r => resolvers.push(r as (v: null) => void)),
+    )
+
+    const p1 = handler(makeEvent())
+    const p2 = handler(makeEvent())
+    const p3 = handler(makeEvent())
+
+    // Flush microtasks so all 3 handlers advance past requireApprovedUser + inflight.set()
+    await new Promise(r => setTimeout(r, 0))
+
+    // 4th call should see inflight count = 3 and throw 429
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
+
+    // Cleanup hanging promises
+    resolvers.forEach(r => r(null))
+    await Promise.allSettled([p1, p2, p3])
   })
 })
 
@@ -221,10 +260,9 @@ describe('assess.post — successful call', () => {
   })
 
   it('trims whitespace from referenceText before passing to assessment', async () => {
-    const paddedText = '  Hello world  '
     mockReadMultipart.mockResolvedValue([
       { name: 'audio', data: makeValidWavBuffer() },
-      { name: 'referenceText', data: Buffer.from(paddedText) },
+      { name: 'referenceText', data: Buffer.from('  Hello world  ') },
     ])
     mockRunAssessment.mockResolvedValue(mockAssessmentResult())
 
@@ -260,8 +298,6 @@ describe('assess.post — Azure error handling', () => {
     })
   })
 })
-
-// ---------------------------------------------------------------------------
 
 describe('assess.post — audio strict validation', () => {
   beforeEach(() => {
@@ -328,9 +364,21 @@ describe('assess.post — reference text normalization', () => {
     )
   })
 
+  it('strips unicode directional control chars', async () => {
+    // U+200E (LEFT-TO-RIGHT MARK) should be stripped
+    mockReadMultipart.mockResolvedValue([
+      { name: 'audio', data: makeValidWavBuffer(2000) },
+      { name: 'referenceText', data: Buffer.from('Hello‎world') },
+    ])
+    mockRunAssessment.mockResolvedValue(mockAssessmentResult())
+    await handler(makeEvent())
+    const passed = mockRunAssessment.mock.calls[0][1] as string
+    expect(passed).toBe('Hello world')
+  })
+
   it('NFC-normalizes referenceText', async () => {
     // 'é' as decomposed (U+0065 U+0301) should become NFC composed (U+00E9)
-    const decomposed = 'café'
+    const decomposed = 'café'
     mockReadMultipart.mockResolvedValue([
       { name: 'audio', data: makeValidWavBuffer(2000) },
       { name: 'referenceText', data: Buffer.from(decomposed, 'utf-8') },

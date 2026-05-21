@@ -215,21 +215,98 @@ pnpm test:coverage # coverage report
 
 ## Testing
 
-Framework: **Vitest 3.x** with two environments:
-- `node` — server files and pure JS (WAV encoder, Azure util, Nitro handler, worklet, passages)
-- `happy-dom` — Vue composables that use `ref`/`watch`
+Framework: **Vitest 3.x**. Default environment is `node`; tests that need DOM APIs opt in with `// @vitest-environment happy-dom` as the first line of the file. `vitest.config.ts` uses a single glob (`tests/unit/**/*.test.ts`) — no manual file listing required.
 
-The `resolve.alias` (`~` → repo root) must be declared on **both** the root config and each `projects` entry in `vitest.config.ts` — Vitest 3 does not inherit root alias into project entries.
+CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
+
+### Audio / encoder
 
 | Test file | What it covers |
 |-----------|---------------|
 | `tests/unit/useWavEncoder.test.ts` | Float32→int16 clamping, downsampling, WAV header byte layout, performance smoke |
 | `tests/unit/pcmCapture.test.ts` | AudioWorklet processor logic via a hand-rolled `AudioWorkletProcessor` mock (no browser needed) |
-| `tests/unit/useRecorder.test.ts` | Recorder state machine, PCM chunk concatenation, mic track teardown |
+| `tests/unit/useRecorder.test.ts` | Recorder state machine, PCM chunk concatenation, mic track teardown (`@vitest-environment happy-dom`) |
+
+### Azure / assessment
+
+| Test file | What it covers |
+|-----------|---------------|
 | `tests/unit/azure.test.ts` | All Azure SDK result branches mocked (happy path, NoMatch, Canceled, SDK error, missing NBest), header stripping, config flags |
-| `tests/unit/assess.post.test.ts` | Nitro handler field validation (missing key/region, missing fields, empty text), successful proxy, Azure error → 422 |
-| `tests/unit/passages.test.ts` | Data integrity of SAMPLE_PASSAGES (non-empty fields, unique ids, content checks) |
+| `tests/unit/assess.post.test.ts` | Field validation, 403 unapproved, 429 daily limit, 429 concurrency cap (3 inflight), unicode control-char normalization, Azure error → 422 |
 
-Shared fixture: `tests/fixtures/mockAssessmentResult.ts` — typed helper to build Azure NBest JSON for mocks.
+### Auth / access control
 
-**Key constraint:** `composables/useRecorder.ts` must explicitly import `{ ref, watch }` from `vue` (not rely on Nuxt auto-imports) so Vitest can resolve them outside Nuxt context.
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/supabaseUser.test.ts` | `useSupabaseUser` — missing/invalid Bearer token → 401, Supabase error → 401, valid token → user |
+| `tests/unit/approval.test.ts` | `requireApprovedUser` — 401 from useSupabaseUser, 403 for pending/rejected, pass-through for approved |
+| `tests/unit/admin.approve.test.ts` | Admin approve/reject flow — 400 malformed, 404 unknown, 410 already decided, approve/reject success |
+
+### API routes — attempts
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/attempts.post.test.ts` | Save attempt, 403 unapproved, azureResult forwarding, streak/phoneme/flagging fire-and-forget |
+| `tests/unit/attempts.get.test.ts` | List attempts, field mapping (slug/passageId/scores) |
+| `tests/unit/attemptById.get.test.ts` | Fetch by slug, 404, azureResult blob inclusion |
+
+### API routes — user profile
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/me.get.test.ts` | Profile fields (id, email, displayName, university, approvalStatus, tutorialCompletedAt), null-field fallbacks |
+| `tests/unit/me.patch.test.ts` | displayName validation (length, charset, bad words), university length, DB error → 500 |
+| `tests/unit/tutorial.post.test.ts` | Mark tutorial complete, returns completedAt, profiles update |
+
+### API routes — flagged words
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/flaggedWords.post.test.ts` | Add word, normalization ("Rock!" → "rock"), optional fields (ipa/passageId/weakPhonemes) |
+| `tests/unit/flaggedWords.get.test.ts` | List words, `status=active` → `is(retired_at, null)`, limit clamped to 200 |
+| `tests/unit/flaggedWords.delete.test.ts` | Soft-delete (retire), word normalization, 400 empty |
+
+### API routes — custom passages
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/passages.post.test.ts` | Create passage, title/text/category validation (text ≤300 chars, category enum), 409 duplicate, default category |
+| `tests/unit/passages.get.test.ts` | List user passages, 500 on DB error |
+| `tests/unit/passages.delete.test.ts` | Delete own passage (scoped to user_id), 400 missing id, 500 on error |
+| `tests/unit/passages.test.ts` | Data integrity of SAMPLE_PASSAGES (non-empty fields, unique ids) |
+
+### API routes — stats
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/stats.streak.get.test.ts` | Streak data, defaults when no record, todayMet flag |
+| `tests/unit/stats.phonemes.get.test.ts` | Min-3-attempts filter, avgScore rounding, weakest/strongest sort, 10-entry cap |
+| `tests/unit/stats.goal.put.test.ts` | 1–120 range validation, boundary values, rounding, upsert with user_id |
+
+### Composables / stores
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/useHistory.test.ts` | Fetch history, azureResult forwarding (`@vitest-environment happy-dom`) |
+| `tests/unit/useProgress.test.ts` | `passageStars` (thresholds 90/80/60), `customPassageId` (slugify, 80-char truncation) |
+| `tests/unit/idiomLabStore.test.ts` | submitAnswer, nextChallenge, restartPack, selectPack, shuffledOptions (`@vitest-environment happy-dom`) |
+
+### Utils
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/unit/updatePhonemeStats.test.ts` | `extractPhonemeDelta` — score accumulation, merging |
+| `tests/unit/updateStreak.test.ts` | Streak update logic |
+| `tests/unit/coach.util.test.ts` | `generateCoachReply` — Anthropic SDK mocked, JSON-parse fallback, input slicing |
+| `tests/unit/flagDifficultWordsSilent.test.ts` | `flagDifficultWordsSilently` — threshold 60, skips Omission/Insertion, normalization, error swallowing |
+| `tests/unit/claimDevice.test.ts` | `claimDevice` util — upsert + attempts migration (legacy device_id → real user) |
+| `tests/unit/devices.claim.test.ts` | `POST /api/devices/claim` — UUID validation, delegation |
+
+### Shared fixtures
+
+- `tests/fixtures/mockAssessmentResult.ts` — typed helper to build Azure NBest JSON for handler mocks
+- `tests/fixtures/serverTestHarness.ts` — `makeChain()` chainable Supabase mock, `stubNitroGlobals()` Nitro global stubs
+
+**Key constraints:**
+- `composables/useRecorder.ts` and `stores/idiomLabStore.ts` must explicitly import `{ ref, computed, watch }` from `vue` (not rely on Nuxt auto-imports) so Vitest can resolve them outside Nuxt context.
+- All protected API handlers call `requireApprovedUser(event)` from `~/server/utils/approval`. Tests must mock `~/server/utils/approval` (not `useSupabaseUser` directly) or the approval check will hit the Supabase mock and throw 403.
