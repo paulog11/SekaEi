@@ -89,6 +89,9 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
     ja: 'リズム・ストレス・イントネーション・話す速さなど、話し方の自然さを総合的に評価します。',
   },
 ]
+
+const overallKey = scoreKeys.find(s => s.key === 'PronScore')!
+const otherKeys = scoreKeys.filter(s => s.key !== 'PronScore')
 </script>
 
 <template>
@@ -99,10 +102,43 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
       <strong>Recognized:</strong> "{{ result.recognizedText }}"
     </p>
 
-    <!-- Score grid: 2-up on mobile, 5-up on sm+ -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6" data-tutorial="score-grid">
+    <!-- Overall score — headline card -->
+    <div class="mb-3" data-tutorial="score-grid">
       <div
-        v-for="{ key, label, en, ja } in scoreKeys"
+        v-if="result.PronunciationAssessment[overallKey.key] !== undefined"
+        class="card-soft bg-indigo-50 border border-indigo-200 flex flex-col items-center py-5 relative group"
+      >
+        <span class="text-5xl font-bold leading-none text-indigo-700">
+          {{ Math.round(result.PronunciationAssessment[overallKey.key] as number) }}
+        </span>
+        <span class="text-sm font-medium text-indigo-500 mt-1.5 flex items-center gap-0.5">
+          {{ overallKey.label }}
+          <span class="text-indigo-400 text-[0.65rem] cursor-help select-none" aria-hidden="true">ⓘ</span>
+        </span>
+        <div
+          class="absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 px-2.5 py-2 text-center text-xs leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+          role="tooltip"
+        >
+          <div class="flex justify-center gap-1 mb-1.5">
+            <button
+              :class="['px-1.5 py-0.5 rounded text-[0.6rem] font-semibold transition-colors', tooltipLang === 'en' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-gray-200']"
+              @click.stop="tooltipLang = 'en'"
+            >EN</button>
+            <button
+              :class="['px-1.5 py-0.5 rounded text-[0.6rem] font-semibold transition-colors', tooltipLang === 'ja' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-gray-200']"
+              @click.stop="tooltipLang = 'ja'"
+            >日本語</button>
+          </div>
+          {{ tooltipLang === 'en' ? overallKey.en : overallKey.ja }}
+          <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900" aria-hidden="true" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Other scores: 2-up on mobile, 4-up on sm+ -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div
+        v-for="{ key, label, en, ja } in otherKeys"
         :key="key"
         class="card-soft flex flex-col items-center py-3 relative group"
       >
@@ -117,7 +153,6 @@ const scoreKeys: Array<{ key: keyof OverallPronunciationAssessment; label: strin
             {{ label }}
             <span class="text-ink-lighter text-[0.65rem] cursor-help select-none" aria-hidden="true">ⓘ</span>
           </span>
-          <!-- Tooltip -->
           <div
             class="absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 px-2.5 py-2 text-center text-xs leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
             role="tooltip"
