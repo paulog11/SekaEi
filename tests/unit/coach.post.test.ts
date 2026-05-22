@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// ---------------------------------------------------------------------------
+// Mocks — before importing handler
+// ---------------------------------------------------------------------------
+
 const mockCreateError = vi.fn((opts: { statusCode: number; message: string }) => {
   const err = new Error(opts.message) as Error & { statusCode: number }
   err.statusCode = opts.statusCode
@@ -15,10 +19,12 @@ vi.mock('~/server/utils/coach', () => ({
   COACH_DAILY_LIMIT: 20,
 }))
 
+const mockRequireApprovedUser = vi.fn()
+vi.mock('~/server/utils/approval', () => ({
+  requireApprovedUser: mockRequireApprovedUser,
+}))
+
 const mockIncrementRpc = vi.fn().mockResolvedValue({ data: 1, error: null })
-const mockFlaggedFrom = vi.fn()
-const mockPhonemeFrom = vi.fn()
-let fromCallCount = 0
 const mockDb = {
   rpc: mockIncrementRpc,
   from: vi.fn(),
@@ -27,12 +33,16 @@ const mockUser = { id: 'user-1' }
 
 vi.mock('~/server/utils/supabase', () => ({
   useSupabase: () => mockDb,
-  useSupabaseUser: vi.fn().mockResolvedValue(mockUser),
+  useSupabaseUser: vi.fn(),
 }))
 
 vi.stubGlobal('useRuntimeConfig', vi.fn(() => ({
   anthropicApiKey: 'test-anthropic-key',
 })))
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe('coach POST handler', () => {
   const mockCoachReply = {
@@ -45,7 +55,7 @@ describe('coach POST handler', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    fromCallCount = 0
+    mockRequireApprovedUser.mockResolvedValue(mockUser)
     mockDb.from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -72,14 +82,65 @@ describe('coach POST handler', () => {
     await expect((handler.default as Function)({})).rejects.toMatchObject({ statusCode: 429 })
   })
 
-  it('calls generateCoachReply and returns result', async () => {
+  it('calls generateCoachReply with flaggedWords and weakPhonemes arrays', async () => {
     const handler = await import('~/server/api/coach.post')
     const result = await (handler.default as Function)({})
     expect(mockGenerateCoachReply).toHaveBeenCalledWith(
       'test-anthropic-key',
-      expect.objectContaining({ flaggedWords: expect.any(Array), weakPhonemes: expect.any(Array) })
+      expect.objectContaining({
+        flaggedWords: expect.any(Array),
+        weakPhonemes: expect.any(Array),
+      }),
     )
     expect(result).toMatchObject({ pattern: 'You substitute /l/ for /r/.' })
+  })
+
+  it('queries flagged_words with active filter, ordered by lowest_score', async () => {
+    const chainMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
+    mockDb.from = vi.fn().mockReturnValue(chainMock)
+
+    const handler = await import('~/server/api/coach.post')
+    await (handler.default as Function)({})
+
+    // First from() call is for flagged_words
+    expect(mockDb.from).toHaveBeenCalledWith('flagged_words')
+    expect(chainMock.is).toHaveBeenCalledWith('retired_at', null)
+    expect(chainMock.order).toHaveBeenCalledWith('lowest_score', { ascending: true })
+    expect(chainMock.limit).toHaveBeenCalledWith(10)
+  })
+
+  it('queries phoneme_stats with minimum attempts filter', async () => {
+    let callCount = 0
+    const fwChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
+    const phChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
+    mockDb.from = vi.fn().mockImplementation(() => {
+      callCount++
+      return callCount === 1 ? fwChain : phChain
+    })
+
+    const handler = await import('~/server/api/coach.post')
+    await (handler.default as Function)({})
+
+    expect(phChain.gte).toHaveBeenCalledWith('attempts_count', 3)
   })
 
   it('throws 422 when generateCoachReply throws', async () => {

@@ -11,6 +11,12 @@ vi.mock('~/server/utils/supabase', () => ({
   useSupabaseUser: vi.fn(),
 }))
 
+const mockRequireApprovedUser = vi.fn()
+
+vi.mock('~/server/utils/approval', () => ({
+  requireApprovedUser: mockRequireApprovedUser,
+}))
+
 const createError = (opts: { statusCode: number; message: string }) => {
   const err = new Error(opts.message) as Error & { statusCode: number }
   err.statusCode = opts.statusCode
@@ -27,7 +33,6 @@ vi.mock('#imports', () => ({
   createError,
 }))
 
-import { useSupabaseUser } from '~/server/utils/supabase'
 const { default: handler } = await import('~/server/api/attempts.get')
 
 // ---------------------------------------------------------------------------
@@ -56,24 +61,25 @@ function setupQueryChain(data: unknown[]) {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/attempts', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
+  })
 
   it('returns 401 when not authenticated', async () => {
-    vi.mocked(useSupabaseUser).mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
+    mockRequireApprovedUser.mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
     await expect((handler as Function)(makeEvent())).rejects.toMatchObject({ statusCode: 401 })
   })
 
   it('returns empty array when no attempts exist', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([])
     const result = await (handler as Function)(makeEvent())
     expect(result).toEqual({ attempts: [] })
   })
 
   it('maps DB rows to AttemptRecord shape', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([{
-      id: 'row-1',
+      slug: 'abc123',
       passage_id: 'interstellar',
       passage_title: 'Interstellar',
       created_at: '2024-01-01T00:00:00.000Z',
@@ -88,7 +94,7 @@ describe('GET /api/attempts', () => {
 
     expect(result.attempts).toHaveLength(1)
     expect(result.attempts[0]).toMatchObject({
-      id: 'row-1',
+      slug: 'abc123',
       passageId: 'interstellar',
       passageTitle: 'Interstellar',
       scores: { accuracy: 80, fluency: 75, completeness: 90, overall: 82 },
@@ -97,9 +103,8 @@ describe('GET /api/attempts', () => {
   })
 
   it('includes prosody score when present', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     setupQueryChain([{
-      id: 'row-2',
+      slug: 'def456',
       passage_id: 'rocky-balboa',
       passage_title: 'Rocky',
       created_at: '2024-02-01T00:00:00.000Z',
@@ -114,28 +119,24 @@ describe('GET /api/attempts', () => {
   })
 
   it('filters by passageId when query param is provided', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
     await (handler as Function)(makeEvent({ passageId: 'rocky-balboa' }))
     expect(c.eq).toHaveBeenCalledWith('passage_id', 'rocky-balboa')
   })
 
   it('clamps limit to 500 when a larger value is requested', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
     await (handler as Function)(makeEvent({ limit: '9999' }))
     expect(c.limit).toHaveBeenCalledWith(500)
   })
 
   it('uses default limit of 100 when limit is not provided', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = setupQueryChain([])
     await (handler as Function)(makeEvent())
     expect(c.limit).toHaveBeenCalledWith(100)
   })
 
   it('throws 500 when DB query returns an error', async () => {
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
     const c = {} as Record<string, ReturnType<typeof vi.fn>>
     c.select = vi.fn().mockReturnValue(c)
     c.eq = vi.fn().mockReturnValue(c)

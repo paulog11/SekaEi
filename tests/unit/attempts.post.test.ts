@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mockAssessmentResult } from '../fixtures/mockAssessmentResult'
 
 // ---------------------------------------------------------------------------
 // Mocks — before importing handler
@@ -11,12 +12,24 @@ vi.mock('~/server/utils/supabase', () => ({
   useSupabaseUser: vi.fn(),
 }))
 
+const mockRequireApprovedUser = vi.fn()
+
+vi.mock('~/server/utils/approval', () => ({
+  requireApprovedUser: mockRequireApprovedUser,
+}))
+
 vi.mock('~/server/utils/updateStreak', () => ({
   computeStreak: vi.fn().mockReturnValue({ current_streak: 1, longest_streak: 1, last_practice_date: '2024-01-01' }),
 }))
 
 vi.mock('~/server/utils/updatePhonemeStats', () => ({
-  extractPhonemeUpserts: vi.fn().mockReturnValue([]),
+  extractPhonemeDelta: vi.fn().mockReturnValue({}),
+}))
+
+const mockFlagDifficultWordsSilently = vi.fn().mockResolvedValue(undefined)
+
+vi.mock('~/server/utils/flagDifficultWords', () => ({
+  flagDifficultWordsSilently: mockFlagDifficultWordsSilently,
 }))
 
 const createError = (opts: { statusCode: number; message: string }) => {
@@ -35,7 +48,6 @@ vi.mock('#imports', () => ({
   createError,
 }))
 
-import { useSupabaseUser } from '~/server/utils/supabase'
 const { default: handler } = await import('~/server/api/attempts.post')
 
 // ---------------------------------------------------------------------------
@@ -58,6 +70,7 @@ function setupInsertChain(result: unknown) {
   c.single = vi.fn().mockResolvedValue(result)
   c.update = vi.fn().mockReturnValue(c)
   c.upsert = vi.fn().mockResolvedValue({ error: null })
+  c.rpc = vi.fn().mockResolvedValue({ error: null })
   c.in = vi.fn().mockReturnValue(c)
   mockFrom.mockReturnValue(c)
   return c
@@ -90,15 +103,20 @@ describe('POST /api/attempts — auth', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns 401 when not authenticated', async () => {
-    vi.mocked(useSupabaseUser).mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
+    mockRequireApprovedUser.mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
     await expect((handler as Function)(makeEvent({}))).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('returns 403 when user is not approved', async () => {
+    mockRequireApprovedUser.mockRejectedValue(createError({ statusCode: 403, message: 'Account pending approval.' }))
+    await expect((handler as Function)(makeEvent({}))).rejects.toMatchObject({ statusCode: 403 })
   })
 })
 
 describe('POST /api/attempts — body validation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
   })
 
   it('returns 400 when passageId is missing', async () => {
@@ -154,7 +172,7 @@ describe('POST /api/attempts — body validation', () => {
 describe('POST /api/attempts — happy path', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
   })
 
   it('inserts attempt and returns it', async () => {
@@ -215,12 +233,34 @@ describe('POST /api/attempts — happy path', () => {
       passage_title: 'A'.repeat(120),
     }))
   })
+
+  it('triggers flagDifficultWordsSilently when azureResult is provided', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null })
+    const azureResult = mockAssessmentResult()
+
+    await (handler as Function)(makeEvent({ ...VALID_BODY, azureResult }))
+
+    expect(mockFlagDifficultWordsSilently).toHaveBeenCalledWith(
+      expect.anything(),
+      VALID_UUID,
+      azureResult,
+      'interstellar',
+    )
+  })
+
+  it('does not call flagDifficultWordsSilently when azureResult is absent', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null })
+
+    await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(mockFlagDifficultWordsSilently).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST /api/attempts — DB error', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
   })
 
   it('throws 500 when DB insert returns an error', async () => {

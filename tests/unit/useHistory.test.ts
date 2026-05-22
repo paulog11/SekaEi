@@ -1,5 +1,7 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { mockAssessmentResult } from '../fixtures/mockAssessmentResult'
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before dynamic imports
@@ -104,6 +106,19 @@ describe('useHistory — addAttempt', () => {
     mockApiFetch.mockRejectedValue(new Error('Server down'))
     const { addAttempt } = useHistory()
     await expect(addAttempt(makeAttempt())).resolves.not.toThrow()
+  })
+
+  it('forwards azureResult to the API body when provided', async () => {
+    mockApiFetch.mockResolvedValue({})
+    const { addAttempt } = useHistory()
+    const attempt = makeAttempt()
+    const azure = mockAssessmentResult()
+    await addAttempt(attempt, azure)
+
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/attempts', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ azureResult: azure }),
+    }))
   })
 
   it('invalidates the cache so next getHistory re-fetches', async () => {
