@@ -143,8 +143,8 @@ describe('useRecorder — start() → stop() lifecycle', () => {
     await stop()
 
     // AudioContext mock sampleRate = 48000, downsampled to 16000 (ratio 3):
-    // ceil(4 / 3) = 2 output samples → 44-byte header + 2 * 2 bytes = 48
-    expect(result.value!.audioWav.size).toBe(44 + 2 * 2)
+    // floor(4 / 3) = 1 output sample → 44-byte header + 1 * 2 bytes = 46
+    expect(result.value!.audioWav.size).toBe(44 + 1 * 2)
   })
 
   it('stops all media tracks on stop()', async () => {

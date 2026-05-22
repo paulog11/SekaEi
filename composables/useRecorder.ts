@@ -48,9 +48,18 @@ export function useRecorder() {
       return
     }
 
-    audioContext = new AudioContext()
+    audioContext = new AudioContext({ sampleRate: 16000 })
     const source = audioContext.createMediaStreamSource(stream)
-    await audioContext.audioWorklet.addModule('/worklets/pcm-capture.js')
+    try {
+      await audioContext.audioWorklet.addModule('/worklets/pcm-capture.js')
+    } catch {
+      error.value = 'Could not initialise audio processor.'
+      stream.getTracks().forEach(t => t.stop())
+      await audioContext.close()
+      stream = null
+      audioContext = null
+      return
+    }
     const workletNode = new AudioWorkletNode(audioContext, 'pcm-capture-processor')
 
     workletNode.port.onmessage = (e: MessageEvent<{ type: string; data: Float32Array }>) => {
@@ -84,14 +93,18 @@ export function useRecorder() {
 
   async function stop() {
     if (!stream || !audioContext) return
+    const ctx = audioContext
+    const str = stream
+    audioContext = null
+    stream = null
 
     clearTimers()
     micLevel.value = 0
 
-    await audioContext.close()
+    await ctx.close()
     analyser = null
 
-    stream.getTracks().forEach(t => t.stop())
+    str.getTracks().forEach(t => t.stop())
 
     const totalLength = pcmChunks.reduce((sum, c) => sum + c.length, 0)
     const allPcm = new Float32Array(totalLength)
@@ -101,12 +114,9 @@ export function useRecorder() {
       offset += chunk.length
     }
 
-    const audioWav = encodeWav(allPcm, audioContext.sampleRate)
+    const audioWav = encodeWav(allPcm, ctx.sampleRate)
     result.value = { audioWav }
     state.value = 'stopped'
-
-    stream = null
-    audioContext = null
   }
 
   function reset() {

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const { data: usageCount } = await db
     .rpc('increment_coach_usage', { p_user_id: authUser.id, p_day: today })
 
-  if ((usageCount as unknown as number) > COACH_DAILY_LIMIT) {
+  if (typeof usageCount === 'number' && usageCount > COACH_DAILY_LIMIT) {
     throw createError({ statusCode: 429, message: `Daily coaching limit of ${COACH_DAILY_LIMIT} reached. Try again tomorrow.` })
   }
 

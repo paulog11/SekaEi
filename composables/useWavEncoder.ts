@@ -47,10 +47,14 @@ function floatTo16BitPCM(float32: Float32Array): Int16Array {
 function downsample(buffer: Float32Array, fromRate: number, toRate: number): Float32Array {
   if (fromRate === toRate) return buffer
   const ratio = fromRate / toRate
-  const outLength = Math.ceil(buffer.length / ratio)
+  const outLength = Math.floor(buffer.length / ratio)
   const out = new Float32Array(outLength)
   for (let i = 0; i < outLength; i++) {
-    out[i] = buffer[Math.round(i * ratio)] ?? 0
+    const start = Math.floor(i * ratio)
+    const end = Math.min(Math.floor((i + 1) * ratio), buffer.length)
+    let sum = 0
+    for (let j = start; j < end; j++) sum += buffer[j]
+    out[i] = sum / (end - start)
   }
   return out
 }

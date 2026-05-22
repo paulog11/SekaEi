@@ -77,7 +77,7 @@ async function updateStreakSilently(db: ReturnType<typeof import('../utils/supab
     )
 
     await db.from('daily_streaks').upsert({ user_id: userId, ...update })
-  } catch { /* non-fatal */ }
+  } catch (err) { console.error('[attempts] streak update failed:', err) }
 }
 
 async function updatePhonemeStatsSilently(
@@ -88,5 +88,5 @@ async function updatePhonemeStatsSilently(
   try {
     const delta = extractPhonemeDelta(result)
     await db.rpc('merge_phoneme_stats', { p_user_id: userId, p_delta: delta })
-  } catch { /* non-fatal */ }
+  } catch (err) { console.error('[attempts] phoneme stats update failed:', err) }
 }
