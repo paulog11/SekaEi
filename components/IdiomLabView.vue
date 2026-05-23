@@ -18,11 +18,18 @@ const pronAudioWav = ref<Blob | null>(null)
 const pronResult = ref<AssessmentResult | null>(null)
 const pronAssessing = ref(false)
 const pronError = ref<string | null>(null)
+const selectedPracticeText = ref(store.currentChallenge.phrase)
 
 function resetPronunciation() {
   pronAudioWav.value = null
   pronResult.value = null
   pronError.value = null
+}
+
+function onSelectPracticeText(text: string) {
+  if (selectedPracticeText.value === text) return
+  selectedPracticeText.value = text
+  resetPronunciation()
 }
 
 function onSelectOption(meaning: string) {
@@ -34,12 +41,16 @@ function onNext() {
   quizOpen.value = true
   resetPronunciation()
   store.nextChallenge()
+  if (!store.isPackComplete) {
+    selectedPracticeText.value = store.currentChallenge.phrase
+  }
 }
 
 function onRestart() {
   quizOpen.value = true
   resetPronunciation()
   store.restartPack()
+  selectedPracticeText.value = store.currentChallenge.phrase
 }
 
 function onPronRecorded(wav: Blob) {
@@ -59,7 +70,7 @@ async function assessPronunciation() {
   try {
     const form = new FormData()
     form.append('audio', pronAudioWav.value, 'recording.wav')
-    form.append('referenceText', challenge.value.phrase)
+    form.append('referenceText', selectedPracticeText.value)
     pronResult.value = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
   } catch (err: unknown) {
     const e = err as { status?: number; data?: { message?: string } }
@@ -253,7 +264,27 @@ function optionClass(url: string): string {
       <section v-if="store.hasGuessedCorrectly" class="card-soft flex flex-col gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-ink-light m-0">Now try saying it aloud</p>
-          <p class="text-lg font-semibold text-ink mt-1 m-0">{{ challenge.phrase }}</p>
+          <p class="text-[11px] text-ink-lighter mt-0.5 m-0">Choose what to practise, then record yourself.</p>
+        </div>
+
+        <!-- Practice text selector -->
+        <div class="flex flex-col gap-2">
+          <button
+            type="button"
+            :class="['practice-option', selectedPracticeText === challenge.phrase ? 'practice-selected' : '']"
+            @click="onSelectPracticeText(challenge.phrase)"
+          >
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-ink-lighter block mb-0.5">Idiom</span>
+            <span class="text-sm font-semibold text-ink">{{ challenge.phrase }}</span>
+          </button>
+          <button
+            type="button"
+            :class="['practice-option', selectedPracticeText === challenge.sampleSentence ? 'practice-selected' : '']"
+            @click="onSelectPracticeText(challenge.sampleSentence)"
+          >
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-ink-lighter block mb-0.5">Sample sentence</span>
+            <span class="text-sm text-ink leading-snug">{{ challenge.sampleSentence }}</span>
+          </button>
         </div>
 
         <Recorder
@@ -349,6 +380,16 @@ function optionClass(url: string): string {
 }
 .option-dim {
   @apply opacity-40 cursor-default pointer-events-none;
+}
+
+.practice-option {
+  @apply w-full text-left px-4 py-3 rounded-xl border-2 border-border bg-white
+         transition-all duration-150 cursor-pointer
+         hover:border-primary/50 hover:bg-primary/5
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+}
+.practice-selected {
+  @apply border-primary bg-primary/5;
 }
 
 /* Image-based styles (kept for future use)

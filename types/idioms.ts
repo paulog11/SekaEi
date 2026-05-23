@@ -2,6 +2,7 @@ export interface IdiomChallenge {
   id: string
   phrase: string
   meaning: string
+  sampleSentence: string
   literalImageUrl: string
   figurativeImageUrl: string
   distractorImageUrls: string[]
