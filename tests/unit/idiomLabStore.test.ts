@@ -8,20 +8,20 @@ beforeEach(() => {
 })
 
 describe('idiomLabStore — submitAnswer', () => {
-  it('sets hasGuessedCorrectly when answer matches figurativeImageUrl', () => {
+  it('sets hasGuessedCorrectly when answer matches meaning', () => {
     const store = useIdiomLabStore()
-    const correctUrl = store.currentChallenge.figurativeImageUrl
-    store.submitAnswer(correctUrl)
+    const correctMeaning = store.currentChallenge.meaning
+    store.submitAnswer(correctMeaning)
     expect(store.hasGuessedCorrectly).toBe(true)
     expect(store.selectedAnswer).toBeNull()
   })
 
   it('sets selectedAnswer when answer is wrong', () => {
     const store = useIdiomLabStore()
-    const wrongUrl = store.currentChallenge.distractorImageUrls[0]
-    store.submitAnswer(wrongUrl)
+    const wrongMeaning = 'Something completely wrong'
+    store.submitAnswer(wrongMeaning)
     expect(store.hasGuessedCorrectly).toBe(false)
-    expect(store.selectedAnswer).toBe(wrongUrl)
+    expect(store.selectedAnswer).toBe(wrongMeaning)
   })
 })
 
@@ -34,7 +34,7 @@ describe('idiomLabStore — nextChallenge', () => {
 
   it('resets guess state', () => {
     const store = useIdiomLabStore()
-    store.submitAnswer(store.currentChallenge.figurativeImageUrl)
+    store.submitAnswer(store.currentChallenge.meaning)
     store.nextChallenge()
     expect(store.hasGuessedCorrectly).toBe(false)
     expect(store.selectedAnswer).toBeNull()
@@ -53,7 +53,7 @@ describe('idiomLabStore — restartPack', () => {
     const store = useIdiomLabStore()
     store.nextChallenge()
     store.nextChallenge()
-    store.submitAnswer(store.currentChallenge.distractorImageUrls[0])
+    store.submitAnswer('some wrong answer')
     store.restartPack()
     expect(store.currentIndex).toBe(0)
     expect(store.hasGuessedCorrectly).toBe(false)
@@ -71,14 +71,20 @@ describe('idiomLabStore — selectPack', () => {
 })
 
 describe('idiomLabStore — shuffledOptions', () => {
-  it('contains exactly figurativeImageUrl plus all distractors', () => {
+  it('contains exactly 4 options including the correct meaning', () => {
     const store = useIdiomLabStore()
-    const challenge = store.currentChallenge
     const options = store.shuffledOptions
-    expect(options).toHaveLength(1 + challenge.distractorImageUrls.length)
-    expect(options).toContain(challenge.figurativeImageUrl)
-    for (const d of challenge.distractorImageUrls) {
-      expect(options).toContain(d)
+    expect(options).toHaveLength(4)
+    expect(options).toContain(store.currentChallenge.meaning)
+  })
+
+  it('does not contain the current challenge meaning as a distractor', () => {
+    const store = useIdiomLabStore()
+    const correct = store.currentChallenge.meaning
+    const others = store.shuffledOptions.filter(o => o !== correct)
+    expect(others).toHaveLength(3)
+    for (const o of others) {
+      expect(o).not.toBe(correct)
     }
   })
 })

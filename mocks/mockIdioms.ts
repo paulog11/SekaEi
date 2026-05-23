@@ -11,6 +11,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'bite-the-bullet',
       phrase: 'Bite the bullet',
+      meaning: 'To endure a painful or difficult situation without complaining',
       literalImageUrl: placeholder('Literal: Person biting a bullet'),
       figurativeImageUrl: placeholder('Figurative: Person facing a difficult situation'),
       distractorImageUrls: [
@@ -24,6 +25,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'cold-feet',
       phrase: 'Cold feet',
+      meaning: 'To suddenly feel too nervous or scared to follow through with plans',
       literalImageUrl: placeholder('Literal: Frozen feet in snow'),
       figurativeImageUrl: placeholder('Figurative: Person nervous before wedding'),
       distractorImageUrls: [
@@ -37,6 +39,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'piece-of-cake',
       phrase: 'Piece of cake',
+      meaning: 'Something that is very easy to do',
       literalImageUrl: placeholder('Literal: Slice of birthday cake on a plate'),
       figurativeImageUrl: placeholder('Figurative: Student acing an easy exam'),
       distractorImageUrls: [
@@ -50,6 +53,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'better-late-than-never',
       phrase: 'Better late than never',
+      meaning: 'It is better to do something late than to not do it at all',
       literalImageUrl: placeholder('Literal: Person running very late to a clock'),
       figurativeImageUrl: placeholder('Figurative: Person arriving late but still welcomed'),
       distractorImageUrls: [
@@ -63,6 +67,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'time-flies',
       phrase: 'Time flies',
+      meaning: 'Time passes much faster than you expect',
       literalImageUrl: placeholder('Literal: Clock with wings flying away'),
       figurativeImageUrl: placeholder('Figurative: Friends having fun, hours passing fast'),
       distractorImageUrls: [
@@ -76,6 +81,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'sit-tight',
       phrase: 'Sit tight',
+      meaning: 'To wait patiently without taking any action',
       literalImageUrl: placeholder('Literal: Person gripping a chair tightly'),
       figurativeImageUrl: placeholder('Figurative: Person calmly waiting for news'),
       distractorImageUrls: [
@@ -89,6 +95,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'let-someone-off-the-hook',
       phrase: 'Let someone off the hook',
+      meaning: 'To free someone from a responsibility or blame',
       literalImageUrl: placeholder('Literal: Fish being released from a fishing hook'),
       figurativeImageUrl: placeholder('Figurative: Boss forgiving employee for a mistake'),
       distractorImageUrls: [
@@ -102,6 +109,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'cut-someone-some-slack',
       phrase: 'Cut someone some slack',
+      meaning: 'To be less strict or critical of someone',
       literalImageUrl: placeholder('Literal: Person cutting a loose rope'),
       figurativeImageUrl: placeholder('Figurative: Team being understanding with a struggling colleague'),
       distractorImageUrls: [
@@ -115,6 +123,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'benefit-of-the-doubt',
       phrase: 'Give someone the benefit of the doubt',
+      meaning: 'To choose to believe or trust someone despite uncertainty',
       literalImageUrl: placeholder('Literal: Scale with a question mark balanced on it'),
       figurativeImageUrl: placeholder('Figurative: Person trusting a friend despite uncertainty'),
       distractorImageUrls: [
@@ -128,6 +137,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'best-of-both-worlds',
       phrase: 'The best of both worlds',
+      meaning: 'Enjoying two different advantages at the same time',
       literalImageUrl: placeholder('Literal: Two globes side by side'),
       figurativeImageUrl: placeholder('Figurative: Person enjoying city job and country home'),
       distractorImageUrls: [
@@ -141,6 +151,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'hit-the-sack',
       phrase: 'Hit the sack',
+      meaning: 'To go to bed and sleep',
       literalImageUrl: placeholder('Literal: Person punching a large burlap sack'),
       figurativeImageUrl: placeholder('Figurative: Tired person falling into bed'),
       distractorImageUrls: [
@@ -154,6 +165,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'speak-of-the-devil',
       phrase: 'Speak of the devil',
+      meaning: 'Said when someone appears right as you were talking about them',
       literalImageUrl: placeholder('Literal: Devil cartoon appearing in a puff of smoke'),
       figurativeImageUrl: placeholder('Figurative: Person arriving just as they were being discussed'),
       distractorImageUrls: [
@@ -167,6 +179,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'hit-the-road',
       phrase: 'Hit the road',
+      meaning: 'To start a journey or leave a place',
       literalImageUrl: placeholder('Literal: Fist hitting a paved road'),
       figurativeImageUrl: placeholder('Figurative: Person waving goodbye and driving away'),
       distractorImageUrls: [
@@ -180,6 +193,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'keep-an-eye-on',
       phrase: 'Keep an eye on',
+      meaning: 'To watch something or someone carefully',
       literalImageUrl: placeholder('Literal: Giant eyeball watching over a scene'),
       figurativeImageUrl: placeholder('Figurative: Parent watching child play at park'),
       distractorImageUrls: [
@@ -193,6 +207,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'spill-the-beans',
       phrase: 'Spill the beans',
+      meaning: 'To accidentally reveal secret information',
       literalImageUrl: placeholder('Literal: Bowl of beans spilling onto a table'),
       figurativeImageUrl: placeholder('Figurative: Person accidentally revealing a surprise party'),
       distractorImageUrls: [
@@ -206,6 +221,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'costs-an-arm-and-a-leg',
       phrase: 'Costs an arm and a leg',
+      meaning: 'Something that is extremely expensive',
       literalImageUrl: placeholder('Literal: Price tag attached to a severed arm and leg'),
       figurativeImageUrl: placeholder('Figurative: Person shocked by an expensive bill'),
       distractorImageUrls: [
@@ -219,6 +235,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'jump-the-gun',
       phrase: 'Jump the gun',
+      meaning: 'To start something too soon or act before the right moment',
       literalImageUrl: placeholder('Literal: Runner leaping forward before starter pistol fires'),
       figurativeImageUrl: placeholder('Figurative: Person announcing news before it is confirmed'),
       distractorImageUrls: [
@@ -232,6 +249,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'rain-on-someones-parade',
       phrase: "Rain on someone's parade",
+      meaning: "To spoil someone's plans or dampen their enthusiasm",
       literalImageUrl: placeholder('Literal: Storm cloud raining on a parade float'),
       figurativeImageUrl: placeholder('Figurative: Person criticizing a friend\'s exciting news'),
       distractorImageUrls: [
@@ -245,6 +263,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'bigger-fish-to-fry',
       phrase: 'Has bigger fish to fry',
+      meaning: 'To have more important things to deal with',
       literalImageUrl: placeholder('Literal: Small fish next to a huge fish in a pan'),
       figurativeImageUrl: placeholder('Figurative: Executive too busy with major deals to handle minor issue'),
       distractorImageUrls: [
@@ -258,6 +277,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'grain-of-salt',
       phrase: 'Take it with a grain of salt',
+      meaning: 'To be skeptical and not fully believe something',
       literalImageUrl: placeholder('Literal: Hand holding a single grain of salt over food'),
       figurativeImageUrl: placeholder('Figurative: Person skeptically reading an unverified rumor'),
       distractorImageUrls: [
@@ -271,6 +291,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'call-it-a-day',
       phrase: 'Call it a day',
+      meaning: 'To stop working or doing an activity for the day',
       literalImageUrl: placeholder('Literal: Person shouting "Day!" at a calendar'),
       figurativeImageUrl: placeholder('Figurative: Office workers shutting down computers to go home'),
       distractorImageUrls: [
@@ -284,6 +305,7 @@ export const IDIOM_PACK_1: IdiomPack = {
     {
       id: 'hit-the-books',
       phrase: 'Hit the books',
+      meaning: 'To start studying seriously',
       literalImageUrl: placeholder('Literal: Fist slamming down on a stack of textbooks'),
       figurativeImageUrl: placeholder('Figurative: Student studying hard at a desk with many books'),
       distractorImageUrls: [

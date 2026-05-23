@@ -24,13 +24,33 @@ export const useIdiomLabStore = defineStore('idiomLab', () => {
   const currentChallenge = computed<IdiomChallenge>(() => challenges.value[currentIndex.value]!)
   const isPackComplete = computed(() => currentIndex.value >= challenges.value.length)
 
+  const shuffledOptions = computed(() => {
+    const correct = currentChallenge.value.meaning
+    const others = challenges.value
+      .filter((_, i) => i !== currentIndex.value)
+      .map(c => c.meaning)
+    const distractors = shuffle(others).slice(0, 3)
+    return shuffle([correct, ...distractors])
+  })
+
+  /* Image-based shuffled options (kept for future use when images are available)
   const shuffledOptions = computed(() =>
     shuffle([
       currentChallenge.value.figurativeImageUrl,
       ...currentChallenge.value.distractorImageUrls,
     ])
   )
+  */
 
+  function submitAnswer(meaning: string) {
+    if (meaning === currentChallenge.value.meaning) {
+      hasGuessedCorrectly.value = true
+    } else {
+      selectedAnswer.value = meaning
+    }
+  }
+
+  /* Image-based submitAnswer (kept for future use when images are available)
   function submitAnswer(imageUrl: string) {
     if (imageUrl === currentChallenge.value.figurativeImageUrl) {
       hasGuessedCorrectly.value = true
@@ -38,6 +58,7 @@ export const useIdiomLabStore = defineStore('idiomLab', () => {
       selectedAnswer.value = imageUrl
     }
   }
+  */
 
   function nextChallenge() {
     hasGuessedCorrectly.value = false
