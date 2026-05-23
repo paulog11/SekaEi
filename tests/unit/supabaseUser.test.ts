@@ -18,7 +18,7 @@ const createError = (opts: { statusCode: number; message: string }) => {
 }
 
 vi.stubGlobal('createError', createError)
-vi.stubGlobal('getHeader', (event: Record<string, unknown>, key: string) => event.__headers?.[key] ?? null)
+vi.stubGlobal('getHeader', (event: Record<string, unknown>, key: string) => (event.__headers as Record<string, unknown>)?.[key] ?? null)
 
 const { useSupabaseUser } = await import('~/server/utils/supabase')
 

@@ -1,17 +1,19 @@
-# SekaEi — English Pronunciation Practice
+# SekaEi — English Learning Practice
 
-SekaEi is a web application that listens to you read a passage aloud, then tells you exactly which words and sounds you pronounced correctly — and which ones need work.
+SekaEi is a web app for Japanese university students to practise English. It has two tracks:
 
-Record yourself on your webcam, replay the video, and get instant phoneme-level feedback powered by Azure AI Speech.
+1. **Pronunciation Practice** — read a passage aloud; get instant per-word and per-phoneme accuracy scores powered by Azure AI Speech.
+2. **Real English (Idioms & Slang)** — an idiom quiz with image-based multiple choice. (Work in progress.)
+
+Access is invite-only: users sign up, then an admin approves their account.
 
 ---
 
-## What it does
+## What the pronunciation track does
 
-1. **Pick a passage** — choose one of three built-in passages or paste your own text.
-2. **Record** — your camera and microphone turn on; read the passage aloud, then stop.
-3. **Watch yourself** — the recorded video plays back in the browser. Nothing is uploaded or stored.
-4. **Get scored** — hit "Check My Pronunciation" and within a few seconds every word is colour-coded:
+1. **Pick a passage** — choose a built-in passage or paste your own text.
+2. **Record** — your microphone turns on; read the passage aloud, then stop.
+3. **Get scored** — every word is colour-coded within seconds:
 
 | Colour | Meaning |
 |--------|---------|
@@ -21,7 +23,7 @@ Record yourself on your webcam, replay the video, and get instant phoneme-level 
 
 Hover over any word to see a breakdown of each individual phoneme.
 
-Overall scores for **Accuracy**, **Fluency**, **Completeness**, **Prosody**, and a combined **Overall** score are shown at the top of the results.
+Overall scores for **Accuracy**, **Fluency**, **Completeness**, **Prosody**, and a combined **Overall** are shown at the top.
 
 ---
 
@@ -42,6 +44,7 @@ Overall scores for **Accuracy**, **Fluency**, **Completeness**, **Prosody**, and
 - [Node.js](https://nodejs.org) v20 or later
 - [pnpm](https://pnpm.io) (`npm install -g pnpm`)
 - An [Azure AI Speech](https://portal.azure.com) resource (free tier: 5 hours/month)
+- A [Supabase](https://supabase.com) project (for auth + database)
 
 ### 1. Clone and install
 
@@ -51,26 +54,13 @@ cd SekaEi
 pnpm install
 ```
 
-### 2. Configure Azure credentials
-
-Copy the example environment file and fill in your Azure details:
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`:
-
-```
-AZURE_SPEECH_KEY=your_key_here
-AZURE_SPEECH_REGION=eastus
-```
-
-To get these values:
-1. Go to [portal.azure.com](https://portal.azure.com)
-2. Create a resource → search "Speech"
-3. After creation, go to **Keys and Endpoint**
-4. Copy **KEY 1** and the **Location/Region**
+Fill in your Azure and Supabase credentials. All values are server-only; see `.env.example` for the full list.
 
 ### 3. Run
 
@@ -85,42 +75,18 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Architecture overview
 
 ```
-Browser                          Nuxt server (Nitro)        Azure
-───────                          ───────────────────        ─────
-getUserMedia (camera + mic)
-  ├─ MediaRecorder ──────────► local video playback only
-  └─ AudioContext + Worklet ──► 16 kHz mono WAV
+Browser                          Nuxt/Nitro server          Azure
+───────                          ─────────────────          ─────
+getUserMedia (mic only)
+  └─ AudioContext + Worklet ──► 16 kHz mono WAV Blob
                                   POST /api/assess ────────► Azure Speech SDK
                                                   ◄────────── per-word + phoneme scores
 ScoreDisplay renders results
 ```
 
-The Azure subscription key **never leaves the server**. The browser only sends audio to `/api/assess` (your own Nitro endpoint), which proxies to Azure.
+The Azure subscription key **never leaves the server**. The browser sends audio to `/api/assess` (your own Nitro endpoint), which proxies to Azure.
 
----
-
-## Project structure
-
-```
-SekaEi/
-├── app.vue                         Root layout
-├── pages/index.vue                 Main page — passage picker, recorder, results
-├── components/
-│   ├── Recorder.vue                Camera preview + record/stop controls
-│   ├── ScoreDisplay.vue            Overall scores + word grid
-│   └── WordChip.vue                Per-word colour chip with phoneme tooltip
-├── composables/
-│   ├── useRecorder.ts              getUserMedia, dual MediaRecorder + AudioWorklet pipeline
-│   └── useWavEncoder.ts            Float32 PCM → 16 kHz mono WAV Blob
-├── public/worklets/
-│   └── pcm-capture.js              AudioWorkletProcessor — emits raw PCM chunks
-├── server/
-│   ├── api/assess.post.ts          Multipart upload handler → Azure → JSON response
-│   └── utils/azure.ts              Azure Speech SDK: PronunciationAssessmentConfig runner
-└── types/
-    ├── assessment.ts               Azure response types (AzureWord, AzurePhoneme, etc.)
-    └── passages.ts                 Built-in sample passages
-```
+For a full directory-level map of the codebase, see [docs/architecture.md](docs/architecture.md).
 
 ---
 
@@ -131,14 +97,14 @@ SekaEi/
 | Framework | [Nuxt 3](https://nuxt.com) + [Vue 3](https://vuejs.org) |
 | Language | TypeScript (strict) |
 | Package manager | pnpm |
+| Database / Auth | [Supabase](https://supabase.com) |
 | Pronunciation API | [Azure AI Speech — Pronunciation Assessment](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-pronunciation-assessment) |
 | Audio capture | Web Audio API (`AudioContext` + `AudioWorklet`) |
-| Video capture | `MediaRecorder` API |
 | Server | Nitro (built into Nuxt) |
 
 ---
 
-## Other available pronunciation APIs
+## Other pronunciation APIs
 
 If you want to swap out Azure, here are the other providers evaluated:
 
@@ -149,7 +115,7 @@ If you want to swap out Azure, here are the other providers evaluated:
 | [ELSA Speak API](https://elsaspeak.com/en/elsa-api/) | Yes | Highest learner UX quality, enterprise pricing. |
 | [Langcraft](https://platform.langcraft.world) | IPA + timestamps | Developer-first, good for high-volume apps. |
 
-The scoring interface in `server/utils/azure.ts` is isolated enough that swapping providers requires changing only that file and `server/api/assess.post.ts`.
+Swapping providers requires changing only `server/utils/azure.ts` and `server/api/assess.post.ts`.
 
 ---
 
@@ -161,3 +127,4 @@ The scoring interface in `server/utils/azure.ts` is isolated enough that swappin
 | `pnpm build` | Build for production |
 | `pnpm preview` | Preview the production build |
 | `pnpm typecheck` | Run `vue-tsc` type checking |
+| `pnpm test` | Run unit tests (Vitest) |

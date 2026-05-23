@@ -23,7 +23,7 @@ const createError = (opts: { statusCode: number; message: string }) => {
 }
 
 vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
-vi.stubGlobal('getRouterParam', (event: Record<string, unknown>, key: string) => event.__params?.[key])
+vi.stubGlobal('getRouterParam', (event: Record<string, unknown>, key: string) => (event.__params as Record<string, unknown>)?.[key])
 vi.stubGlobal('createError', createError)
 
 vi.mock('#imports', () => ({

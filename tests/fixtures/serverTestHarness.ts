@@ -47,7 +47,7 @@ export function stubNitroGlobals(overrides: Record<string, unknown> = {}) {
   vi.stubGlobal('createError', createError)
   vi.stubGlobal('readBody', (event: Record<string, unknown>) => Promise.resolve(event.__body))
   vi.stubGlobal('getQuery', (event: Record<string, unknown>) => event.__query ?? {})
-  vi.stubGlobal('getRouterParam', (event: Record<string, unknown>, key: string) => event.__params?.[key])
+  vi.stubGlobal('getRouterParam', (event: Record<string, unknown>, key: string) => (event.__params as Record<string, unknown>)?.[key])
   vi.stubGlobal('setResponseStatus', vi.fn())
   vi.stubGlobal('setResponseHeader', vi.fn())
   vi.stubGlobal('useRuntimeConfig', vi.fn(() => ({})))
