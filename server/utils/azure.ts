@@ -1,9 +1,7 @@
 import sdk from 'microsoft-cognitiveservices-speech-sdk'
 import type { AssessmentResult } from '../../types/assessment'
-
-export const ALLOWED_VOICES = ['en-US-AriaNeural', 'en-US-JennyNeural', 'en-US-GuyNeural'] as const
-export type AllowedVoice = typeof ALLOWED_VOICES[number]
-export const DEFAULT_VOICE: AllowedVoice = 'en-US-AriaNeural'
+export { ALLOWED_VOICES, DEFAULT_VOICE } from '../../types/voices'
+export type { AllowedVoice } from '../../types/voices'
 
 export async function synthesizeSpeech(
   text: string,

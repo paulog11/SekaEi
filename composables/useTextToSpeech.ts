@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useApi } from './useApi'
+import { useVoicePreference } from './useVoicePreference'
 
-const DEFAULT_VOICE = 'en-US-AriaNeural'
 const MAX_CACHE = 50
 
 // Module-level singletons: single audio context and shared reactive state across all callers
@@ -34,9 +34,10 @@ function stopCurrent() {
 
 export function useTextToSpeech() {
   const { apiFetch } = useApi()
+  const { voice: preferredVoice } = useVoicePreference()
 
   async function play(text: string, opts?: { voice?: string }): Promise<void> {
-    const voice = opts?.voice ?? DEFAULT_VOICE
+    const voice = opts?.voice ?? preferredVoice.value
     const key = `${voice}:${text}`
 
     stopCurrent()

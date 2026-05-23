@@ -3,6 +3,9 @@ import { useStreak } from '~/composables/useStreak'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 import { useTutorialStore } from '~/stores/tutorialStore'
+import { useVoicePreference } from '~/composables/useVoicePreference'
+import { useTextToSpeech } from '~/composables/useTextToSpeech'
+import { ALLOWED_VOICES, VOICE_LABELS } from '~/types/voices'
 
 definePageMeta({})
 useHead({ title: 'Account — SekaEi' })
@@ -170,6 +173,14 @@ async function saveUniversity() {
   }
 }
 
+// ── Voice preference ─────────────────────────────────────────────────────────
+const { voice: selectedVoice, setVoice } = useVoicePreference()
+const { play: previewPlay, playingKey: previewPlayingKey } = useTextToSpeech()
+
+function previewVoice(v: string) {
+  previewPlay('Hello! I will be your English reading voice.', { voice: v })
+}
+
 // ── Authenticated user data ──────────────────────────────────────────────────
 const { streak, fetchStreak, setGoal } = useStreak()
 const { items: customPassages, loading: passagesLoading, fetchPassages, addPassage, deletePassage } = useCustomPassages()
@@ -305,6 +316,40 @@ async function handleAddPassage() {
             {{ streak.todayMet ? 'Met ✓' : 'Not yet' }}
           </span>
         </p>
+      </section>
+
+      <!-- Voice preference -->
+      <section class="w-full max-w-2xl card">
+        <h2 class="text-base font-semibold text-ink mb-1">Reading Voice</h2>
+        <p class="text-xs text-ink-lighter mb-4 m-0">Choose the voice used when a passage is read aloud.</p>
+        <div class="flex flex-col gap-2">
+          <label
+            v-for="v in ALLOWED_VOICES"
+            :key="v"
+            class="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors"
+            :class="selectedVoice === v ? 'border-primary bg-primary/5' : 'border-border hover:bg-surface'"
+          >
+            <div class="flex items-center gap-3">
+              <input
+                type="radio"
+                :value="v"
+                :checked="selectedVoice === v"
+                class="accent-primary"
+                @change="setVoice(v)"
+              >
+              <span class="text-sm font-medium text-ink">{{ VOICE_LABELS[v].name }}</span>
+              <span class="text-xs text-ink-lighter">{{ VOICE_LABELS[v].gender }}</span>
+            </div>
+            <button
+              type="button"
+              class="btn-secondary btn-sm shrink-0"
+              :disabled="previewPlayingKey === `${v}:Hello! I will be your English reading voice.`"
+              @click.prevent="previewVoice(v)"
+            >
+              {{ previewPlayingKey === `${v}:Hello! I will be your English reading voice.` ? 'Playing…' : 'Preview' }}
+            </button>
+          </label>
+        </div>
       </section>
 
       <!-- Custom passages -->
