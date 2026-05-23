@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { AzureWord } from '~/types/assessment'
 import type { WeakPhonemeHit } from '~/types/flaggedWord'
+import { useTextToSpeech } from '~/composables/useTextToSpeech'
 
 const props = defineProps<{
   word: AzureWord
@@ -83,6 +84,13 @@ function handleReplay() {
   popoverOpen.value = false
 }
 
+const { play: playTts, playingKey } = useTextToSpeech()
+const isPlayingThis = computed(() => playingKey.value === `en-US-AriaNeural:${props.word.Word}`)
+
+function handleHear() {
+  playTts(props.word.Word)
+}
+
 function handleFlag() {
   emit('flag', {
     word: props.word.Word.toLowerCase().replace(/[^a-z']/g, ''),
@@ -153,6 +161,15 @@ onUnmounted(() => { document.removeEventListener('click', handleOutsideClick) })
           @click.stop="handleReplay"
         >
           ▶ Replay
+        </button>
+        <button
+          v-if="!isOmission"
+          class="text-[0.65rem] text-primary-300 hover:text-white underline text-left pointer-events-auto bg-transparent border-none cursor-pointer p-0 disabled:opacity-50"
+          :disabled="isPlayingThis"
+          title="Hear native pronunciation"
+          @click.stop="handleHear"
+        >
+          {{ isPlayingThis ? '🔊…' : '🔊 Hear' }}
         </button>
         <button
           class="text-[0.65rem] pointer-events-auto bg-transparent border-none cursor-pointer p-0 ml-auto"

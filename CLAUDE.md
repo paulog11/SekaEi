@@ -58,10 +58,10 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## What this app is
 
-SekaToku is an English learning tool for Japanese learners. It currently has two tracks:
+SekaToku is an English learning tool whose audience is Japanese university students. It currently has two tracks:
 
 1. **Pronunciation Practice** — a user reads a passage aloud; the app returns per-word and per-phoneme accuracy scores powered by Azure AI Speech Pronunciation Assessment.
-2. **Idioms & Slang** — (This is a work in progress) an idiom/slang challenge. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
+2. **Idioms & Slang** — (This is a work in progress) an idiom/slang quiz. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
 
 ---
 

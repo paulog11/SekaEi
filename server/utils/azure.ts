@@ -1,6 +1,44 @@
 import sdk from 'microsoft-cognitiveservices-speech-sdk'
 import type { AssessmentResult } from '../../types/assessment'
 
+export const ALLOWED_VOICES = ['en-US-AriaNeural', 'en-US-JennyNeural', 'en-US-GuyNeural'] as const
+export type AllowedVoice = typeof ALLOWED_VOICES[number]
+export const DEFAULT_VOICE: AllowedVoice = 'en-US-AriaNeural'
+
+export async function synthesizeSpeech(
+  text: string,
+  voice: string,
+  key: string,
+  region: string,
+): Promise<Buffer> {
+  const speechConfig = sdk.SpeechConfig.fromSubscription(key, region)
+  speechConfig.speechSynthesisVoiceName = voice
+  speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3
+
+  const synthesizer = new sdk.SpeechSynthesizer(speechConfig, null as unknown as sdk.AudioConfig)
+
+  return new Promise((resolve, reject) => {
+    synthesizer.speakTextAsync(
+      text,
+      (result) => {
+        synthesizer.close()
+        if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+          resolve(Buffer.from(result.audioData))
+        } else {
+          const errorDetails = (result as unknown as { errorDetails?: string }).errorDetails
+          console.error('[azure] TTS cancelled:', errorDetails ?? result.reason)
+          reject(classifyAzureError(errorDetails ?? String(result.reason)))
+        }
+      },
+      (err) => {
+        synthesizer.close()
+        console.error('[azure] TTS error:', err)
+        reject(classifyAzureError(String(err)))
+      },
+    )
+  })
+}
+
 function classifyAzureError(detail: string): Error {
   const d = detail.toLowerCase()
   if (d.includes('quota') || d.includes('throttl') || d.includes('rate'))

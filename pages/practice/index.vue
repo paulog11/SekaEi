@@ -7,6 +7,7 @@ import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useStreak } from '~/composables/useStreak'
 import { passageStars } from '~/composables/useProgress'
 import { useApi } from '~/composables/useApi'
+import { useTextToSpeech } from '~/composables/useTextToSpeech'
 import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { containsBadWords } from '~/utils/contentFilter'
@@ -32,6 +33,11 @@ const { items: customPassages, fetchPassages, addPassage } = useCustomPassages()
 const { fetchStreak } = useStreak()
 
 const { apiFetch } = useApi()
+const { play: playTts, playingKey: ttsPlayingKey } = useTextToSpeech()
+const isRecording = ref(false)
+const isPlayingPassage = computed(() =>
+  ttsPlayingKey.value === `en-US-AriaNeural:${referenceText.value}`
+)
 
 onMounted(() => {
   fetchPassages()
@@ -185,10 +191,12 @@ function friendlyError(err: unknown): string {
 }
 
 function onRecordingStarted() {
+  isRecording.value = true
   tutorialStore.advanceIfOnStep(3)
 }
 
 function onRecorded(wav: Blob) {
+  isRecording.value = false
   audioWav.value = wav
   assessmentResult.value = null
   assessError.value = null
@@ -228,6 +236,7 @@ async function assess() {
 }
 
 function onRecordAgain() {
+  isRecording.value = false
   audioWav.value = null
   assessmentResult.value = null
   assessError.value = null
@@ -383,9 +392,21 @@ function onRecordAgain() {
     <!-- Selected passage reading panel -->
     <section class="mb-5">
       <div class="bg-surface border-l-4 border-primary rounded-md px-4 py-3" data-tutorial="reference-panel">
-        <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1 m-0">
-          {{ selectedPassage?.title ?? 'No passage selected' }}
-        </p>
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <p class="text-xs uppercase tracking-wider text-ink-lighter m-0">
+            {{ selectedPassage?.title ?? 'No passage selected' }}
+          </p>
+          <button
+            v-if="referenceText"
+            type="button"
+            class="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-700 disabled:text-ink-lighter transition-colors duration-150"
+            :disabled="isPlayingPassage || isRecording"
+            :title="isRecording ? 'Stop recording first' : 'Hear native pronunciation'"
+            @click="playTts(referenceText)"
+          >
+            🔊 {{ isPlayingPassage ? 'Playing…' : 'Listen' }}
+          </button>
+        </div>
         <p class="text-sm text-ink leading-relaxed m-0">{{ referenceText }}</p>
       </div>
     </section>
