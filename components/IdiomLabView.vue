@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useIdiomLabStore } from '~/stores/idiomLabStore'
+import { useApi } from '~/composables/useApi'
+import type { AssessmentResult } from '~/types/assessment'
 
 const store = useIdiomLabStore()
+const { apiFetch } = useApi()
 
 const phraseRevealed = ref(false)
 
 const challenge = computed(() => store.currentChallenge)
 const progressValue = computed(() => store.currentIndex)
 const progressMax = computed(() => store.challenges.length)
+
+// Pronunciation bridge state
+const pronAudioWav = ref<Blob | null>(null)
+const pronResult = ref<AssessmentResult | null>(null)
+const pronAssessing = ref(false)
+const pronError = ref<string | null>(null)
+
+function resetPronunciation() {
+  pronAudioWav.value = null
+  pronResult.value = null
+  pronError.value = null
+}
 
 function onPlayAudio() {
   phraseRevealed.value = true
@@ -21,11 +36,47 @@ function onSelectOption(url: string) {
 
 function onNext() {
   phraseRevealed.value = false
+  resetPronunciation()
   store.nextChallenge()
 }
 
 function onRestart() {
+  resetPronunciation()
   store.restartPack()
+}
+
+function onPronRecorded(wav: Blob) {
+  pronAudioWav.value = wav
+  pronResult.value = null
+  pronError.value = null
+}
+
+function onPronReset() {
+  resetPronunciation()
+}
+
+async function assessPronunciation() {
+  if (!pronAudioWav.value) return
+  pronAssessing.value = true
+  pronError.value = null
+  try {
+    const form = new FormData()
+    form.append('audio', pronAudioWav.value, 'recording.wav')
+    form.append('referenceText', challenge.value.phrase)
+    pronResult.value = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
+  } catch (err: unknown) {
+    const e = err as { status?: number; data?: { message?: string } }
+    const msg = e?.data?.message ?? ''
+    if (msg.includes('No speech recognized') || msg.includes('NoMatch')) {
+      pronError.value = 'No speech was detected. Try again.'
+    } else if (e?.status === 429) {
+      pronError.value = e?.data?.message ?? 'Too many requests. Please wait.'
+    } else {
+      pronError.value = msg || 'Assessment failed. Please try again.'
+    }
+  } finally {
+    pronAssessing.value = false
+  }
 }
 
 function optionClass(url: string): string {
@@ -160,6 +211,40 @@ function optionClass(url: string): string {
               <p class="text-sm font-semibold text-emerald-700 mb-1">Correct!</p>
               <p class="text-sm text-ink-medium leading-relaxed">{{ challenge.explanation }}</p>
             </div>
+
+            <!-- Pronunciation bridge: optional "say it aloud" -->
+            <div class="card-soft flex flex-col gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-ink-light m-0">Now try saying it aloud</p>
+                <p class="text-lg font-semibold text-ink mt-1 m-0">{{ challenge.phrase }}</p>
+              </div>
+
+              <Recorder
+                @recorded="onPronRecorded"
+                @reset="onPronReset"
+              />
+
+              <div v-if="pronAudioWav && !pronResult">
+                <div v-if="pronAssessing" class="flex items-center justify-center gap-2 py-3" aria-busy="true">
+                  <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce [animation-delay:-0.32s]" />
+                  <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce [animation-delay:-0.16s]" />
+                  <span class="block w-2.5 h-2.5 rounded-full bg-primary animate-bounce" />
+                  <span class="ml-2 text-sm text-ink-lighter">Analysing…</span>
+                </div>
+                <template v-else>
+                  <button class="btn-primary w-full" @click="assessPronunciation">
+                    Check My Pronunciation
+                  </button>
+                  <div v-if="pronError" class="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+                    <p class="flex-1 text-sm text-red-800 m-0">{{ pronError }}</p>
+                    <button class="btn-secondary btn-sm" @click="assessPronunciation">Try again</button>
+                  </div>
+                </template>
+              </div>
+
+              <ScoreDisplay v-if="pronResult" :result="pronResult" />
+            </div>
+
             <button class="btn-primary self-end" @click="onNext">
               Next idiom →
             </button>

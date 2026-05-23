@@ -42,7 +42,7 @@ watch(user, (u) => {
         <NuxtLink to="/" class="nav-link">Dashboard</NuxtLink>
         <NuxtLink to="/practice" class="nav-link">Pronunciation</NuxtLink>
         <NuxtLink to="/practice/words" class="nav-link">Words</NuxtLink>
-        <NuxtLink to="/real-english" class="nav-link">Idioms</NuxtLink>
+        <NuxtLink to="/idiomslang" class="nav-link">Idioms</NuxtLink>
         <NuxtLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</NuxtLink>
       </nav>
     </div>

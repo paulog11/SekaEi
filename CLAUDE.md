@@ -135,7 +135,7 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `mocks/mockIdioms.ts` | `MOCK_IDIOMS: IdiomChallenge[]` — 3 seed entries (Cold feet, Break a leg, Bite the bullet) using `placehold.co` URLs. Replace with real image paths under `public/images/idioms/` as assets are added. |
 | `stores/idiomLabStore.ts` | Pinia store. Manages `currentIndex`, `hasGuessedCorrectly`, `selectedAnswer`. Computes `currentChallenge` and `shuffledOptions` (Fisher-Yates on figurative + distractors). Actions: `submitAnswer`, `nextChallenge`. |
 | `components/IdiomLabView.vue` | Split-screen UI: literal image + blurred phrase on left; 2×2 option grid on right. Phrase revealed only after "Play Audio" is clicked. Correct answer → green border + checkmark + explanation card. Wrong answer → red border + ✗. |
-| `pages/real-english.vue` | Route `/real-english`. Renders `<IdiomLabView />`. |
+| `pages/idiomslang.vue` | Route `/idiomslang`. Renders `<IdiomLabView />`. |
 | `public/images/idioms/` | Static image assets for idiom challenges. Target: WebP, 800×800px, <150 KB per image. |
 
 ### Auth / access control
