@@ -17,7 +17,8 @@ export default defineNuxtPlugin(() => {
   let cachedStatus: string | null = null
 
   async function fetchAndGuard() {
-    if (publicRoutes.includes(router.currentRoute.value.path)) return
+    const current = router.currentRoute.value
+    if (publicRoutes.includes(current.path)) return
 
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
@@ -31,6 +32,7 @@ export default defineNuxtPlugin(() => {
         headers: { Authorization: `Bearer ${token}` },
       })
       cachedStatus = me.user.approvalStatus
+      if (current.meta.access === 'free') return
       if (cachedStatus !== 'approved') {
         await navigateTo('/pending')
       }
@@ -39,7 +41,7 @@ export default defineNuxtPlugin(() => {
       const status = (err as { statusCode?: number })?.statusCode
       if (status === 401) {
         await navigateTo('/account')
-      } else {
+      } else if (current.meta.access !== 'free') {
         await navigateTo('/pending')
       }
     }
@@ -60,6 +62,7 @@ export default defineNuxtPlugin(() => {
   router.beforeEach((to) => {
     if (!user.value) return
     if (publicRoutes.includes(to.path)) return
+    if (to.meta.access === 'free') return
     if (cachedStatus !== null && cachedStatus !== 'approved') {
       return '/pending'
     }

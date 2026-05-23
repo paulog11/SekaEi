@@ -12,7 +12,7 @@ import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { containsBadWords } from '~/utils/contentFilter'
 
-definePageMeta({})
+definePageMeta({ access: 'free' })
 useHead({ title: 'Pronunciation — SekaEi' })
 
 const tutorialStore = useTutorialStore()

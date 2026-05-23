@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({})
+definePageMeta({ access: 'free' })
 </script>
 
 <template>

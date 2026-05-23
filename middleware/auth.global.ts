@@ -11,6 +11,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (import.meta.server) return
 
   if (user.value?.id && !publicRoutes.includes(to.path)) {
+    if (to.meta.access === 'free') return
+
     const supabase = useSupabaseClient()
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token

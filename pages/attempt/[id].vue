@@ -2,7 +2,7 @@
 import type { AssessmentResult } from '~/types/assessment'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({})
+definePageMeta({ access: 'free' })
 
 const route = useRoute()
 const id = route.params.id as string
