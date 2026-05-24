@@ -6,7 +6,7 @@ import { passageStars } from '~/composables/useProgress'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 
 definePageMeta({ access: 'free' })
-useHead({ title: 'Dashboard — SekaEi' })
+useHead({ title: 'Dashboard — セカトークXP' })
 
 const user = useSupabaseUser()
 const { getHistory } = useHistory()

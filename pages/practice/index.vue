@@ -14,7 +14,7 @@ import { containsBadWords } from '~/utils/contentFilter'
 import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({ access: 'free' })
-useHead({ title: 'Pronunciation — SekaEi' })
+useHead({ title: 'Pronunciation — セカトークXP' })
 
 const tutorialStore = useTutorialStore()
 const authStore = useAuthStore()

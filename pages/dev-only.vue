@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
-useHead({ title: 'Coming Soon — SekaEi' })
+useHead({ title: 'Coming Soon — セカトークXP' })
 </script>
 
 <template>

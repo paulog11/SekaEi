@@ -23,7 +23,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 
 useHead(() => ({
-  title: attempt.value ? `Attempt — ${attempt.value.passageTitle} — SekaEi` : 'Attempt — SekaEi',
+  title: attempt.value ? `Attempt — ${attempt.value.passageTitle} — セカトークXP` : 'Attempt — セカトークXP',
 }))
 
 onMounted(async () => {

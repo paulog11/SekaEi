@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({})
-useHead({ title: 'Awaiting Approval — SekaEi' })
+useHead({ title: 'Awaiting Approval — セカトークXP' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

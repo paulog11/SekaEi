@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const rejectUrl = `${APP_URL}/api/admin/approve?token=${record.approval_token}&action=reject`
 
     const html = `
-<p>A new user has signed up for SekaEi and is awaiting approval.</p>
+<p>A new user has signed up for セカトークXP and is awaiting approval.</p>
 <p><strong>Email:</strong> ${userEmail}</p>
 <p>
   <a href="${approveUrl}" style="background:#16a34a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;margin-right:8px">Approve</a>
@@ -46,9 +46,9 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'SekaEi <onboarding@resend.dev>',
+        from: 'セカトークXP <onboarding@resend.dev>',
         to: ADMIN_EMAIL,
-        subject: `[SekaEi] New signup: ${userEmail}`,
+        subject: `[セカトークXP] New signup: ${userEmail}`,
         html,
       }),
     })

@@ -25,7 +25,7 @@ const show = computed(() => !dismissed.value && (canInstall.value || isIosPrompt
           Tap the Share button then "Add to Home Screen" for the app experience.
         </p>
         <p v-else class="text-xs text-ink-light m-0 mt-0.5">
-          Install SekaEi for quick access — no browser chrome.
+          Install セカトークXP for quick access — no browser chrome.
         </p>
       </div>
       <button v-if="!isIosPrompt" class="btn-primary btn-sm shrink-0" @click="install">Install</button>

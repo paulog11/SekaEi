@@ -9,7 +9,7 @@ import { ALLOWED_VOICES, VOICE_LABELS } from '~/types/voices'
 import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({})
-useHead({ title: 'Account — SekaEi' })
+useHead({ title: 'Account — セカトークXP' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
@@ -552,6 +552,19 @@ async function handleAddPassage() {
           </form>
         </template>
       </div>
+    <!-- About link -->
+    <section class="w-full max-w-2xl">
+      <NuxtLink to="/about" class="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-white hover:bg-surface transition-colors no-underline">
+        <div>
+          <p class="text-sm font-semibold text-ink m-0">About セカトークXP</p>
+          <p class="text-xs text-ink-lighter m-0 mt-0.5">What this app is and how to use it</p>
+        </div>
+        <svg class="w-4 h-4 text-ink-lighter shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </NuxtLink>
+    </section>
+
     </template>
 
   </main>

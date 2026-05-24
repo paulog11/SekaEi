@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 
-useHead({ title: 'Confirming — SekaEi' })
+useHead({ title: 'Confirming — セカトークXP' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

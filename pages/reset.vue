@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-useHead({ title: 'Reset password — SekaEi' })
+useHead({ title: 'Reset password — セカトークXP' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
