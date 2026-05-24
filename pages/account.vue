@@ -5,7 +5,7 @@ import { useApi, getOrCreateDeviceId } from '~/composables/useApi'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { useVoicePreference } from '~/composables/useVoicePreference'
 import { useTextToSpeech } from '~/composables/useTextToSpeech'
-import { ALLOWED_VOICES, VOICE_LABELS } from '~/types/voices'
+import { ALLOWED_VOICES, VOICE_LABELS, VOICE_REGIONS, type AllowedVoice, type VoiceRegion } from '~/types/voices'
 import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({})
@@ -210,8 +210,15 @@ async function saveUniversity() {
 const { voice: selectedVoice, setVoice } = useVoicePreference()
 const { play: previewPlay, playingKey: previewPlayingKey } = useTextToSpeech()
 
-function previewVoice(v: string) {
-  previewPlay('Hello! I will be your English reading voice.', { voice: v })
+const PREVIEW_TEXT = 'Hello! I will be your English reading voice.'
+const voicesByRegion: Record<VoiceRegion, AllowedVoice[]> = (() => {
+  const map: Record<VoiceRegion, AllowedVoice[]> = { American: [], British: [], Australian: [], Canadian: [] }
+  for (const v of ALLOWED_VOICES) map[VOICE_LABELS[v].region].push(v)
+  return map
+})()
+
+function previewVoice(v: AllowedVoice) {
+  previewPlay(PREVIEW_TEXT, { voice: v })
 }
 
 // ── Authenticated user data ──────────────────────────────────────────────────
@@ -384,33 +391,38 @@ async function handleAddPassage() {
       <section class="w-full max-w-2xl card">
         <h2 class="text-base font-semibold text-ink mb-1">Reading Voice</h2>
         <p class="text-xs text-ink-lighter mb-4 m-0">Choose the voice used when a passage is read aloud.</p>
-        <div class="flex flex-col gap-2">
-          <label
-            v-for="v in ALLOWED_VOICES"
-            :key="v"
-            class="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors"
-            :class="selectedVoice === v ? 'border-primary bg-primary/5' : 'border-border hover:bg-surface'"
-          >
-            <div class="flex items-center gap-3">
-              <input
-                type="radio"
-                :value="v"
-                :checked="selectedVoice === v"
-                class="accent-primary"
-                @change="setVoice(v)"
+        <div class="flex flex-col gap-5">
+          <div v-for="region in VOICE_REGIONS" :key="region">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-ink-lighter mb-2">{{ region }} English</h3>
+            <div class="flex flex-col gap-2">
+              <label
+                v-for="v in voicesByRegion[region]"
+                :key="v"
+                class="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors"
+                :class="selectedVoice === v ? 'border-primary bg-primary/5' : 'border-border hover:bg-surface'"
               >
-              <span class="text-sm font-medium text-ink">{{ VOICE_LABELS[v].name }}</span>
-              <span class="text-xs text-ink-lighter">{{ VOICE_LABELS[v].gender }}</span>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    :value="v"
+                    :checked="selectedVoice === v"
+                    class="accent-primary"
+                    @change="setVoice(v)"
+                  >
+                  <span class="text-sm font-medium text-ink">{{ VOICE_LABELS[v].name }}</span>
+                  <span class="text-xs text-ink-lighter">{{ VOICE_LABELS[v].gender }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn-secondary btn-sm shrink-0"
+                  :disabled="previewPlayingKey === `${v}:${PREVIEW_TEXT}`"
+                  @click.prevent="previewVoice(v)"
+                >
+                  {{ previewPlayingKey === `${v}:${PREVIEW_TEXT}` ? 'Playing…' : 'Preview' }}
+                </button>
+              </label>
             </div>
-            <button
-              type="button"
-              class="btn-secondary btn-sm shrink-0"
-              :disabled="previewPlayingKey === `${v}:Hello! I will be your English reading voice.`"
-              @click.prevent="previewVoice(v)"
-            >
-              {{ previewPlayingKey === `${v}:Hello! I will be your English reading voice.` ? 'Playing…' : 'Preview' }}
-            </button>
-          </label>
+          </div>
         </div>
       </section>
 

@@ -12,6 +12,7 @@ import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { containsBadWords } from '~/utils/contentFilter'
 import { useAuthStore } from '~/stores/authStore'
+import { useNativeAudio } from '~/composables/useNativeAudio'
 
 definePageMeta({ access: 'free' })
 useHead({ title: 'Pronunciation — セカトークXP' })
@@ -160,6 +161,12 @@ const audioWav = ref<Blob | null>(null)
 const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
+const nativeAudioComposable = useNativeAudio()
+const nativeAudioBlob = ref<Blob | null>(null)
+
+watch(referenceText, (text) => {
+  if (text) nativeAudioComposable.preload(text)
+}, { immediate: true })
 
 const { addAttempt, getHistory } = useHistory()
 const allHistory = ref<import('~/composables/useHistory').AttemptRecord[]>([])
@@ -215,6 +222,7 @@ async function assess() {
     form.append('referenceText', referenceText.value)
     const data = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
     assessmentResult.value = data
+    nativeAudioComposable.fetch(referenceText.value).then(blob => { nativeAudioBlob.value = blob }).catch(() => { nativeAudioBlob.value = null })
     tutorialStore.advanceIfOnStep(5)
     await addAttempt({
       passageId: activePassageId.value,
@@ -242,6 +250,7 @@ function onRecordAgain() {
   audioWav.value = null
   assessmentResult.value = null
   assessError.value = null
+  nativeAudioBlob.value = null
 }
 </script>
 
@@ -463,6 +472,9 @@ function onRecordAgain() {
         :flagged-words="flaggedWordsSet"
         @flag="(payload) => flagWord({ ...payload, passageId: activePassageId })"
       />
+      <div v-if="audioWav" class="mt-4">
+        <PitchContourChart :student-audio="audioWav" :native-audio="nativeAudioBlob" :words="assessmentResult.Words" />
+      </div>
       <PassageHistory
         :passage-id="activePassageId"
         :passage-title="selectedPassage?.title ?? ''"
