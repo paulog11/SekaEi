@@ -1,5 +1,15 @@
+/**
+ * @fileoverview Auth-aware `$fetch` wrapper used by every client-side API call.
+ * Injects the Supabase access token as a Bearer header and signs the user out
+ * on 401. Also owns the per-browser device id used to attribute pre-signup attempts.
+ */
+
 const DEVICE_ID_KEY = 'sekaei.deviceId.v1'
 
+/**
+ * Returns a persistent per-browser UUID stored in localStorage. Falls back to a
+ * fresh non-persisted UUID if localStorage is unavailable (private mode, SSR).
+ */
 export function getOrCreateDeviceId(): string {
   try {
     const existing = localStorage.getItem(DEVICE_ID_KEY)
@@ -12,6 +22,10 @@ export function getOrCreateDeviceId(): string {
   }
 }
 
+/**
+ * Returns an authenticated fetch wrapper. Adds `Authorization: Bearer <token>`
+ * from the current Supabase session; on 401 it signs out and redirects to `/account`.
+ */
 export function useApi() {
   const supabase = useSupabaseClient()
 

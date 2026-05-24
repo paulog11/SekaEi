@@ -1,13 +1,12 @@
-import { watch } from 'vue'
+/**
+ * @fileoverview Client-only plugin: post-hydration approval guard. On the
+ * first session restore after a hard reload, fetches `/api/me` once, caches
+ * the result, and installs a synchronous `router.beforeEach` so subsequent
+ * navigations don't re-hit the network. Drives the `appReady` global state
+ * that powers the full-page loading overlay in `app.vue`.
+ */
 
-// On initial hydration, fetch the user's approval status from /api/me and
-// redirect to /pending if not approved. Cache the result so all subsequent
-// client-side navigations can be blocked synchronously via router.beforeEach
-// without making a network request.
-//
-// appReady drives the full-page loading overlay in app.vue. It starts true
-// (SSR renders normally), flips false while the approval fetch is in-flight
-// on a protected route, then returns to true once the check resolves.
+import { watch } from 'vue'
 export default defineNuxtPlugin(() => {
   const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
   const user = useSupabaseUser()

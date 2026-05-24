@@ -1,3 +1,9 @@
+/**
+ * @fileoverview POST /api/flagged-words — manually flag a word (e.g. from the
+ * word drill). Auth: approved user. `source` is required and must be
+ * `'auto'` or `'manual'`; `score` must be 0–100. Returns the upserted row.
+ */
+
 import { useSupabase } from '../utils/supabase'
 import { requireApprovedUser } from '../utils/approval'
 import { normalizeWord } from '../utils/flagDifficultWords'

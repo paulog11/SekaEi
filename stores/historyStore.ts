@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Attempt history cache (5 min TTL) with a separate per-passage
+ * sub-cache. `addAttempt` cascades invalidation to `streakStore` and
+ * `phonemeStatsStore` because both are derived from attempt data — without
+ * the cascade those stores would show stale numbers after a new attempt.
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { AssessmentResult } from '~/types/assessment'

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * @fileoverview Microphone-recorder UI. Wraps `useRecorder` and surfaces the
+ * mic level, elapsed time, and start/stop/reset controls. Emits `recording`
+ * when capture begins and `recorded` (with a WAV `Blob`) once stopped.
+ */
 import { useRecorder } from '~/composables/useRecorder'
 
 const emit = defineEmits<{

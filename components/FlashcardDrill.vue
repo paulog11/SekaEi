@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * @fileoverview Single-word drill card for the words-practice page. Records a
+ * one-word utterance, posts to `/api/assess` with the word as `referenceText`,
+ * and emits `scored` with the result. Parent decides when to move on (`next`).
+ */
 import { ref } from 'vue'
 import type { FlaggedWord, FlagWordPayload } from '~/types/flaggedWord'
 import type { AssessmentResult } from '~/types/assessment'

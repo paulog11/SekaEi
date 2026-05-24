@@ -1,3 +1,9 @@
+/**
+ * @fileoverview DELETE /api/flagged-words — soft-deletes a flagged word by
+ * setting `retired_at = now()`. Auth: approved user. Word is normalized
+ * server-side via `normalizeWord` to match how it was stored.
+ */
+
 import { useSupabase } from '../utils/supabase'
 import { requireApprovedUser } from '../utils/approval'
 import { normalizeWord } from '../utils/flagDifficultWords'

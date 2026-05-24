@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Idiom quiz state. Currently runs against meaning-text options
+ * (image-based variants are kept commented for the future image dataset).
+ * `shuffledOptions` re-shuffles when the current challenge changes, picking
+ * 3 distractor meanings from other challenges in the same pack.
+ */
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ALL_PACKS } from '~/mocks/mockIdioms'

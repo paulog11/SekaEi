@@ -1,3 +1,9 @@
+/**
+ * @fileoverview POST /api/me/tutorial — mark the in-app tour as completed.
+ * Auth: approved user. Stamps `profiles.tutorial_completed_at = now()`.
+ * Idempotent — repeat calls update the timestamp but cause no other change.
+ */
+
 import { useSupabase } from '../../utils/supabase'
 import { requireApprovedUser } from '../../utils/approval'
 

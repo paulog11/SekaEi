@@ -1,3 +1,10 @@
+/**
+ * @fileoverview GET /api/stats/phonemes — aggregated phoneme accuracy.
+ * Auth: signed-in user. Filters to phonemes with ≥3 attempts (so tiny samples
+ * don't dominate), sorts by avg score, returns the 10 weakest and 10 strongest.
+ * Server-side aggregation means the client never sees the raw blob.
+ */
+
 import { useSupabase, useSupabaseUser } from '../../utils/supabase'
 import type { PhonemeDelta } from '../../utils/updatePhonemeStats'
 

@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Composable facade over `flaggedWordsStore`. Exposes reactive
+ * `words`/`loading`/`error` refs plus `isFlagged`/`fetchWords`/`flag`/`unflag` actions.
+ */
+
 import { storeToRefs } from 'pinia'
 import { useFlaggedWordsStore } from '~/stores/flaggedWordsStore'
 

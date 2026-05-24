@@ -1,3 +1,11 @@
+/**
+ * @fileoverview GET /api/attempts/:id — fetch a single attempt by its slug.
+ * Auth: signed-in user (uses `useSupabaseUser`, NOT `requireApprovedUser` —
+ * unapproved users can still revisit their own past attempts). Scoped by
+ * `user_id`, so users can only fetch their own attempts. Includes the raw
+ * `azure_result` blob for full re-render of the score view.
+ */
+
 import { useSupabase, useSupabaseUser } from '../../utils/supabase'
 
 export default defineEventHandler(async (event) => {

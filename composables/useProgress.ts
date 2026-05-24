@@ -1,7 +1,16 @@
+/**
+ * @fileoverview Pure helpers for the progress page: star-rating thresholds
+ * and the deterministic id for a user-supplied custom passage.
+ */
+
 import type { AttemptRecord } from './useHistory'
 
 export type StarRating = 0 | 1 | 2 | 3
 
+/**
+ * Star rating for a passage from its attempt history. Uses the best overall
+ * score across attempts: ≥90 = 3, ≥80 = 2, ≥60 = 1, otherwise 0.
+ */
 export function passageStars(attempts: AttemptRecord[]): StarRating {
   if (!attempts.length) return 0
   const best = Math.max(...attempts.map(a => a.scores.overall))
@@ -11,7 +20,10 @@ export function passageStars(attempts: AttemptRecord[]): StarRating {
   return 0
 }
 
+/**
+ * Stable, slugified id for a user-supplied passage, derived from the first
+ * 80 chars so two identical passages collide and share history.
+ */
 export function customPassageId(text: string): string {
-  // Stable id from first 80 chars of trimmed text, slugified
   return 'custom:' + text.trim().slice(0, 80).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }

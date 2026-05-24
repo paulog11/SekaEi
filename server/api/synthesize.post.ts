@@ -1,3 +1,11 @@
+/**
+ * @fileoverview POST /api/synthesize — Azure TTS, returns 24 kHz MP3 audio.
+ * Auth: approved user. Per-user concurrency cap of 5; text validated
+ * (1–2000 chars, Unicode normalized, control chars stripped); voice falls
+ * back to `DEFAULT_VOICE` if not in `ALLOWED_VOICES`. Response is cached
+ * privately for 1 day so the client TTS cache survives navigations.
+ */
+
 import { synthesizeSpeech, ALLOWED_VOICES, DEFAULT_VOICE } from '../utils/azure'
 import { requireApprovedUser } from '../utils/approval'
 

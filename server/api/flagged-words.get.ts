@@ -1,3 +1,9 @@
+/**
+ * @fileoverview GET /api/flagged-words — list the user's flagged words.
+ * Auth: signed-in user. `?status=active|retired|all` (default `active`),
+ * `?limit=` clamped to ≤200 (default 100). Sorted by `last_seen` desc.
+ */
+
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {

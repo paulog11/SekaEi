@@ -1,3 +1,10 @@
+/**
+ * @fileoverview POST /api/attempts — persist a completed attempt. Auth: approved user.
+ * Generates a 12-char nanoid slug for shareable links. After insert, kicks off
+ * three fire-and-forget background updates (streak, phoneme stats, flagged
+ * words) — failures in those are logged but never block the response.
+ */
+
 import { nanoid } from 'nanoid'
 import { useSupabase } from '../utils/supabase'
 import { requireApprovedUser } from '../utils/approval'

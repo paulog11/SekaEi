@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Module-level shared ref for the user's preferred TTS voice,
+ * persisted to localStorage. Unknown values fall back to `DEFAULT_VOICE`.
+ */
+
 import { ref } from 'vue'
 import { ALLOWED_VOICES, DEFAULT_VOICE, type AllowedVoice } from '~/types/voices'
 

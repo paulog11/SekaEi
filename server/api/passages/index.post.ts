@@ -1,3 +1,10 @@
+/**
+ * @fileoverview POST /api/passages — create a custom passage. Auth: signed-in
+ * user, gated by `TIER_LIMITS[tier].canAddCustomPassages` (free tier gets 403).
+ * Validates: title required, text required and ≤300 chars, category in
+ * `PASSAGE_CATEGORIES` (defaults to `'custom'`). 409 on duplicate title.
+ */
+
 import { useSupabase } from '../../utils/supabase'
 import { requireAccess, getUserTier } from '../../utils/approval'
 import { TIER_LIMITS } from '../../utils/tierLimits'

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview GET /api/attempts — list attempts for the current user.
+ * Optional `?passageId=` filter; `?limit=` clamped to ≤500 (default 100).
+ * Auth: approved user. Maps snake_case DB columns to the camelCase
+ * `AttemptRecord` shape consumed by the client.
+ */
+
 import { useSupabase } from '../utils/supabase'
 import { requireApprovedUser } from '../utils/approval'
 import type { AttemptRecord } from '~/composables/useHistory'

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview PWA install-prompt handler. Captures the deferred Chrome/Android
+ * `beforeinstallprompt` event for later replay, and surfaces an iOS-only flag
+ * (`isIosPrompt`) because Safari has no programmatic install API — the UI must
+ * tell the user to use "Add to Home Screen" manually.
+ */
+
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const DISMISSED_KEY = 'sekaei_install_dismissed'

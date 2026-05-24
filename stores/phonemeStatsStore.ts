@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Phoneme-stats cache (10 min TTL). Pre-sorted `weakest` and
+ * `strongest` arrays come from the server already filtered (min-3-attempts)
+ * and capped (top 10) — see `/api/stats/phonemes`.
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Flagged-words cache (5 min TTL). Cache key includes the
+ * `status` filter so switching between active/retired/all forces a re-fetch.
+ * `flag`/`unflag` are optimistic; word normalization (lowercase, strip
+ * non-alpha) mirrors the server-side rule in `flagDifficultWords.ts`.
+ */
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { FlaggedWord, FlagWordPayload } from '~/types/flaggedWord'

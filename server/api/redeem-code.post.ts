@@ -1,3 +1,11 @@
+/**
+ * @fileoverview POST /api/redeem-code — exchange an invite code for attendee
+ * tier. Auth: signed-in user. In-memory rate limit of 10 attempts/user/hour
+ * (resets when the process restarts — acceptable for low traffic). Codes are
+ * uppercased + clipped to 32 chars before lookup; the `redeem_invite_code` RPC
+ * does the actual validation and tier bump.
+ */
+
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 // Simple per-user rate limit: max 10 redeem attempts per hour in memory

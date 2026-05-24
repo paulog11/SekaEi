@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Composable facade over `phonemeStatsStore`. Exposes the
+ * pre-sorted `weakest` / `strongest` derived lists plus a `fetchStats` action.
+ */
+
 import { storeToRefs } from 'pinia'
 import { usePhonemeStatsStore } from '~/stores/phonemeStatsStore'
 

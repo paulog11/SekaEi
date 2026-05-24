@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * @fileoverview Colour-coded per-word badge. Green ≥80, amber 60–79, red <60;
+ * Omission/Insertion get distinct treatments. Tap or hover reveals a per-phoneme
+ * breakdown. Owns its own TTS playback so a word can be re-heard in isolation.
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { AzureWord } from '~/types/assessment'
 import type { WeakPhonemeHit } from '~/types/flaggedWord'

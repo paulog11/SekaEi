@@ -1,8 +1,21 @@
+/**
+ * @fileoverview Azure Cognitive Services Speech SDK wrapper. Two entry points:
+ * {@link synthesizeSpeech} for TTS and {@link runPronunciationAssessment} for
+ * scoring. Provider-swap point — if Azure is replaced, this file and
+ * `server/api/assess.post.ts` are the only required changes.
+ */
+
 import sdk from 'microsoft-cognitiveservices-speech-sdk'
 import type { AssessmentResult } from '../../types/assessment'
 export { ALLOWED_VOICES, DEFAULT_VOICE } from '../../types/voices'
 export type { AllowedVoice } from '../../types/voices'
 
+/**
+ * Synthesises `text` as 24 kHz mono MP3 using the given Azure voice.
+ *
+ * @throws An `Error` with a user-safe message (rate-limited / unauthorized /
+ *   network / generic) — original SDK details are logged but not surfaced.
+ */
 export async function synthesizeSpeech(
   text: string,
   voice: string,
@@ -48,6 +61,17 @@ function classifyAzureError(detail: string): Error {
   return new Error('Assessment failed. Please try again.')
 }
 
+/**
+ * Runs Azure Pronunciation Assessment against `referenceText` over `wavBuffer`.
+ *
+ * Strips the 44-byte WAV header before feeding the PushStream because the
+ * format is supplied explicitly (`getWaveFormatPCM(16000, 16, 1)`) — passing
+ * a header would corrupt the first samples.
+ *
+ * Returns Azure's first NBest result with overall scores plus per-word and
+ * per-phoneme breakdowns. Rejects with a user-safe `Error` on cancellation,
+ * SDK errors, NoMatch, or missing NBest.
+ */
 export async function runPronunciationAssessment(
   wavBuffer: Buffer,
   referenceText: string,

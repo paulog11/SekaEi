@@ -1,3 +1,9 @@
+/**
+ * @fileoverview GET /api/passages — list the user's custom passages.
+ * Auth: signed-in user. Returns all passages (no pagination — capped by
+ * the per-user write side, not by this read).
+ */
+
 import { useSupabase, useSupabaseUser } from '../../utils/supabase'
 
 export default defineEventHandler(async (event) => {

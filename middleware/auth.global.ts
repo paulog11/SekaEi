@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Global middleware: primary auth + approval guard. Queries
+ * `/api/me` per navigation (client-only — SSR can't reliably forward the JWT)
+ * and redirects unapproved users to `/pending`. Fail-closed: any error other
+ * than 401 also routes to `/pending` to prevent leaking pages to a user
+ * whose approval status couldn't be verified.
+ */
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser()
   const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']

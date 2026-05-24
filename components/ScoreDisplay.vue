@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * @fileoverview Results view for a finished assessment. Renders the overall
+ * score cards (accuracy/fluency/completeness/prosody/overall) and the per-word
+ * grid via `WordChip`. Emits `replay` (audio segment) and `flag` (mark a word
+ * as difficult) up to the page so this component stays decoupled from API calls.
+ */
 import type { AssessmentResult, OverallPronunciationAssessment } from '~/types/assessment'
 import type { FlagWordPayload } from '~/types/flaggedWord'
 

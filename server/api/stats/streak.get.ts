@@ -1,3 +1,9 @@
+/**
+ * @fileoverview GET /api/stats/streak — current/longest streak + daily goal
+ * + `todayMet` flag. Auth: signed-in user. Defaults (0/0/5/false) returned
+ * when the user has no `daily_streaks` row yet — never errors on missing data.
+ */
+
 import { useSupabase, useSupabaseUser } from '../../utils/supabase'
 
 export default defineEventHandler(async (event) => {

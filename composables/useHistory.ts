@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Composable facade over `historyStore` for attempt records.
+ * Re-exports `AttemptRecord` so callers can import the type from one place;
+ * `getHistory`/`getByPassage` accept `force: true` to bypass the store's cache.
+ */
+
 import type { AssessmentResult } from '~/types/assessment'
 import { useHistoryStore } from '~/stores/historyStore'
 import type { AttemptRecord as _AttemptRecord } from '~/stores/historyStore'

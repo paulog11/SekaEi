@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Tutorial state. Persisted both to localStorage (so a completed
+ * tour never re-shows even when /api/me is slow) and to `profiles.tutorial_completed_at`
+ * on the server. The localStorage write happens immediately on `complete()`;
+ * the server write is fire-and-forget — failure does not re-trigger the tour.
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'

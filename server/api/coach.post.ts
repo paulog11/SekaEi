@@ -1,3 +1,10 @@
+/**
+ * @fileoverview POST /api/coach — generates an AI coach reply from the user's
+ * flagged words + weak phonemes. Auth: signed-in user, but gated by tier —
+ * tiers with `coachDaily = 0` get 403. Daily quota enforced via
+ * `increment_coach_usage` RPC (server-counted, not client-trusted).
+ */
+
 import { useSupabase } from '../utils/supabase'
 import { requireAccess, getUserTier } from '../utils/approval'
 import { TIER_LIMITS } from '../utils/tierLimits'

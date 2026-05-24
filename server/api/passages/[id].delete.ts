@@ -1,3 +1,9 @@
+/**
+ * @fileoverview DELETE /api/passages/:id — delete the user's custom passage.
+ * Auth: approved user. Hard delete (no soft-delete column). The `.eq('user_id', authUser.id)`
+ * is the authorisation check — RLS also enforces, but this is the belt-and-braces.
+ */
+
 import { useSupabase } from '../../utils/supabase'
 import { requireApprovedUser } from '../../utils/approval'
 

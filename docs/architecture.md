@@ -80,11 +80,15 @@ Reusable Vue components, all at the top level (no subfolders). These are auto-im
 
 Composables handle data fetching and browser API wiring. State that must persist across route changes or be shared between unrelated components lives in `stores/` instead.
 
+See [composables/README.md](../composables/README.md) for the full table.
+
 ---
 
 ### `stores/`
 
 Pinia setup stores — one per feature. All use the `defineStore('id', () => { ... })` syntax. Auto-imported by Nuxt. These hold client state that outlives a single component: `authStore`, `historyStore`, `streakStore`, `phonemeStatsStore`, `flaggedWordsStore`, `customPassagesStore`, `idiomLabStore`, `tutorialStore`.
+
+See [stores/README.md](../stores/README.md) for the full table (TTLs, dependencies, conventions).
 
 ---
 
@@ -110,9 +114,13 @@ HTTP route handlers, file-based (Nuxt/Nitro convention). The filename encodes th
 
 Every handler that touches user data calls `requireApprovedUser(event)` from `server/utils/approval.ts` before doing anything else.
 
+See [server/api/README.md](../server/api/README.md) for the full endpoint table (method, path, auth, limits).
+
 #### `server/utils/`
 
 Server-only helpers — never imported from client code. Contains: `azure.ts` (Azure Speech SDK invocation), `supabase.ts` / `supabaseService.ts` (Supabase clients), `approval.ts` (`requireApprovedUser`), `coach.ts`, `claimDevice.ts`, and fire-and-forget side-effect utilities (`updateStreak.ts`, `updatePhonemeStats.ts`, `flagDifficultWords.ts`).
+
+See [server/utils/README.md](../server/utils/README.md) for the full helper table.
 
 ---
 
@@ -151,7 +159,7 @@ Static files served as-is from the web root (no bundling). Notable: `worklets/pc
 Database-as-code for the Supabase backend:
 
 - `config.toml` — local Supabase dev environment config
-- `migrations/` — numbered SQL files that are the **source of truth for the database schema**. Apply in order. Never edit an already-applied migration; add a new one instead.
+- `migrations/` — numbered SQL files that are the **source of truth for the database schema**. Apply in order. Never edit an already-applied migration; add a new one instead. See [supabase/migrations/README.md](../supabase/migrations/README.md) for the migration log.
 - `functions/send-approval-email/` — a Supabase Edge Function that emails a user when their account is approved.
 
 ---

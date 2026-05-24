@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Client-only plugin: seeds `authStore` from the live Supabase
+ * session before the first navigation, then watches `useSupabaseUser()` to
+ * keep it in sync. On sign-out or account switch, resets every per-user
+ * Pinia store so the previous user's history/streak/etc. doesn't bleed into
+ * the next session. Also auto-redeems any pending invite code stashed in
+ * `user_metadata.pending_invite_code` at signup.
+ */
+
 import { watch } from 'vue'
 
 async function redeemPendingCode(userId: string, pendingCode: string) {

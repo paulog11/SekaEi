@@ -1,3 +1,10 @@
+/**
+ * @fileoverview PATCH /api/me — update the user's profile (`displayName` and
+ * `university` only — email/tier/approval are server-managed). Auth: approved user.
+ * `displayName` is validated against length, character set, and a hard-coded
+ * profanity list; `university` is length-bounded only.
+ */
+
 import { useSupabase } from '../utils/supabase'
 import { requireApprovedUser } from '../utils/approval'
 

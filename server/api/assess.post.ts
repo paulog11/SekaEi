@@ -1,3 +1,15 @@
+/**
+ * @fileoverview POST /api/assess — accepts a multipart WAV upload (`audio`)
+ * + `referenceText`, proxies to Azure Speech Pronunciation Assessment, returns
+ * the NBest result. Auth: `requireAccess('free')` (any signed-in user).
+ *
+ * Limits enforced:
+ * - Per-user concurrency cap of 3 simultaneous calls (in-memory `inflight` map)
+ * - Per-user daily quota by tier (`TIER_LIMITS[tier].assessDaily`)
+ * - Audio: 1 KB–4 MB, RIFF/WAVE header required, content-type must be audio/*
+ * - Reference text: ≤2000 chars after Unicode normalisation
+ */
+
 import { runPronunciationAssessment } from '../utils/azure'
 import { useSupabase } from '../utils/supabase'
 import { requireAccess, getUserTier } from '../utils/approval'

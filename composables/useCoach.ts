@@ -1,6 +1,15 @@
+/**
+ * @fileoverview Calls POST /api/coach to fetch an LLM-generated pronunciation
+ * coaching reply derived from the user's recent flagged words and phoneme stats.
+ */
+
 import { ref } from 'vue'
 import type { CoachReply } from '~/types/flaggedWord'
 
+/**
+ * Single-flight coach request. Guards against duplicate concurrent calls via
+ * the `loading` ref; on error, sets `error.value` instead of throwing.
+ */
 export function useCoach() {
   const { apiFetch } = useApi()
   const result = ref<CoachReply | null>(null)

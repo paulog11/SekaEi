@@ -1,3 +1,10 @@
+/**
+ * @fileoverview WAV-encoder for the recorder pipeline. Downsamples to 16 kHz
+ * mono 16-bit PCM (Azure Speech's expected format) and writes a 44-byte
+ * RIFF/WAVE header. The header is stripped server-side before pushing to the
+ * Azure SDK (which is told the format explicitly).
+ */
+
 const TARGET_SAMPLE_RATE = 16000
 
 /**

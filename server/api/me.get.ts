@@ -1,3 +1,11 @@
+/**
+ * @fileoverview GET /api/me — single source of truth for "who is this user
+ * and what's their state." Returns profile (email, displayName, university,
+ * approvalStatus, tier, tutorialCompletedAt) plus the streak summary. Auth:
+ * signed-in user (NOT approved-only — pending/rejected users need to read
+ * their own status to render the /pending page).
+ */
+
 import { useSupabase, useSupabaseUser } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {

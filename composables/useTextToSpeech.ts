@@ -1,3 +1,10 @@
+/**
+ * @fileoverview TTS playback against POST /api/synthesize. Module-level
+ * singletons (audio element + LRU cache of up to 50 blobs, keyed by `voice:text`)
+ * ensure that calling `play()` from multiple components stops the previous clip
+ * and shares cached audio across the whole app.
+ */
+
 import { ref } from 'vue'
 import { useApi } from './useApi'
 import { useVoicePreference } from './useVoicePreference'
@@ -32,6 +39,11 @@ function stopCurrent() {
   playingKey.value = null
 }
 
+/**
+ * Returns `play(text, { voice })` and `stop()` plus reactive `isPlaying` /
+ * `playingKey` refs (shared across all callers). `play()` always stops any
+ * currently playing clip before starting the next, even if the same key.
+ */
 export function useTextToSpeech() {
   const { apiFetch } = useApi()
   const { voice: preferredVoice } = useVoicePreference()

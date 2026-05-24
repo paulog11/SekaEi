@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Custom-passage cache (10 min TTL). Mutations (`addPassage`,
+ * `deletePassage`) update local state optimistically and refresh `fetchedAt`
+ * so the cache stays valid until the next genuine staleness window.
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'

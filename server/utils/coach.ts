@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Anthropic-backed pronunciation coach. Single fixed system
+ * prompt (kept identical across calls so prompt-cache hits land) plus a JSON
+ * user payload of the learner's flagged words and weak phonemes. Returns a
+ * structured `CoachReply` with safe fallbacks if the model returns invalid JSON.
+ */
+
 import Anthropic from '@anthropic-ai/sdk'
 import type { FlaggedWord, CoachReply } from '~/types/flaggedWord'
 
@@ -30,6 +37,11 @@ export interface CoachInput {
   weakPhonemes: WeakPhoneme[]
 }
 
+/**
+ * Calls Claude Haiku to produce a coach reply from the learner's data.
+ * Slices to the top 10 flagged words and top 8 weak phonemes before sending.
+ * Never throws — JSON parse failures fall back to a generic encouragement reply.
+ */
 export async function generateCoachReply(
   apiKey: string,
   input: CoachInput,

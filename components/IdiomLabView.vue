@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * @fileoverview Idiom quiz UI. Reads `idiomLabStore` for the current challenge
+ * and shuffled options; handles answer submission and progression to the next
+ * challenge. Also drives an optional pronunciation-check sub-flow that POSTs
+ * to `/api/assess` so users can speak the idiom after guessing its meaning.
+ */
 import { ref, computed } from 'vue'
 import { useIdiomLabStore } from '~/stores/idiomLabStore'
 import { useApi } from '~/composables/useApi'

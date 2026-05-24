@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Daily-streak cache (5 min TTL). `historyStore.addAttempt`
+ * invalidates this store so the streak number refreshes after each attempt
+ * without waiting for the TTL to expire.
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'

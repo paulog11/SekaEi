@@ -1,9 +1,24 @@
+/**
+ * @fileoverview Pure streak-calculation helper. Date math uses `YYYY-MM-DD`
+ * strings to dodge timezone / time-of-day drift — callers pass `today` in the
+ * timezone the streak should reset on.
+ */
+
 export interface StreakResult {
   current_streak: number
   longest_streak: number
   last_practice_date: string
 }
 
+/**
+ * Computes the new streak after a successful practice today.
+ * - No prior history → 1
+ * - Already practised today → no change
+ * - Last practice was yesterday → +1
+ * - Any other gap → reset to 1
+ *
+ * Always advances `longest_streak` to the new max.
+ */
 export function computeStreak(
   today: Date,
   lastPracticeDate: string | null,

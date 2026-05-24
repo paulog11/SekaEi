@@ -1,3 +1,11 @@
+/**
+ * @fileoverview GET /api/admin/approve — one-shot HTML page reached via the
+ * `?token=&action=approve|reject` link emailed to admins. Uses the
+ * service-role client to update `profiles.approval_status`; rotates the
+ * token after use so the link can't be replayed. Returns an HTML page (not JSON).
+ * No bearer auth — the UUID token itself is the secret.
+ */
+
 import type { H3Event } from 'h3'
 import { useSupabaseService } from '../../utils/supabaseService'
 

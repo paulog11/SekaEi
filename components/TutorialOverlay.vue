@@ -1,4 +1,11 @@
 <script setup lang="ts">
+/**
+ * @fileoverview First-run tour overlay. Reads `tutorialStore.active` and the
+ * current step, finds the DOM target via the step's CSS selector, and renders
+ * a dimmed backdrop with a spotlight cut-out plus a positioned tooltip.
+ * Recomputes target rect on resize and step changes (`nextTick` to wait for
+ * the target to render).
+ */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { TUTORIAL_STEPS } from '~/types/tutorial'

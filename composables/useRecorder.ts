@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Microphone capture composable. Owns the
+ * `getUserMedia → AudioContext(16 kHz) → AudioWorklet` pipeline and exposes a
+ * simple `idle → recording → stopped` state machine. Hard caps recording at 60 s
+ * (auto-stop) and emits a `durationWarning` flag at 50 s for the UI.
+ */
+
 import { ref } from 'vue'
 import { useWavEncoder } from './useWavEncoder'
 
@@ -10,6 +17,14 @@ export interface RecorderResult {
 const MAX_DURATION_S = 60
 const WARN_DURATION_S = 50
 
+/**
+ * Microphone recorder with mic-level metering and auto-stop.
+ *
+ * On `stop()`, concatenates buffered Float32 PCM chunks and hands them to
+ * `useWavEncoder` — `result.value.audioWav` is a 16 kHz mono WAV `Blob` ready
+ * for POST to `/api/assess`. On permission denial or worklet load failure,
+ * sets `error.value` and leaves the state at `idle`.
+ */
 export function useRecorder() {
   const state = ref<RecorderState>('idle')
   const error = ref<string | null>(null)
