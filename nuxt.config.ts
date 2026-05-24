@@ -32,6 +32,16 @@ export default defineNuxtConfig({
       callback: '/confirm',
       exclude: ['/', '/account', '/confirm', '/reset', '/pending'],
     },
+    cookieOptions: {
+      maxAge: 60 * 60 * 8,
+      sameSite: 'lax',
+      secure: true,
+    },
+    clientOptions: {
+      auth: {
+        flowType: 'pkce',
+      },
+    },
   },
   typescript: {
     strict: true,
