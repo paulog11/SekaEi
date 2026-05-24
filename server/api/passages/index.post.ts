@@ -1,9 +1,14 @@
 import { useSupabase } from '../../utils/supabase'
-import { requireApprovedUser } from '../../utils/approval'
+import { requireAccess, getUserTier } from '../../utils/approval'
+import { TIER_LIMITS } from '../../utils/tierLimits'
 import { PASSAGE_CATEGORIES } from '~/types/passages'
 
 export default defineEventHandler(async (event) => {
-  const authUser = await requireApprovedUser(event)
+  const authUser = await requireAccess(event, 'free')
+  const tier = await getUserTier(event, authUser.id)
+  if (!TIER_LIMITS[tier].canAddCustomPassages) {
+    throw createError({ statusCode: 403, message: 'Adding custom passages is available to program attendees. Enter your invite code in Account settings to unlock it.' })
+  }
   const body = await readBody(event)
   const { title, text, ipa, category } = body ?? {}
 

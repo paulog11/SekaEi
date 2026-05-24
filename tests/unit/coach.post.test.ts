@@ -20,8 +20,12 @@ vi.mock('~/server/utils/coach', () => ({
 }))
 
 const mockRequireApprovedUser = vi.fn()
+const mockRequireAccess = vi.fn()
+const mockGetUserTier = vi.fn()
 vi.mock('~/server/utils/approval', () => ({
   requireApprovedUser: mockRequireApprovedUser,
+  requireAccess: mockRequireAccess,
+  getUserTier: mockGetUserTier,
 }))
 
 const mockIncrementRpc = vi.fn().mockResolvedValue({ data: 1, error: null })
@@ -56,6 +60,8 @@ describe('coach POST handler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireApprovedUser.mockResolvedValue(mockUser)
+    mockRequireAccess.mockResolvedValue(mockUser)
+    mockGetUserTier.mockResolvedValue('attendee')
     mockDb.from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -74,6 +80,12 @@ describe('coach POST handler', () => {
     const handler = await import('~/server/api/coach.post')
     await expect((handler.default as Function)({})).rejects.toMatchObject({ statusCode: 503 })
     vi.stubGlobal('useRuntimeConfig', vi.fn(() => ({ anthropicApiKey: 'test-anthropic-key' })))
+  })
+
+  it('throws 403 when user tier is public (coachDaily === 0)', async () => {
+    mockGetUserTier.mockResolvedValue('public')
+    const handler = await import('~/server/api/coach.post')
+    await expect((handler.default as Function)({})).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('throws 429 when daily limit exceeded', async () => {

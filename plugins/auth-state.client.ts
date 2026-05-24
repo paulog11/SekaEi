@@ -1,5 +1,11 @@
 import { watch } from 'vue'
 
+async function redeemPendingCode(userId: string, pendingCode: string) {
+  try {
+    await $fetch('/api/redeem-code', { method: 'POST', body: { code: pendingCode } })
+  } catch { /* non-fatal: user can redeem from /account */ }
+}
+
 export default defineNuxtPlugin(async () => {
   const authStore = useAuthStore()
   const supabase = useSupabaseClient()
@@ -12,6 +18,12 @@ export default defineNuxtPlugin(async () => {
   authStore.setLoggedIn(!!user.value)
   if (user.value?.id) {
     await authStore.refreshApproval()
+    // Auto-redeem invite code stashed in user_metadata at signup
+    const pendingCode = user.value.user_metadata?.pending_invite_code
+    if (pendingCode && authStore.tier !== 'attendee') {
+      await redeemPendingCode(user.value.id, pendingCode)
+      await authStore.refreshApproval()
+    }
   }
 
   function resetUserStores() {
@@ -37,6 +49,11 @@ export default defineNuxtPlugin(async () => {
     authStore.setLoggedIn(!!newUser)
     if (newUser?.id) {
       await authStore.refreshApproval()
+      const pendingCode = newUser.user_metadata?.pending_invite_code
+      if (pendingCode && authStore.tier !== 'attendee') {
+        await redeemPendingCode(newUser.id, pendingCode)
+        await authStore.refreshApproval()
+      }
     }
   })
 })

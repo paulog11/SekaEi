@@ -1,12 +1,12 @@
 import { runPronunciationAssessment } from '../utils/azure'
 import { useSupabase } from '../utils/supabase'
-import { requireApprovedUser } from '../utils/approval'
+import { requireAccess, getUserTier } from '../utils/approval'
+import { TIER_LIMITS } from '../utils/tierLimits'
 
-const DAILY_LIMIT = 60
 const inflight = new Map<string, number>()
 
 export default defineEventHandler(async (event) => {
-  const user = await requireApprovedUser(event)
+  const user = await requireAccess(event, 'free')
 
   const config = useRuntimeConfig()
   if (!config.azureSpeechKey || !config.azureSpeechRegion) {
@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
   try {
     // Per-user daily quota via atomic increment
     const db = useSupabase(event)
+    const tier = await getUserTier(event, user.id)
+    const dailyLimit = TIER_LIMITS[tier].assessDaily
     const today = new Date().toISOString().slice(0, 10)
     const { data: usage, error: usageErr } = await db.rpc('increment_assess_usage', {
       p_user_id: user.id,
@@ -34,8 +36,8 @@ export default defineEventHandler(async (event) => {
 
     if (usageErr) {
       console.error('[assess] usage increment error:', usageErr)
-    } else if (typeof usage === 'number' && usage > DAILY_LIMIT) {
-      throw createError({ statusCode: 429, message: `Daily limit of ${DAILY_LIMIT} assessments reached. Try again tomorrow.` })
+    } else if (typeof usage === 'number' && usage > dailyLimit) {
+      throw createError({ statusCode: 429, message: `Daily limit of ${dailyLimit} assessments reached. Try again tomorrow.` })
     }
 
     const parts = await readMultipartFormData(event)

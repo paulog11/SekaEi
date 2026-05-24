@@ -12,8 +12,12 @@ vi.mock('~/server/utils/supabase', () => ({
 }))
 
 const mockRequireApprovedUser = vi.fn()
+const mockRequireAccess = vi.fn()
+const mockGetUserTier = vi.fn()
 vi.mock('~/server/utils/approval', () => ({
   requireApprovedUser: mockRequireApprovedUser,
+  requireAccess: mockRequireAccess,
+  getUserTier: mockGetUserTier,
 }))
 
 const createError = (opts: { statusCode: number; message: string }) => {
@@ -67,6 +71,8 @@ const MOCK_PASSAGE = {
 beforeEach(() => {
   vi.clearAllMocks()
   mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
+  mockRequireAccess.mockResolvedValue(MOCK_USER)
+  mockGetUserTier.mockResolvedValue('attendee')
 })
 
 // ---------------------------------------------------------------------------
@@ -75,8 +81,13 @@ beforeEach(() => {
 
 describe('POST /api/passages', () => {
   it('throws 401 when not authenticated', async () => {
-    mockRequireApprovedUser.mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
+    mockRequireAccess.mockRejectedValue(createError({ statusCode: 401, message: 'Not authenticated.' }))
     await expect((handler as Function)(makeEvent(VALID_BODY))).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('throws 403 when user is public tier', async () => {
+    mockGetUserTier.mockResolvedValue('public')
+    await expect((handler as Function)(makeEvent(VALID_BODY))).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('throws 400 when title is missing', async () => {

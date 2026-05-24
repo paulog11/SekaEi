@@ -20,7 +20,7 @@ const createError = (opts: { statusCode: number; message: string }) => {
 
 vi.stubGlobal('createError', createError)
 
-const { requireApprovedUser } = await import('~/server/utils/approval')
+const { requireApprovedUser, requireAccess, getUserTier } = await import('~/server/utils/approval')
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,14 +28,11 @@ const { requireApprovedUser } = await import('~/server/utils/approval')
 
 const MOCK_USER = { id: 'user-abc', email: 'test@example.com' }
 
-function setupProfileChain(approvalStatus: string | null) {
+function setupProfileChain(data: Record<string, string> | null) {
   const c = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({
-      data: approvalStatus !== null ? { approval_status: approvalStatus } : null,
-      error: null,
-    }),
+    single: vi.fn().mockResolvedValue({ data, error: null }),
   }
   mockFrom.mockReturnValue(c)
   return c
@@ -57,7 +54,7 @@ describe('requireApprovedUser', () => {
 
   it('throws 403 when approval_status is "pending"', async () => {
     mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
-    setupProfileChain('pending')
+    setupProfileChain({ approval_status: 'pending' })
     await expect(requireApprovedUser({} as any)).rejects.toMatchObject({
       statusCode: 403,
       message: 'Account pending approval.',
@@ -66,7 +63,7 @@ describe('requireApprovedUser', () => {
 
   it('throws 403 when approval_status is "rejected"', async () => {
     mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
-    setupProfileChain('rejected')
+    setupProfileChain({ approval_status: 'rejected' })
     await expect(requireApprovedUser({} as any)).rejects.toMatchObject({ statusCode: 403 })
   })
 
@@ -78,17 +75,51 @@ describe('requireApprovedUser', () => {
 
   it('returns the user when approval_status is "approved"', async () => {
     mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
-    setupProfileChain('approved')
+    setupProfileChain({ approval_status: 'approved' })
     const result = await requireApprovedUser({} as any)
     expect(result).toEqual(MOCK_USER)
   })
 
   it('queries the correct table and column', async () => {
     mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
-    const c = setupProfileChain('approved')
+    const c = setupProfileChain({ approval_status: 'approved' })
     await requireApprovedUser({} as any)
     expect(mockFrom).toHaveBeenCalledWith('profiles')
     expect(c.select).toHaveBeenCalledWith('approval_status')
     expect(c.eq).toHaveBeenCalledWith('id', MOCK_USER.id)
+  })
+})
+
+describe('getUserTier', () => {
+  it('returns "public" when tier column is missing', async () => {
+    mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
+    setupProfileChain(null)
+    const tier = await getUserTier({} as any, MOCK_USER.id)
+    expect(tier).toBe('public')
+  })
+
+  it('returns "attendee" when tier column is "attendee"', async () => {
+    mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
+    setupProfileChain({ tier: 'attendee' })
+    const tier = await getUserTier({} as any, MOCK_USER.id)
+    expect(tier).toBe('attendee')
+  })
+})
+
+describe('requireAccess with level "attendee"', () => {
+  it('throws 403 when user tier is "public"', async () => {
+    mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
+    setupProfileChain({ tier: 'public' })
+    await expect(requireAccess({} as any, 'attendee')).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'This feature is for program attendees.',
+    })
+  })
+
+  it('returns user when tier is "attendee"', async () => {
+    mockUseSupabaseUser.mockResolvedValue(MOCK_USER)
+    setupProfileChain({ tier: 'attendee' })
+    const result = await requireAccess({} as any, 'attendee')
+    expect(result).toEqual(MOCK_USER)
   })
 })

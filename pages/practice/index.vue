@@ -11,11 +11,13 @@ import { useTextToSpeech } from '~/composables/useTextToSpeech'
 import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { containsBadWords } from '~/utils/contentFilter'
+import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({ access: 'free' })
 useHead({ title: 'Pronunciation — SekaEi' })
 
 const tutorialStore = useTutorialStore()
+const authStore = useAuthStore()
 
 watchEffect(() => {
   if (tutorialStore.loaded && !tutorialStore.completed && !tutorialStore.active) {
@@ -365,18 +367,31 @@ function onRecordAgain() {
             </div>
           </button>
 
-          <!-- Add passage card -->
-          <button
-            v-if="selectedCategory === 'all' || selectedCategory === 'custom'"
-            type="button"
-            class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
-            @click="showAddPassage = true"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span class="text-[11px] font-medium">Add passage</span>
-          </button>
+          <!-- Add passage card (attendees only) -->
+          <template v-if="selectedCategory === 'all' || selectedCategory === 'custom'">
+            <button
+              v-if="authStore.tier === 'attendee'"
+              type="button"
+              class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
+              @click="showAddPassage = true"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span class="text-[11px] font-medium">Add passage</span>
+            </button>
+            <NuxtLink
+              v-else
+              to="/account"
+              class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150 no-underline"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span class="text-[11px] font-medium text-center">Add passage</span>
+              <span class="text-[10px] text-center leading-tight">Enter program code to unlock</span>
+            </NuxtLink>
+          </template>
         </div>
 
         <!-- Empty state when a filter has no passages -->

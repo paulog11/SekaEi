@@ -6,6 +6,7 @@ import { useTutorialStore } from '~/stores/tutorialStore'
 import { useVoicePreference } from '~/composables/useVoicePreference'
 import { useTextToSpeech } from '~/composables/useTextToSpeech'
 import { ALLOWED_VOICES, VOICE_LABELS } from '~/types/voices'
+import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({})
 useHead({ title: 'Account — SekaEi' })
@@ -14,18 +15,45 @@ const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const { apiFetch } = useApi()
 const tutorialStore = useTutorialStore()
+const authStore = useAuthStore()
 
 // ── Auth form state ──────────────────────────────────────────────────────────
 const activeTab = ref<'signin' | 'signup'>('signin')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const inviteCodeAtSignup = ref('')
 const authError = ref<string | null>(null)
 const authLoading = ref(false)
 const signupPending = ref(false)
 const resendLoading = ref(false)
 const resendCooldown = ref(0)
 let resendTimer: ReturnType<typeof setInterval> | null = null
+
+// ── Invite code redemption (post-signup) ─────────────────────────────────────
+const inviteCode = ref('')
+const redeemLoading = ref(false)
+const redeemError = ref<string | null>(null)
+const redeemSuccess = ref(false)
+
+async function handleRedeemCode() {
+  redeemError.value = null
+  redeemSuccess.value = false
+  const code = inviteCode.value.trim()
+  if (!code) return
+  redeemLoading.value = true
+  try {
+    await apiFetch('/api/redeem-code', { method: 'POST', body: { code } })
+    await authStore.refreshApproval()
+    redeemSuccess.value = true
+    inviteCode.value = ''
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string } })?.data?.message
+    redeemError.value = msg ?? 'Failed to redeem code.'
+  } finally {
+    redeemLoading.value = false
+  }
+}
 
 function switchTab(tab: 'signin' | 'signup') {
   activeTab.value = tab
@@ -88,7 +116,12 @@ async function handleSignUp() {
   }
   authLoading.value = true
   try {
-    const { error } = await supabase.auth.signUp({ email: email.value, password: password.value })
+    const code = inviteCodeAtSignup.value.trim().toUpperCase() || undefined
+    const { error } = await supabase.auth.signUp({
+      email: email.value,
+      password: password.value,
+      options: code ? { data: { pending_invite_code: code } } : undefined,
+    })
     if (error) {
       authError.value = error.message
     } else {
@@ -296,6 +329,35 @@ async function handleAddPassage() {
         <p v-if="universitySuccess" class="text-sm text-green-600 mt-2 m-0">University saved.</p>
       </section>
 
+      <!-- Program invite code (shown only to non-attendees) -->
+      <section v-if="authStore.tier !== 'attendee'" class="w-full max-w-2xl card">
+        <h2 class="text-base font-semibold text-ink mb-1">Program Code</h2>
+        <p class="text-xs text-ink-lighter mb-4 m-0">If you attended our English program, enter your invite code to unlock full features — higher daily limits, AI coaching, and custom passages.</p>
+        <div v-if="redeemSuccess" class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm mb-3">
+          Welcome to the program! Full features are now unlocked.
+        </div>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="inviteCode"
+            class="field-input flex-1 uppercase"
+            type="text"
+            placeholder="XXXX-XXXX"
+            maxlength="32"
+            autocomplete="off"
+            :disabled="redeemLoading"
+            @keydown.enter="handleRedeemCode"
+          >
+          <button
+            class="btn-primary btn-sm shrink-0"
+            :disabled="redeemLoading || !inviteCode.trim()"
+            @click="handleRedeemCode"
+          >
+            {{ redeemLoading ? 'Redeeming…' : 'Redeem' }}
+          </button>
+        </div>
+        <p v-if="redeemError" class="text-sm text-red-600 mt-2 m-0">{{ redeemError }}</p>
+      </section>
+
       <!-- Daily goal -->
       <section class="w-full max-w-2xl card-pop bg-white p-6">
         <h2 class="text-base font-semibold text-ink mb-4">🎯 Daily Goal</h2>
@@ -356,8 +418,8 @@ async function handleAddPassage() {
       <section class="w-full max-w-2xl card">
         <h2 class="text-base font-semibold text-ink mb-4">My Passages</h2>
 
-        <!-- Add form -->
-        <div class="flex flex-col gap-3 mb-5">
+        <!-- Add form (attendees only) -->
+        <div v-if="authStore.tier === 'attendee'" class="flex flex-col gap-3 mb-5">
           <input
             v-model="newPassageTitle"
             class="field-input"
@@ -381,6 +443,9 @@ async function handleAddPassage() {
             {{ addingPassage ? 'Saving…' : 'Save passage' }}
           </button>
         </div>
+        <p v-else class="text-sm text-ink-lighter mb-5 m-0">
+          Custom passages are available to program attendees. Enter your invite code above to unlock this feature.
+        </p>
 
         <!-- List -->
         <p v-if="passagesLoading" class="text-sm text-ink-lighter m-0">Loading…</p>
@@ -475,6 +540,11 @@ async function handleAddPassage() {
             <div class="flex flex-col gap-1.5">
               <label class="field-label" for="signup-confirm">Confirm password</label>
               <input id="signup-confirm" v-model="confirmPassword" class="field-input" type="password" placeholder="••••••••" autocomplete="new-password" required>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="field-label" for="signup-code">Program code <span class="text-ink-lighter font-normal">(optional)</span></label>
+              <input id="signup-code" v-model="inviteCodeAtSignup" class="field-input uppercase" type="text" placeholder="XXXX-XXXX" maxlength="32" autocomplete="off">
+              <p class="text-xs text-ink-lighter m-0">If you attended our English program, enter your invite code to unlock all features.</p>
             </div>
             <button type="submit" class="btn-primary mt-1" :disabled="authLoading">
               {{ authLoading ? 'Creating account…' : 'Create account' }}

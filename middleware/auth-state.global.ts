@@ -9,6 +9,10 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo('/account')
   }
   if (to.meta.access === 'free') return
+  if (to.meta.access === 'attendee') {
+    if (authStore.tier === 'public') return navigateTo('/account?upgrade=1')
+    return
+  }
   if (authStore.isApproved === false) {
     return navigateTo('/pending')
   }

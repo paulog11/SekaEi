@@ -63,6 +63,7 @@ export default defineNuxtPlugin(() => {
     if (!user.value) return
     if (publicRoutes.includes(to.path)) return
     if (to.meta.access === 'free') return
+    if (to.meta.access === 'attendee') return // tier enforced server-side
     if (cachedStatus !== null && cachedStatus !== 'approved') {
       return '/pending'
     }

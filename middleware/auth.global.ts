@@ -12,6 +12,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (user.value?.id && !publicRoutes.includes(to.path)) {
     if (to.meta.access === 'free') return
+    if (to.meta.access === 'attendee') {
+      // Tier check is enforced server-side; client guard defers to the store guard below
+      return
+    }
 
     const supabase = useSupabaseClient()
     const { data: { session } } = await supabase.auth.getSession()

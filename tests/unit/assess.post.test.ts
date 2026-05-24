@@ -12,11 +12,14 @@ vi.mock('~/server/utils/azure', () => ({
   runPronunciationAssessment: mockRunAssessment,
 }))
 
-// Mock requireApprovedUser so tests don't need the full Supabase approval chain
-const mockRequireApprovedUser = vi.fn()
+// Mock approval utils so tests don't need the full Supabase chain
+const mockRequireAccess = vi.fn()
+const mockGetUserTier = vi.fn()
 
 vi.mock('~/server/utils/approval', () => ({
-  requireApprovedUser: mockRequireApprovedUser,
+  requireApprovedUser: vi.fn(),
+  requireAccess: mockRequireAccess,
+  getUserTier: mockGetUserTier,
 }))
 
 const mockRpcFn = vi.fn()
@@ -91,7 +94,8 @@ function makeMultipartParts(overrides?: {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockRequireApprovedUser.mockResolvedValue(FAKE_USER)
+  mockRequireAccess.mockResolvedValue(FAKE_USER)
+  mockGetUserTier.mockResolvedValue('attendee')
   mockRpcFn.mockResolvedValue({ data: 1, error: null })
   mockUseSupabase.mockReturnValue(mockSupabaseClient)
 })
@@ -103,15 +107,9 @@ beforeEach(() => {
 describe('assess.post — authentication', () => {
   it('throws 401 when user is not authenticated', async () => {
     const err = createError({ statusCode: 401, message: 'Not authenticated.' })
-    mockRequireApprovedUser.mockRejectedValue(err)
+    mockRequireAccess.mockRejectedValue(err)
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 401 })
     expect(mockRunAssessment).not.toHaveBeenCalled()
-  })
-
-  it('throws 403 when user is not approved', async () => {
-    const err = createError({ statusCode: 403, message: 'Account pending approval.' })
-    mockRequireApprovedUser.mockRejectedValue(err)
-    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 403 })
   })
 })
 
@@ -132,9 +130,24 @@ describe('assess.post — rate limiting', () => {
     mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
   })
 
-  it('throws 429 when daily usage exceeds DAILY_LIMIT', async () => {
-    mockRpcFn.mockResolvedValue({ data: 61, error: null }) // > 60 limit
+  it('throws 429 when attendee exceeds daily limit (60)', async () => {
+    mockGetUserTier.mockResolvedValue('attendee')
+    mockRpcFn.mockResolvedValue({ data: 61, error: null }) // > 60
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
+  })
+
+  it('throws 429 when public user exceeds daily limit (10)', async () => {
+    mockGetUserTier.mockResolvedValue('public')
+    mockRpcFn.mockResolvedValue({ data: 11, error: null }) // > 10
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
+  })
+
+  it('does not throw for public user at exactly the limit (10)', async () => {
+    mockGetUserTier.mockResolvedValue('public')
+    mockRpcFn.mockResolvedValue({ data: 10, error: null }) // === 10, not > 10
+    mockReadMultipart.mockResolvedValue(makeMultipartParts())
+    mockRunAssessment.mockResolvedValue({})
+    await expect(handler(makeEvent())).resolves.toBeDefined()
   })
 
   it('throws 429 when per-user inflight count reaches 3', async () => {
@@ -148,7 +161,7 @@ describe('assess.post — rate limiting', () => {
     const p2 = handler(makeEvent())
     const p3 = handler(makeEvent())
 
-    // Flush microtasks so all 3 handlers advance past requireApprovedUser + inflight.set()
+    // Flush microtasks so all 3 handlers advance past requireAccess + inflight.set()
     await new Promise(r => setTimeout(r, 0))
 
     // 4th call should see inflight count = 3 and throw 429

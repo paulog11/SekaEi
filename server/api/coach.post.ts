@@ -1,9 +1,10 @@
 import { useSupabase } from '../utils/supabase'
-import { requireApprovedUser } from '../utils/approval'
-import { generateCoachReply, COACH_DAILY_LIMIT } from '../utils/coach'
+import { requireAccess, getUserTier } from '../utils/approval'
+import { TIER_LIMITS } from '../utils/tierLimits'
+import { generateCoachReply } from '../utils/coach'
 
 export default defineEventHandler(async (event) => {
-  const authUser = await requireApprovedUser(event)
+  const authUser = await requireAccess(event, 'free')
   const db = useSupabase(event)
   const config = useRuntimeConfig()
 
@@ -11,13 +12,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 503, message: 'Coaching service not configured.' })
   }
 
+  const tier = await getUserTier(event, authUser.id)
+  const coachDaily = TIER_LIMITS[tier].coachDaily
+
+  if (coachDaily === 0) {
+    throw createError({ statusCode: 403, message: 'AI coaching is available to program attendees. Enter your invite code in Account settings to unlock it.' })
+  }
+
   // Enforce daily quota
   const today = new Date().toISOString().slice(0, 10)
   const { data: usageCount } = await db
     .rpc('increment_coach_usage', { p_user_id: authUser.id, p_day: today })
 
-  if (typeof usageCount === 'number' && usageCount > COACH_DAILY_LIMIT) {
-    throw createError({ statusCode: 429, message: `Daily coaching limit of ${COACH_DAILY_LIMIT} reached. Try again tomorrow.` })
+  if (typeof usageCount === 'number' && usageCount > coachDaily) {
+    throw createError({ statusCode: 429, message: `Daily coaching limit of ${coachDaily} reached. Try again tomorrow.` })
   }
 
   // Load top 10 active flagged words

@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   const db = useSupabase(event)
 
   const [profileRes, streakRes] = await Promise.all([
-    db.from('profiles').select('display_name, university, created_at, approval_status, tutorial_completed_at').eq('id', authUser.id).maybeSingle(),
+    db.from('profiles').select('display_name, university, created_at, approval_status, tutorial_completed_at, tier').eq('id', authUser.id).maybeSingle(),
     db.from('daily_streaks').select('current_streak, longest_streak, daily_goal_minutes, last_practice_date').eq('user_id', authUser.id).maybeSingle(),
   ])
 
@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
       createdAt: profileRes.data?.created_at ?? null,
       approvalStatus: profileRes.data?.approval_status ?? 'pending',
       tutorialCompletedAt: profileRes.data?.tutorial_completed_at ?? null,
+      tier: (profileRes.data?.tier ?? 'public') as 'public' | 'attendee',
     },
     streak: streak?.current_streak ?? 0,
     longestStreak: streak?.longest_streak ?? 0,
