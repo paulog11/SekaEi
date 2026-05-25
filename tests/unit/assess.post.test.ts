@@ -14,12 +14,10 @@ vi.mock('~/server/utils/azure', () => ({
 
 // Mock approval utils so tests don't need the full Supabase chain
 const mockRequireAccess = vi.fn()
-const mockGetUserTier = vi.fn()
 
 vi.mock('~/server/utils/approval', () => ({
   requireApprovedUser: vi.fn(),
   requireAccess: mockRequireAccess,
-  getUserTier: mockGetUserTier,
 }))
 
 const mockRpcFn = vi.fn()
@@ -95,7 +93,6 @@ function makeMultipartParts(overrides?: {
 beforeEach(() => {
   vi.clearAllMocks()
   mockRequireAccess.mockResolvedValue(FAKE_USER)
-  mockGetUserTier.mockResolvedValue('attendee')
   mockRpcFn.mockResolvedValue({ data: 1, error: null })
   mockUseSupabase.mockReturnValue(mockSupabaseClient)
 })
@@ -130,21 +127,13 @@ describe('assess.post — rate limiting', () => {
     mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
   })
 
-  it('throws 429 when attendee exceeds daily limit (60)', async () => {
-    mockGetUserTier.mockResolvedValue('attendee')
+  it('throws 429 when user exceeds daily limit (60)', async () => {
     mockRpcFn.mockResolvedValue({ data: 61, error: null }) // > 60
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
   })
 
-  it('throws 429 when public user exceeds daily limit (10)', async () => {
-    mockGetUserTier.mockResolvedValue('public')
-    mockRpcFn.mockResolvedValue({ data: 11, error: null }) // > 10
-    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 429 })
-  })
-
-  it('does not throw for public user at exactly the limit (10)', async () => {
-    mockGetUserTier.mockResolvedValue('public')
-    mockRpcFn.mockResolvedValue({ data: 10, error: null }) // === 10, not > 10
+  it('does not throw at exactly the daily limit (60)', async () => {
+    mockRpcFn.mockResolvedValue({ data: 60, error: null }) // === 60, not > 60
     mockReadMultipart.mockResolvedValue(makeMultipartParts())
     mockRunAssessment.mockResolvedValue({})
     await expect(handler(makeEvent())).resolves.toBeDefined()
