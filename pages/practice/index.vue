@@ -12,7 +12,8 @@ import { useFlaggedWords } from '~/composables/useFlaggedWords'
 import { useTutorialStore } from '~/stores/tutorialStore'
 import { containsBadWords } from '~/utils/contentFilter'
 import { useAuthStore } from '~/stores/authStore'
-import { useNativeAudio } from '~/composables/useNativeAudio'
+import { useNativePitch } from '~/composables/useNativePitch'
+import type { PitchSeries } from '~/types/pitch'
 
 definePageMeta({ access: 'free' })
 useHead({ title: 'Pronunciation — セカトークXP' })
@@ -161,11 +162,12 @@ const audioWav = ref<Blob | null>(null)
 const assessmentResult = ref<AssessmentResult | null>(null)
 const assessing = ref(false)
 const assessError = ref<string | null>(null)
-const nativeAudioComposable = useNativeAudio()
-const nativeAudioBlob = ref<Blob | null>(null)
+const nativePitchComposable = useNativePitch()
+const nativePitchSeries = ref<PitchSeries | null>(null)
+const lastSavedSlug = ref<string | null>(null)
 
 watch(referenceText, (text) => {
-  if (text) nativeAudioComposable.preload(text)
+  if (text) nativePitchComposable.preload(text)
 }, { immediate: true })
 
 const { addAttempt, getHistory } = useHistory()
@@ -222,9 +224,9 @@ async function assess() {
     form.append('referenceText', referenceText.value)
     const data = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
     assessmentResult.value = data
-    nativeAudioComposable.fetch(referenceText.value).then(blob => { nativeAudioBlob.value = blob }).catch(() => { nativeAudioBlob.value = null })
+    nativePitchComposable.fetch(referenceText.value).then(series => { nativePitchSeries.value = series }).catch(() => { nativePitchSeries.value = null })
     tutorialStore.advanceIfOnStep(5)
-    await addAttempt({
+    lastSavedSlug.value = await addAttempt({
       passageId: activePassageId.value,
       passageTitle: selectedPassage.value?.title ?? '',
       timestamp: Date.now(),
@@ -250,7 +252,18 @@ function onRecordAgain() {
   audioWav.value = null
   assessmentResult.value = null
   assessError.value = null
-  nativeAudioBlob.value = null
+  nativePitchSeries.value = null
+  lastSavedSlug.value = null
+}
+
+async function onPitchExtracted(series: { student: PitchSeries; native: PitchSeries | null }) {
+  const slug = lastSavedSlug.value
+  if (!slug) return
+  try {
+    await apiFetch(`/api/attempts/${slug}/pitch`, { method: 'PUT', body: series })
+  } catch {
+    // Best-effort — live chart is unaffected, this attempt just won't have a saved chart on review.
+  }
 }
 </script>
 
@@ -473,7 +486,12 @@ function onRecordAgain() {
         @flag="(payload) => flagWord({ ...payload, passageId: activePassageId })"
       />
       <div v-if="audioWav" class="mt-4">
-        <PitchContourChart :student-audio="audioWav" :native-audio="nativeAudioBlob" :words="assessmentResult.Words" />
+        <PitchContourChart
+          :student-audio="audioWav"
+          :native-series="nativePitchSeries"
+          :words="assessmentResult.Words"
+          @extracted="onPitchExtracted"
+        />
       </div>
       <PassageHistory
         :passage-id="activePassageId"

@@ -12,9 +12,9 @@ vi.mock('node:fs', () => ({
 }))
 
 // ── Azure mock ────────────────────────────────────────────────────────────────
-const synthesizeSpeechMock = vi.fn()
+const synthesizeSpeechPcmMock = vi.fn()
 vi.mock('~/server/utils/azure', () => ({
-  synthesizeSpeech: synthesizeSpeechMock,
+  synthesizeSpeechPcm: synthesizeSpeechPcmMock,
   DEFAULT_VOICE: 'en-US-AriaNeural',
 }))
 
@@ -22,17 +22,26 @@ vi.mock('~/server/utils/azure', () => ({
 const requireApprovedUserMock = vi.fn()
 vi.mock('~/server/utils/approval', () => ({ requireApprovedUser: requireApprovedUserMock }))
 
+// ── extractPitch mock ─────────────────────────────────────────────────────────
+const extractPitchMock = vi.fn()
+vi.mock('~/server/utils/extractPitch', () => ({ extractPitchFromPcm16: extractPitchMock }))
+
 // ── Nitro stubs ───────────────────────────────────────────────────────────────
 const mockSetHeader = vi.fn()
 const { createError } = stubNitroGlobals({ setHeader: mockSetHeader })
 const mockRuntimeConfig = vi.fn()
 vi.stubGlobal('useRuntimeConfig', mockRuntimeConfig)
 
-const { default: handler } = await import('~/server/api/native-audio.post')
+const { default: handler } = await import('~/server/api/native-pitch.post')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const FAKE_USER = { id: 'user-1' }
-const FAKE_AUDIO = Buffer.from('mp3data')
+const FAKE_PCM = Buffer.from([0, 0, 0, 0])
+const FAKE_SERIES = {
+  samples: [{ t: 0, hz: 220 }],
+  durationSec: 1,
+  medianHz: 220,
+}
 const TEXT = 'Hello world'
 
 function makeEvent(body?: Record<string, unknown>) {
@@ -46,39 +55,43 @@ beforeEach(() => {
   mockRuntimeConfig.mockReturnValue({ azureSpeechKey: 'key', azureSpeechRegion: 'eastus' })
   fsMkdir.mockResolvedValue(undefined)
   fsWriteFile.mockResolvedValue(undefined)
+  synthesizeSpeechPcmMock.mockResolvedValue({ pcm: FAKE_PCM, sampleRate: 16000 })
+  extractPitchMock.mockReturnValue(FAKE_SERIES)
 })
 
-describe('native-audio.post — cache behaviour', () => {
-  it('returns cached file without calling Azure on cache hit', async () => {
-    fsReadFile.mockResolvedValue(FAKE_AUDIO)
+describe('native-pitch.post — cache behaviour', () => {
+  it('returns cached series without calling Azure on cache hit', async () => {
+    fsReadFile.mockResolvedValue(JSON.stringify(FAKE_SERIES))
 
-    await handler(makeEvent())
+    const result = await handler(makeEvent())
 
     expect(fsReadFile).toHaveBeenCalledOnce()
-    expect(synthesizeSpeechMock).not.toHaveBeenCalled()
+    expect(synthesizeSpeechPcmMock).not.toHaveBeenCalled()
+    expect(extractPitchMock).not.toHaveBeenCalled()
+    expect(result).toEqual(FAKE_SERIES)
   })
 
-  it('calls Azure and writes to disk on cache miss', async () => {
+  it('calls Azure + extractor and writes to disk on cache miss', async () => {
     fsReadFile.mockRejectedValue(new Error('ENOENT'))
-    synthesizeSpeechMock.mockResolvedValue(FAKE_AUDIO)
 
-    await handler(makeEvent())
+    const result = await handler(makeEvent())
 
-    expect(synthesizeSpeechMock).toHaveBeenCalledOnce()
+    expect(synthesizeSpeechPcmMock).toHaveBeenCalledOnce()
+    expect(extractPitchMock).toHaveBeenCalledWith(FAKE_PCM, 16000)
     expect(fsWriteFile).toHaveBeenCalledOnce()
+    expect(result).toEqual(FAKE_SERIES)
   })
 
-  it('still returns audio even if disk write fails', async () => {
+  it('still returns series even if disk write fails', async () => {
     fsReadFile.mockRejectedValue(new Error('ENOENT'))
-    synthesizeSpeechMock.mockResolvedValue(FAKE_AUDIO)
     fsWriteFile.mockRejectedValue(new Error('disk full'))
 
     const result = await handler(makeEvent())
-    expect(result).toBeDefined()
+    expect(result).toEqual(FAKE_SERIES)
   })
 })
 
-describe('native-audio.post — authentication and validation', () => {
+describe('native-pitch.post — authentication and validation', () => {
   it('throws 401 when requireApprovedUser throws', async () => {
     requireApprovedUserMock.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
 
@@ -99,18 +112,18 @@ describe('native-audio.post — authentication and validation', () => {
     await expect(handler(makeEvent({ text: 'a'.repeat(2001) }))).rejects.toMatchObject({ statusCode: 400 })
   })
 
-  it('throws 422 when synthesizeSpeech rejects', async () => {
+  it('throws 422 when synthesizeSpeechPcm rejects', async () => {
     fsReadFile.mockRejectedValue(new Error('ENOENT'))
-    synthesizeSpeechMock.mockRejectedValue(new Error('quota exceeded'))
+    synthesizeSpeechPcmMock.mockRejectedValue(new Error('quota exceeded'))
 
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 422 })
   })
 })
 
-describe('native-audio.post — rate limiting', () => {
+describe('native-pitch.post — rate limiting', () => {
   it('throws 429 when per-user concurrency cap is exceeded', async () => {
     fsReadFile.mockRejectedValue(new Error('ENOENT'))
-    synthesizeSpeechMock.mockReturnValue(new Promise(() => {})) // never resolves
+    synthesizeSpeechPcmMock.mockReturnValue(new Promise(() => {})) // never resolves
 
     const inflight: Promise<unknown>[] = []
     for (let i = 0; i < 5; i++) inflight.push(handler(makeEvent()))

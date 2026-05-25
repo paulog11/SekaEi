@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AssessmentResult } from '~/types/assessment'
+import type { PitchSeries } from '~/types/pitch'
 import { useApi } from '~/composables/useApi'
 
 definePageMeta({ access: 'free' })
@@ -16,6 +17,7 @@ interface AttemptDetail {
   timestamp: number
   scores: { accuracy: number; fluency: number; completeness: number; prosody?: number; overall: number }
   azureResult: AssessmentResult | null
+  pitchSeries: { student: PitchSeries; native: PitchSeries | null } | null
 }
 
 const attempt = ref<AttemptDetail | null>(null)
@@ -73,6 +75,14 @@ onMounted(async () => {
         <p class="m-0">Detailed breakdown not available for this attempt.</p>
         <p class="text-sm m-0 mt-1">Overall score: {{ attempt.scores.overall }}</p>
       </div>
+
+      <PitchContourChart
+        v-if="attempt.pitchSeries && attempt.azureResult"
+        class="mt-4"
+        :student-series="attempt.pitchSeries.student"
+        :native-series="attempt.pitchSeries.native"
+        :words="attempt.azureResult.Words"
+      />
     </template>
   </main>
 </template>

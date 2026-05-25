@@ -50,6 +50,46 @@ export async function synthesizeSpeech(
   })
 }
 
+/**
+ * Synthesises `text` as raw 16 kHz 16-bit mono PCM — the same format pitchy
+ * expects. No MP3 decoding needed on the server. Used by the per-passage
+ * pitch cache in `server/api/native-pitch.post.ts` so we can extract pitch
+ * server-side and never persist any MP3 audio.
+ */
+export async function synthesizeSpeechPcm(
+  text: string,
+  voice: string,
+  key: string,
+  region: string,
+): Promise<{ pcm: Buffer; sampleRate: 16000 }> {
+  const speechConfig = sdk.SpeechConfig.fromSubscription(key, region)
+  speechConfig.speechSynthesisVoiceName = voice
+  speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm
+
+  const synthesizer = new sdk.SpeechSynthesizer(speechConfig, null as unknown as sdk.AudioConfig)
+
+  return new Promise((resolve, reject) => {
+    synthesizer.speakTextAsync(
+      text,
+      (result) => {
+        synthesizer.close()
+        if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+          resolve({ pcm: Buffer.from(result.audioData), sampleRate: 16000 })
+        } else {
+          const errorDetails = (result as unknown as { errorDetails?: string }).errorDetails
+          console.error('[azure] PCM TTS cancelled:', errorDetails ?? result.reason)
+          reject(classifyAzureError(errorDetails ?? String(result.reason)))
+        }
+      },
+      (err) => {
+        synthesizer.close()
+        console.error('[azure] PCM TTS error:', err)
+        reject(classifyAzureError(String(err)))
+      },
+    )
+  })
+}
+
 function classifyAzureError(detail: string): Error {
   const d = detail.toLowerCase()
   if (d.includes('quota') || d.includes('throttl') || d.includes('rate'))

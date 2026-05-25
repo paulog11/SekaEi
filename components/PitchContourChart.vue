@@ -19,32 +19,38 @@ import type { AzureWord } from '~/types/assessment'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, zoomPlugin)
 
+// Two modes:
+//   - Live: studentAudio is provided (recorded WAV); we extract student pitch
+//     client-side and emit it via @extracted so the page can persist it.
+//   - Review: studentSeries is provided (loaded from DB); extraction is skipped.
+// nativeSeries is always pre-extracted (server-side for live, DB for review).
 const props = defineProps<{
-  studentAudio: Blob
-  nativeAudio: Blob | null
+  studentAudio?: Blob | null
+  studentSeries?: PitchSeries | null
+  nativeSeries: PitchSeries | null
   words?: AzureWord[]
+}>()
+
+const emit = defineEmits<{
+  extracted: [{ student: PitchSeries; native: PitchSeries | null }]
 }>()
 
 const { extract } = usePitchContour()
 
-const loading = ref(true)
-const studentSeries = ref<PitchSeries | null>(null)
-const nativeSeries = ref<PitchSeries | null>(null)
+const loading = ref(false)
+const studentSeriesRef = ref<PitchSeries | null>(null)
 const extractionError = ref<string | null>(null)
 
 async function runExtraction() {
+  if (!props.studentAudio) return
   loading.value = true
   extractionError.value = null
-  studentSeries.value = null
-  nativeSeries.value = null
+  studentSeriesRef.value = null
 
   try {
-    const [student, native] = await Promise.all([
-      extract(props.studentAudio),
-      props.nativeAudio ? extract(props.nativeAudio) : Promise.resolve(null),
-    ])
-    studentSeries.value = student
-    nativeSeries.value = native
+    const student = await extract(props.studentAudio)
+    studentSeriesRef.value = student
+    emit('extracted', { student, native: props.nativeSeries })
   } catch (err) {
     console.warn('[PitchContourChart] extraction failed:', err)
     extractionError.value = 'Pitch extraction failed. Please try recording again.'
@@ -54,9 +60,26 @@ async function runExtraction() {
 }
 
 watch(
-  () => [props.studentAudio, props.nativeAudio] as const,
-  () => runExtraction(),
+  () => props.studentAudio,
+  (audio) => {
+    if (audio) runExtraction()
+  },
   { immediate: true },
+)
+
+// If a freshly resolved nativeSeries arrives after we've already extracted
+// student pitch, re-emit so the page can persist the now-complete pair.
+watch(
+  () => props.nativeSeries,
+  (native) => {
+    if (native && studentSeriesRef.value && props.studentAudio) {
+      emit('extracted', { student: studentSeriesRef.value, native })
+    }
+  },
+)
+
+const effectiveStudent = computed<PitchSeries | null>(
+  () => props.studentSeries ?? studentSeriesRef.value,
 )
 
 const BUCKET_COUNT = 100
@@ -65,7 +88,7 @@ const AZURE_TICKS_PER_SEC = 10_000_000
 // Words start at their first bucket; surrounding buckets are blank.
 const wordTickLabels = computed<string[]>(() => {
   const labels = Array.from({ length: BUCKET_COUNT }, () => '')
-  const dur = studentSeries.value?.durationSec ?? 0
+  const dur = effectiveStudent.value?.durationSec ?? 0
   if (!props.words?.length || dur <= 0) return labels
   for (const word of props.words) {
     if (word.PronunciationAssessment.ErrorType === 'Omission') continue
@@ -79,7 +102,7 @@ const wordTickLabels = computed<string[]>(() => {
 // Every bucket within a word's span maps to the word — used for tooltip headers.
 const bucketToWord = computed<string[]>(() => {
   const map = Array.from({ length: BUCKET_COUNT }, () => '')
-  const dur = studentSeries.value?.durationSec ?? 0
+  const dur = effectiveStudent.value?.durationSec ?? 0
   if (!props.words?.length || dur <= 0) return map
   for (const word of props.words) {
     if (word.PronunciationAssessment.ErrorType === 'Omission') continue
@@ -117,10 +140,10 @@ const chartData = computed<ChartData<'line'>>(() => {
 
   const datasets = []
 
-  if (nativeSeries.value) {
+  if (props.nativeSeries) {
     datasets.push({
       label: 'Native',
-      data: toBuckets(nativeSeries.value, BUCKET_COUNT),
+      data: toBuckets(props.nativeSeries, BUCKET_COUNT),
       borderColor: '#6366f1',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -130,10 +153,10 @@ const chartData = computed<ChartData<'line'>>(() => {
     })
   }
 
-  if (studentSeries.value) {
+  if (effectiveStudent.value) {
     datasets.push({
       label: 'You',
-      data: toBuckets(studentSeries.value, BUCKET_COUNT),
+      data: toBuckets(effectiveStudent.value, BUCKET_COUNT),
       borderColor: '#ec4899',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -205,12 +228,11 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
 }))
 
 const hasSufficientData = computed(
-  () => (studentSeries.value?.samples.length ?? 0) >= 5,
+  () => (effectiveStudent.value?.samples.length ?? 0) >= 5,
 )
 
 const chartRef = ref<InstanceType<typeof Line> | null>(null)
 function resetZoom() {
-  // vue-chartjs exposes the underlying Chart.js instance via the `chart` property
   const instance = (chartRef.value as unknown as { chart?: { resetZoom: () => void } } | null)?.chart
   instance?.resetZoom()
 }
@@ -250,7 +272,7 @@ function resetZoom() {
         </button>
       </div>
       <Line ref="chartRef" :data="chartData" :options="chartOptions" />
-      <p v-if="!nativeAudio" class="mt-2 text-xs text-amber-700">
+      <p v-if="!nativeSeries" class="mt-2 text-xs text-amber-700">
         Native pitch unavailable for this passage.
       </p>
     </template>

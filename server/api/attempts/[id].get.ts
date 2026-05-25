@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
 
   const { data, error } = await db
     .from('attempts')
-    .select('slug, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score, azure_result')
+    .select('slug, passage_id, passage_title, created_at, accuracy_score, fluency_score, completeness_score, prosody_score, overall_score, azure_result, pitch_series')
     .eq('slug', slug)
     .eq('user_id', authUser.id)
     .single()
@@ -43,6 +43,7 @@ export default defineEventHandler(async (event) => {
         overall: data.overall_score,
       },
       azureResult: data.azure_result ?? null,
+      pitchSeries: data.pitch_series ?? null,
     },
   }
 })

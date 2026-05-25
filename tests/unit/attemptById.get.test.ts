@@ -116,4 +116,38 @@ describe('GET /api/attempts/:id', () => {
     const result = await (handler as Function)(makeEvent('xyz789'))
     expect(result.attempt.azureResult).toEqual(azureResult)
   })
+
+  it('returns pitchSeries when present', async () => {
+    const pitch = {
+      student: { samples: [{ t: 0, hz: 220 }], durationSec: 1, medianHz: 220 },
+      native: { samples: [{ t: 0, hz: 180 }], durationSec: 1, medianHz: 180 },
+    }
+    setupSingleChain({
+      slug: 'pitch-1',
+      passage_id: 'p',
+      passage_title: 'P',
+      created_at: '2024-01-01T00:00:00Z',
+      accuracy_score: 80, fluency_score: 80, completeness_score: 80, prosody_score: null, overall_score: 80,
+      azure_result: null,
+      pitch_series: pitch,
+    })
+
+    const result = await (handler as Function)(makeEvent('pitch-1'))
+    expect(result.attempt.pitchSeries).toEqual(pitch)
+  })
+
+  it('returns pitchSeries: null when column is null', async () => {
+    setupSingleChain({
+      slug: 'no-pitch',
+      passage_id: 'p',
+      passage_title: 'P',
+      created_at: '2024-01-01T00:00:00Z',
+      accuracy_score: 80, fluency_score: 80, completeness_score: 80, prosody_score: null, overall_score: 80,
+      azure_result: null,
+      pitch_series: null,
+    })
+
+    const result = await (handler as Function)(makeEvent('no-pitch'))
+    expect(result.attempt.pitchSeries).toBeNull()
+  })
 })

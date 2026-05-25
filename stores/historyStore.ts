@@ -81,13 +81,13 @@ export const useHistoryStore = defineStore('history', () => {
     }
   }
 
-  async function addAttempt(record: AttemptRecord, azureResult?: AssessmentResult): Promise<void> {
+  async function addAttempt(record: AttemptRecord, azureResult?: AssessmentResult): Promise<string | null> {
     invalidate()
     // Cascade: history change invalidates derived stats
     useStreakStore().invalidate()
     usePhonemeStatsStore().invalidate()
     try {
-      await apiFetch('/api/attempts', {
+      const res = await apiFetch<{ attempt: { slug: string } }>('/api/attempts', {
         method: 'POST',
         body: {
           passageId: record.passageId,
@@ -96,8 +96,10 @@ export const useHistoryStore = defineStore('history', () => {
           azureResult: azureResult ?? null,
         },
       })
+      return res.attempt?.slug ?? null
     } catch {
       // Silently degrade — attempt is lost but app continues
+      return null
     }
   }
 
