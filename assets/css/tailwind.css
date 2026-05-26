@@ -155,4 +155,62 @@
     @apply -translate-y-1 -translate-x-1
            shadow-[6px_6px_0px_0px_rgba(0,0,0,0.8)];
   }
+
+  /* TCG foil booster pack card */
+  .pack-card {
+    @apply relative overflow-hidden rounded-2xl cursor-pointer select-none
+           transition-all duration-300 ease-out;
+    width: 160px;
+    height: 240px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 40%, #4f46e5 70%, #7c3aed 100%);
+    box-shadow:
+      4px 4px 0 0 #1e3a8a,
+      8px 8px 0 0 #1e40af,
+      0 12px 32px rgba(37, 99, 235, 0.35);
+  }
+  .pack-card:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      4px 4px 0 0 #1e3a8a,
+      8px 8px 0 0 #1e40af,
+      0 20px 48px rgba(37, 99, 235, 0.5);
+  }
+  .pack-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+    transform: translateX(-120%) skewX(-15deg);
+    pointer-events: none;
+  }
+  .pack-card:hover::before {
+    animation: foil-shimmer 0.7s ease-in-out forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pack-card:hover::before { animation: none; }
+    .pack-card:hover          { transform: none; }
+  }
+
+  /* Slide transitions for pack selection ↔ quiz */
+  .slide-pack-enter-active,
+  .slide-pack-leave-active,
+  .slide-pack-reverse-enter-active,
+  .slide-pack-reverse-leave-active {
+    transition: transform 350ms ease-in-out, opacity 350ms ease-in-out;
+  }
+  .slide-pack-enter-from { transform: translateX(100%);  opacity: 0; }
+  .slide-pack-enter-to   { transform: translateX(0);      opacity: 1; }
+  .slide-pack-leave-from { transform: translateX(0);      opacity: 1; }
+  .slide-pack-leave-to   { transform: translateX(-100%); opacity: 0; }
+  .slide-pack-reverse-enter-from { transform: translateX(-100%); opacity: 0; }
+  .slide-pack-reverse-enter-to   { transform: translateX(0);      opacity: 1; }
+  .slide-pack-reverse-leave-from { transform: translateX(0);      opacity: 1; }
+  .slide-pack-reverse-leave-to   { transform: translateX(100%);  opacity: 0; }
+}
+
+@keyframes foil-shimmer {
+  0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.4; }
+  100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
 }

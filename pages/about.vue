@@ -62,6 +62,19 @@ useHead({ title: 'About — セカトークXP' })
           <p class="text-sm text-ink-medium mt-3 m-0 leading-relaxed">
             Tap any word to see a breakdown of its individual sounds (phonemes), so you know exactly which part to work on.
           </p>
+
+          <div class="mt-4 pt-4 border-t border-border">
+            <p class="text-sm font-medium text-ink mb-1.5">Pitch Contour Graph</p>
+            <p class="text-sm text-ink-medium m-0 leading-relaxed">
+              After each recording, a pitch contour graph shows how your voice rises and falls across the passage — plotted against a native speaker's intonation as a reference line.
+              The Y-axis measures pitch in semitones relative to each speaker's median, so the comparison is fair regardless of voice depth.
+            </p>
+            <p class="text-sm text-ink-medium mt-2 m-0 leading-relaxed">
+              Use it to spot prosody patterns: rises typically mark emphasis or questions; falls mark statement endings.
+              Try to match the shape of the native line — even if your accuracy score is high, flat or misplaced intonation can make speech sound unnatural.
+              You can scroll, pinch, or use the mouse wheel to zoom into any section of the graph.
+            </p>
+          </div>
         </div>
       </div>
     </section>

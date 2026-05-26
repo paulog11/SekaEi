@@ -13,5 +13,6 @@ export interface IdiomChallenge {
 export interface IdiomPack {
   id: string
   title: string
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced'
   challenges: IdiomChallenge[]
 }

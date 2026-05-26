@@ -7,6 +7,7 @@ function placeholder(label: string) {
 export const IDIOM_PACK_1: IdiomPack = {
   id: 'pack-1',
   title: 'Idiom Pack 1',
+  difficulty: 'Beginner',
   challenges: [
     {
       id: 'bite-the-bullet',

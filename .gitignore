@@ -24,3 +24,6 @@ logs
 # Server-side TTS/pitch caches (regenerated on demand from Azure)
 data/tts-cache/
 data/native-pitch-cache/
+
+# Generated invite code CSVs — treat as secrets, never commit
+out/
