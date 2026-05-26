@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@pinia/nuxt', '@vercel/analytics'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@pinia/nuxt', '@vercel/analytics', '@vercel/speed-insights'],
   // auth-state must run first (it's async, so Nuxt awaits it) so the session
   // is cached before approval-guard's immediate watcher calls getSession().
   plugins: [
