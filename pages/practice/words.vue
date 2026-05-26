@@ -50,10 +50,12 @@ async function handleUnflag(word: FlaggedWord) {
 
 <template>
   <main class="container-page">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-ink">Word Review</h1>
-      </div>
+      <h1 class="text-2xl font-bold text-ink">Word Review</h1>
+      <span v-if="words.length" class="text-xs font-medium text-ink-lighter bg-surface border border-border rounded-full px-3 py-1">
+        {{ words.length }} word{{ words.length > 1 ? 's' : '' }}
+      </span>
     </div>
 
     <!-- Loading -->
@@ -79,28 +81,35 @@ async function handleUnflag(word: FlaggedWord) {
       <!-- Word list + drill layout -->
       <div class="grid md:grid-cols-[220px_1fr] gap-6">
         <!-- Sidebar word list -->
-        <aside class="flex flex-col gap-1">
-          <p class="text-xs uppercase tracking-wider text-ink-lighter mb-1">{{ words.length }} word{{ words.length > 1 ? 's' : '' }}</p>
+        <aside class="flex flex-col gap-1.5">
+          <p class="text-xs uppercase tracking-wider font-semibold text-ink-lighter mb-1">Your words</p>
           <button
             v-for="(word, idx) in words"
             :key="word.id"
             :class="[
-              'flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
+              'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-colors duration-150 border',
               idx === activeIndex
-                ? 'bg-primary text-white'
-                : 'bg-surface hover:bg-border text-ink',
+                ? 'bg-primary border-primary text-white shadow-sm'
+                : 'bg-white border-border hover:border-primary/40 text-ink',
             ]"
             @click="selectWord(idx)"
           >
-            <span class="font-medium text-sm">{{ word.display_word }}</span>
-            <span :class="['text-xs', idx === activeIndex ? 'text-white/70' : 'text-ink-lighter']">
+            <span class="font-medium text-sm truncate">{{ word.display_word }}</span>
+            <span :class="[
+              'text-xs font-bold shrink-0 ml-2',
+              idx === activeIndex
+                ? 'text-white/80'
+                : word.lowest_score >= 80 ? 'text-green-600'
+                : word.lowest_score >= 60 ? 'text-amber-600'
+                : 'text-red-500',
+            ]">
               {{ word.lowest_score }}
             </span>
           </button>
         </aside>
 
         <!-- Drill panel -->
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-4">
           <FlashcardDrill
             v-if="activeWord"
             :key="activeWord.id"
@@ -112,7 +121,7 @@ async function handleUnflag(word: FlaggedWord) {
           <!-- Archive -->
           <div v-if="activeWord" class="flex justify-end">
             <button
-              class="text-xs text-ink-lighter underline hover:text-ink"
+              class="text-xs text-ink-lighter hover:text-ink transition-colors duration-150 underline underline-offset-2"
               @click="handleUnflag(activeWord)"
             >
               Archive word
