@@ -344,4 +344,252 @@ export const IDIOM_PACK_1: IdiomPack = {
 
 export const MOCK_IDIOMS = IDIOM_PACK_1.challenges
 
-export const ALL_PACKS = [IDIOM_PACK_1]
+export const IDIOM_PACK_2: IdiomPack = {
+  id: 'pack-2',
+  title: 'Idiom Pack 2',
+  difficulty: 'Intermediate',
+  challenges: [
+    {
+      id: 'cutting-corners',
+      phrase: 'Cutting corners',
+      meaning: 'To do something in the easiest or cheapest way, often by ignoring rules or quality',
+      sampleSentence: 'The builder was fined for cutting corners on safety inspections.',
+      literalImageUrl: placeholder('Literal: Person cutting a corner off a piece of paper'),
+      figurativeImageUrl: placeholder('Figurative: Worker skipping safety steps on a construction site'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person turning a sharp corner while driving'),
+        placeholder('Distractor: Scissors on a desk'),
+        placeholder('Distractor: Tidy organized worker'),
+      ],
+      explanation:
+        "'Cutting corners' means taking shortcuts to save time or money, usually at the cost of quality or proper procedure. It often has a negative meaning, suggesting carelessness or dishonesty.",
+    },
+    {
+      id: 'back-to-square-one',
+      phrase: 'Back to square one',
+      meaning: 'To return to the starting point because previous progress was lost',
+      sampleSentence: 'After the client rejected the design, we were back to square one.',
+      literalImageUrl: placeholder('Literal: Board game piece being moved back to square 1'),
+      figurativeImageUrl: placeholder('Figurative: Team at a whiteboard starting a project over'),
+      distractorImageUrls: [
+        placeholder('Distractor: Checkerboard with pieces mid-game'),
+        placeholder('Distractor: Person celebrating a finished project'),
+        placeholder('Distractor: Calendar with a date circled'),
+      ],
+      explanation:
+        "'Back to square one' means returning to the very beginning, usually after an attempt has failed. The phrase comes from board games where a player is sent back to the first square.",
+    },
+    {
+      id: 'up-in-the-air',
+      phrase: 'Up in the air',
+      meaning: 'Unsettled or undecided',
+      sampleSentence: 'Our weekend plans are still up in the air until we hear about the weather.',
+      literalImageUrl: placeholder('Literal: Object floating with no clear direction'),
+      figurativeImageUrl: placeholder('Figurative: Person shrugging at a question mark on a board'),
+      distractorImageUrls: [
+        placeholder('Distractor: Airplane flying at high altitude'),
+        placeholder('Distractor: Person confidently signing a contract'),
+        placeholder('Distractor: Balloon tied to a fence post'),
+      ],
+      explanation:
+        "If something is 'up in the air,' it is uncertain or has not been decided yet. Like an object floating without a clear destination, the outcome is still unresolved.",
+    },
+    {
+      id: 'go-the-extra-mile',
+      phrase: 'Go the extra mile',
+      meaning: 'To make more effort than is expected of you',
+      sampleSentence: 'She always goes the extra mile to help her students succeed.',
+      literalImageUrl: placeholder('Literal: Road sign showing 1 mile with a runner going further'),
+      figurativeImageUrl: placeholder('Figurative: Employee staying late to help a struggling colleague'),
+      distractorImageUrls: [
+        placeholder('Distractor: Marathon runner giving up near finish line'),
+        placeholder('Distractor: Person doing only the minimum required work'),
+        placeholder('Distractor: Taxi driver taking a shortcut'),
+      ],
+      explanation:
+        "To 'go the extra mile' means to do more than what is required or expected. It describes someone who puts in extra effort to achieve a great result or help others.",
+    },
+    {
+      id: 'under-the-weather',
+      phrase: 'Under the weather',
+      meaning: 'Feeling slightly ill',
+      sampleSentence: "I'm a little under the weather today, so I'll skip the gym.",
+      literalImageUrl: placeholder('Literal: Person standing in rain looking miserable'),
+      figurativeImageUrl: placeholder('Figurative: Person in bed with a mild cold holding tissues'),
+      distractorImageUrls: [
+        placeholder('Distractor: Storm cloud directly over a city'),
+        placeholder('Distractor: Person running happily in the rain'),
+        placeholder('Distractor: Weather app showing a forecast'),
+      ],
+      explanation:
+        "Feeling 'under the weather' means feeling slightly sick or unwell. It is a polite, casual way to say you are not feeling 100%.",
+    },
+    {
+      id: 'throw-in-the-towel',
+      phrase: 'Throw in the towel',
+      meaning: 'To give up or admit defeat',
+      sampleSentence: 'After three failed attempts, he finally threw in the towel.',
+      literalImageUrl: placeholder('Literal: Towel being thrown into a boxing ring'),
+      figurativeImageUrl: placeholder('Figurative: Person walking away from a difficult challenge'),
+      distractorImageUrls: [
+        placeholder('Distractor: Laundry basket full of towels'),
+        placeholder('Distractor: Boxer celebrating a victory'),
+        placeholder('Distractor: Person pushing through exhaustion to finish'),
+      ],
+      explanation:
+        "To 'throw in the towel' means to give up or surrender. It comes from boxing, where a trainer throws a towel into the ring to stop the fight and protect the boxer.",
+    },
+    {
+      id: 'blessing-in-disguise',
+      phrase: 'A blessing in disguise',
+      meaning: 'Something that seems bad at first but turns out to be good',
+      sampleSentence: 'Losing that job was a blessing in disguise — it led me to a much better one.',
+      literalImageUrl: placeholder('Literal: Gift box wrapped in thorns but glowing inside'),
+      figurativeImageUrl: placeholder('Figurative: Person happy about a missed bus that led them to meet a friend'),
+      distractorImageUrls: [
+        placeholder('Distractor: Something clearly bad with no upside'),
+        placeholder('Distractor: Person crying over spilled milk'),
+        placeholder('Distractor: A wolf in a costume'),
+      ],
+      explanation:
+        "'A blessing in disguise' refers to something that initially appears negative or unfortunate but later proves to be beneficial. The good fortune is hidden behind a bad first impression.",
+    },
+    {
+      id: 'beat-around-the-bush',
+      phrase: 'Beat around the bush',
+      meaning: 'To avoid talking about the main point of an issue',
+      sampleSentence: 'Stop beating around the bush and just tell me what happened.',
+      literalImageUrl: placeholder('Literal: Person poking a bush while avoiding touching something else'),
+      figurativeImageUrl: placeholder('Figurative: Person talking at length without getting to the point'),
+      distractorImageUrls: [
+        placeholder('Distractor: Gardener trimming a hedge'),
+        placeholder('Distractor: Person speaking directly and clearly'),
+        placeholder('Distractor: Hunter hiding behind a bush'),
+      ],
+      explanation:
+        "To 'beat around the bush' means to avoid discussing the main subject directly. Instead of getting to the point, the person talks around it, often because the topic is uncomfortable.",
+    },
+    {
+      id: 'pull-yourself-together',
+      phrase: 'Pull yourself together',
+      meaning: 'To calm down and regain control of your emotions',
+      sampleSentence: 'I know the news is upsetting, but try to pull yourself together before the meeting.',
+      literalImageUrl: placeholder('Literal: Scattered puzzle pieces being gathered into one'),
+      figurativeImageUrl: placeholder('Figurative: Person taking a deep breath to calm down before speaking'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person crying uncontrollably'),
+        placeholder('Distractor: Someone pulling a heavy rope'),
+        placeholder('Distractor: Group hug after a difficult moment'),
+      ],
+      explanation:
+        "To 'pull yourself together' means to calm down and regain self-control after feeling overwhelmed or upset. It is used to encourage someone who is struggling emotionally.",
+    },
+    {
+      id: 'get-out-of-hand',
+      phrase: 'Get out of hand',
+      meaning: 'To become difficult or impossible to control',
+      sampleSentence: 'The argument got out of hand quickly and had to be stopped by management.',
+      literalImageUrl: placeholder('Literal: Object slipping out of a hand'),
+      figurativeImageUrl: placeholder('Figurative: Small party turning into a chaotic crowd'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person confidently managing a busy situation'),
+        placeholder('Distractor: Empty quiet room'),
+        placeholder('Distractor: Person offering a handshake'),
+      ],
+      explanation:
+        "When something 'gets out of hand,' it has become too chaotic or extreme to manage. The situation has gone beyond what is acceptable or controllable.",
+    },
+    {
+      id: 'not-rocket-science',
+      phrase: "It's not rocket science",
+      meaning: 'Something is not difficult to understand or do',
+      sampleSentence: "Just follow the instructions step by step — it's not rocket science.",
+      literalImageUrl: placeholder('Literal: Rocket with complex equations vs simple recipe card'),
+      figurativeImageUrl: placeholder('Figurative: Person easily assembling furniture with a smile'),
+      distractorImageUrls: [
+        placeholder('Distractor: NASA engineer at a control panel'),
+        placeholder('Distractor: Person struggling with a very complicated task'),
+        placeholder('Distractor: Astronaut in space'),
+      ],
+      explanation:
+        "'It's not rocket science' is a casual way of saying a task or idea is not as complicated as it might seem. It encourages someone who is overthinking something that is actually straightforward.",
+    },
+    {
+      id: 'dime-a-dozen',
+      phrase: 'A dime a dozen',
+      meaning: 'Very common and of little special value',
+      sampleSentence: 'Tourist souvenir shops near the castle are a dime a dozen.',
+      literalImageUrl: placeholder('Literal: Pile of dimes next to twelve identical items'),
+      figurativeImageUrl: placeholder('Figurative: Crowded street full of identical coffee shops'),
+      distractorImageUrls: [
+        placeholder('Distractor: Rare gemstone in a display case'),
+        placeholder('Distractor: Coin collector examining a valuable piece'),
+        placeholder('Distractor: Expensive one-of-a-kind antique'),
+      ],
+      explanation:
+        "If something is 'a dime a dozen,' it is so common that it has little individual worth. The idiom suggests the thing is easily found everywhere and easily replaced.",
+    },
+    {
+      id: 'easy-does-it',
+      phrase: 'Easy does it',
+      meaning: 'Be careful and proceed slowly',
+      sampleSentence: "Easy does it — that antique vase is very fragile.",
+      literalImageUrl: placeholder('Literal: Hands slowly and carefully moving a fragile object'),
+      figurativeImageUrl: placeholder('Figurative: Two movers carefully guiding a heavy sofa through a door'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person rushing carelessly through a task'),
+        placeholder('Distractor: Easy button being pressed'),
+        placeholder('Distractor: Person relaxing with no effort'),
+      ],
+      explanation:
+        "'Easy does it' is said when you want someone to slow down and be gentle, often to avoid breaking something or causing an accident. It is a calm, cautious instruction.",
+    },
+    {
+      id: 'make-a-long-story-short',
+      phrase: 'Make a long story short',
+      meaning: 'To skip the details and give only a brief summary',
+      sampleSentence: 'To make a long story short, we missed the flight and ended up driving all night.',
+      literalImageUrl: placeholder('Literal: Long scroll of text being compressed into a short note'),
+      figurativeImageUrl: placeholder('Figurative: Person fast-forwarding through a long story to the ending'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person writing a very long detailed report'),
+        placeholder('Distractor: Library shelf full of thick books'),
+        placeholder('Distractor: Storyteller captivating a crowd with full details'),
+      ],
+      explanation:
+        "'To make a long story short' is used when you want to skip the full details and jump to the main point or result. It signals you are giving a condensed version of events.",
+    },
+    {
+      id: 'miss-the-boat',
+      phrase: 'Miss the boat',
+      meaning: 'To miss an opportunity',
+      sampleSentence: "If you don't apply by Friday, you'll miss the boat on this scholarship.",
+      literalImageUrl: placeholder('Literal: Person running toward a dock as a boat pulls away'),
+      figurativeImageUrl: placeholder('Figurative: Person realizing they missed the deadline for a great deal'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person arriving early at a harbor'),
+        placeholder('Distractor: Boat returning to pick someone up'),
+        placeholder('Distractor: Person successfully boarding a ferry'),
+      ],
+      explanation:
+        "To 'miss the boat' means to lose a chance to do something because you acted too slowly or did not respond in time. The opportunity has already passed, just like a boat that has left the dock.",
+    },
+    {
+      id: 'so-far-so-good',
+      phrase: 'So far so good',
+      meaning: 'Things are going well up to this point',
+      sampleSentence: "I've been studying for three hours — so far so good, but I still have a lot to cover.",
+      literalImageUrl: placeholder('Literal: Hiker checking progress halfway up a mountain'),
+      figurativeImageUrl: placeholder('Figurative: Student reviewing completed exam questions with satisfaction'),
+      distractorImageUrls: [
+        placeholder('Distractor: Person at the finish line celebrating full completion'),
+        placeholder('Distractor: Things clearly going wrong from the start'),
+        placeholder('Distractor: Person looking backwards with regret'),
+      ],
+      explanation:
+        "'So far so good' means that everything is going well at the current moment. It implies cautious optimism — things are fine right now, but there is still uncertainty ahead.",
+    },
+  ],
+}
+
+export const ALL_PACKS = [IDIOM_PACK_1, IDIOM_PACK_2]

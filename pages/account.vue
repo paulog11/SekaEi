@@ -129,7 +129,7 @@ async function handleSignUp() {
       try {
         await apiFetch('/api/devices/claim', { method: 'POST', body: { deviceId: getOrCreateDeviceId() } })
       } catch { /* non-fatal */ }
-      await navigateTo('/pending')
+      signupPending.value = true
     }
   } finally {
     authLoading.value = false

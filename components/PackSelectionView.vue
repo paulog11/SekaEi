@@ -8,6 +8,11 @@ const emit = defineEmits<{ (e: 'select', packIndex: number): void }>()
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
 function toRoman(n: number): string { return ROMAN[n] ?? String(n) }
 
+function variantClass(index: number): string {
+  if (index === 1) return 'pack-card--rose'
+  return ''
+}
+
 function difficultyColor(d: IdiomPack['difficulty']): string {
   if (d === 'Intermediate') return 'bg-amber-400 text-amber-900'
   if (d === 'Advanced')     return 'bg-red-400 text-red-900'
@@ -31,16 +36,14 @@ function handleOpen(index: number) {
       <div v-for="(pack, index) in store.packs" :key="pack.id" class="flex flex-col items-center gap-3">
 
         <div
-          class="pack-card"
-          role="img"
-          :aria-label="`${pack.title} — ${pack.challenges.length} idioms`"
+          :class="['pack-card', variantClass(index)]"
+          role="button"
+          tabindex="0"
+          :aria-label="`Open ${pack.title}`"
+          @click="handleOpen(index)"
+          @keydown.enter="handleOpen(index)"
+          @keydown.space.prevent="handleOpen(index)"
         >
-          <!-- Decorative grid pattern -->
-          <div
-            class="absolute inset-x-0 top-0 h-[100px] opacity-20 pointer-events-none"
-            style="background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 8px);"
-          />
-
           <!-- Roman numeral -->
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span

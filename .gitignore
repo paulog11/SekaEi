@@ -27,3 +27,5 @@ data/native-pitch-cache/
 
 # Generated invite code CSVs — treat as secrets, never commit
 out/
+.claude/skills/ai-fluency/report-template.html
+.claude/skills/ai-fluency/SKILL.md
