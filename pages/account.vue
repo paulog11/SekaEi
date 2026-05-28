@@ -26,6 +26,7 @@ const inviteCodeAtSignup = ref('')
 const authError = ref<string | null>(null)
 const authLoading = ref(false)
 const signupPending = ref(false)
+const consentChecked = ref(false)
 const resendLoading = ref(false)
 const resendCooldown = ref(0)
 let resendTimer: ReturnType<typeof setInterval> | null = null
@@ -571,7 +572,17 @@ async function handleAddPassage() {
               <input id="signup-code" v-model="inviteCodeAtSignup" class="field-input uppercase" type="text" placeholder="XXXX-XXXX" maxlength="32" autocomplete="off">
               <p class="text-xs text-ink-lighter m-0">If you attended our English program, enter your invite code to unlock all features.</p>
             </div>
-            <button type="submit" class="btn-primary mt-1" :disabled="authLoading">
+            <label class="flex items-start gap-3 cursor-pointer mt-1">
+              <input v-model="consentChecked" type="checkbox" class="mt-0.5 w-4 h-4 shrink-0 accent-primary cursor-pointer">
+              <span class="text-xs text-ink-medium leading-relaxed">
+                18歳以上であること（または保護者の同意を得ていること）を確認し、
+                <NuxtLink to="/privacy" target="_blank" rel="noopener" class="text-primary underline">プライバシーポリシー</NuxtLink>
+                と
+                <NuxtLink to="/terms" target="_blank" rel="noopener" class="text-primary underline">利用規約</NuxtLink>
+                に同意します。
+              </span>
+            </label>
+            <button type="submit" class="btn-primary mt-1" :disabled="authLoading || !consentChecked">
               {{ authLoading ? 'Creating account…' : 'Create account' }}
             </button>
           </form>

@@ -90,6 +90,13 @@ async function handleResend() {
     <template v-else>
       <p class="text-lg font-semibold text-ink">Email confirmed!</p>
       <p class="text-sm text-ink-light">Redirecting you to practice…</p>
+      <p class="text-xs text-ink-lighter text-center max-w-xs">
+        確認することで
+        <NuxtLink to="/privacy" class="underline hover:text-ink-light">プライバシーポリシー</NuxtLink>
+        と
+        <NuxtLink to="/terms" class="underline hover:text-ink-light">利用規約</NuxtLink>
+        に同意したものとみなされます。
+      </p>
     </template>
   </main>
 </template>

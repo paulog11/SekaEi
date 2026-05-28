@@ -54,8 +54,14 @@ watch(user, (u) => {
 
   <NuxtPage />
 
+  <!-- Global footer — hidden on auth/gate pages, same exclusion list as header -->
+  <AppFooter v-if="showNav" />
+
   <!-- Bottom tab bar — mobile only, hidden on auth/gate pages -->
   <BottomTabBar v-if="showNav" />
+
+  <!-- Cookie disclosure banner — client only, dismissed to localStorage -->
+  <ClientOnly><CookieBanner /></ClientOnly>
 
   <!-- First-time user tutorial overlay -->
   <TutorialOverlay />
