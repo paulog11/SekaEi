@@ -22,15 +22,15 @@ const updatedAt = '2025年5月28日'
           <tbody class="divide-y divide-border">
             <tr>
               <td class="py-3 pr-6 font-semibold text-ink w-40 shrink-0 align-top">販売事業者</td>
-              <td class="py-3 text-ink-medium"><!-- TODO: 事業者名 --></td>
+              <td class="py-3 text-ink-medium">Jose Paulo Gonzales</td>
             </tr>
             <tr>
               <td class="py-3 pr-6 font-semibold text-ink align-top">代表者</td>
-              <td class="py-3 text-ink-medium"><!-- TODO: 代表者名 --></td>
+              <td class="py-3 text-ink-medium">Jose Paulo Gonzales</td>
             </tr>
             <tr>
               <td class="py-3 pr-6 font-semibold text-ink align-top">所在地</td>
-              <td class="py-3 text-ink-medium"><!-- TODO: 住所 --></td>
+              <td class="py-3 text-ink-medium">東京都新宿区</td>
             </tr>
             <tr>
               <td class="py-3 pr-6 font-semibold text-ink align-top">連絡先</td>

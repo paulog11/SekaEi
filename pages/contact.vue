@@ -3,7 +3,7 @@ definePageMeta({ access: 'free' })
 useHead({ title: 'お問い合わせ — セカトークXP' })
 
 // TODO: Replace with your actual support email address
-const SUPPORT_EMAIL = 'support@example.com'
+const SUPPORT_EMAIL = 'paulo.gonzales@internationalmentorship.org'
 </script>
 
 <template>
