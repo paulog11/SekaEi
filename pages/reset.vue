@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-useHead({ title: 'Reset password — セカトークXP' })
+useSekaSeoMeta({ title: 'Reset password — セカトークXP', noindex: true })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

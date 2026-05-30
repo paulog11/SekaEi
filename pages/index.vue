@@ -1,218 +1,179 @@
 <script setup lang="ts">
-import { useHistory } from '~/composables/useHistory'
-import { useStreak } from '~/composables/useStreak'
-import { usePhonemeStats } from '~/composables/usePhonemeStats'
-import { passageStars } from '~/composables/useProgress'
-import { SAMPLE_PASSAGES } from '~/types/passages'
+definePageMeta({})
 
-definePageMeta({ access: 'free' })
-useHead({ title: 'Dashboard — セカトークXP' })
+const config = useRuntimeConfig()
+const siteUrl = (config.public.siteUrl as string) || 'https://sekatoku.example.com'
 
-const user = useSupabaseUser()
-const { getHistory } = useHistory()
-const { streak, fetchStreak } = useStreak()
-const { weakest, fetchStats } = usePhonemeStats()
-const weakPhonemes = computed(() => weakest.value.filter(s => s.avgScore < 70))
-
-const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
-const loading = ref(false)
-
-watch(user, async (u) => {
-  if (u) {
-    loading.value = true
-    ;[history.value] = await Promise.all([
-      getHistory(),
-      fetchStreak(),
-      fetchStats(),
-    ])
-    loading.value = false
-  }
-}, { immediate: true })
-
-const totalAttempts = computed(() => history.value.length)
-
-const avgOverall = computed(() => {
-  if (!history.value.length) return 0
-  const sum = history.value.reduce((acc, r) => acc + r.scores.overall, 0)
-  return Math.round(sum / history.value.length)
+useSekaSeoMeta({
+  title: 'セカトークXP — 英語発音・イディオム練習',
+  description: 'AIが発音を採点してくれる、日本の大学生のための英語練習ツール。すべての単語・音素をスコアリング。無料で始められます。',
 })
 
-const recentAttempts = computed(() => [...history.value].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5))
-
-const masteryRows = computed(() => {
-  const seen = new Map<string, { passageId: string; passageTitle: string; attempts: import('~/composables/useHistory').AttemptRecord[] }>()
-  for (const record of history.value) {
-    if (!seen.has(record.passageId)) {
-      seen.set(record.passageId, { passageId: record.passageId, passageTitle: record.passageTitle, attempts: [] })
-    }
-    seen.get(record.passageId)!.attempts.push(record)
-  }
-  return [...seen.values()].sort((a, b) => passageStars(b.attempts) - passageStars(a.attempts))
+useHead({
+  script: [{
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'セカトークXP',
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web',
+      inLanguage: 'ja',
+      url: siteUrl,
+      description: 'AIが発音を採点してくれる、日本の大学生のための英語練習ツール。',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
+    }),
+  }],
 })
 
-const passagesStarted = computed(() => masteryRows.value.length)
-const passagesMastered = computed(() => masteryRows.value.filter(r => passageStars(r.attempts) === 3).length)
-const masteredPercent = computed(() =>
-  Math.round((passagesMastered.value / SAMPLE_PASSAGES.length) * 100)
-)
-
-const thumbnailColors = [
-  'bg-violet-100',
-  'bg-emerald-100',
-  'bg-orange-100',
-  'bg-blue-100',
-  'bg-pink-100',
-  'bg-yellow-100',
+const features = [
+  {
+    icon: 'mic',
+    title: 'Pronunciation Practice',
+    description: 'Read a passage aloud. AI scores every word and phoneme — accuracy, fluency, completeness, and prosody.',
+  },
+  {
+    icon: 'chat',
+    title: 'Idioms & Slang',
+    description: 'See a literal image, pick the figurative meaning. Train your intuition for natural English expressions.',
+  },
+  {
+    icon: 'chart',
+    title: 'Pitch Contour Graph',
+    description: 'Visualise how your intonation rises and falls compared to a native speaker after each recording.',
+  },
+  {
+    icon: 'star',
+    title: 'Progress Tracking',
+    description: 'Streak, passage mastery, weak phonemes — see exactly where to focus your practice.',
+  },
 ]
-
-const nextPassage = computed(() => {
-  const masteredIds = new Set(
-    masteryRows.value.filter(r => passageStars(r.attempts) === 3).map(r => r.passageId)
-  )
-  return SAMPLE_PASSAGES.find(p => !masteredIds.has(p.id)) ?? SAMPLE_PASSAGES[0]
-})
-
-const nextPassageIndex = computed(() => SAMPLE_PASSAGES.indexOf(nextPassage.value))
-
-function scoreColor(score: number) {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-amber-600'
-  return 'text-red-600'
-}
-
-function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
-
 </script>
 
 <template>
-  <main class="container-page flex flex-col gap-6">
-    <h1 class="text-lg font-bold text-ink m-0">Dashboard</h1>
-
-    <!-- Stat tiles -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <!-- Streak -->
-      <div class="card-pop bg-white flex flex-col gap-1 p-4">
-        <p class="font-heading text-5xl font-bold text-primary m-0 leading-none">
-          {{ streak.current }}<span class="text-4xl">🔥</span>
-        </p>
-        <p class="text-xs text-ink-lighter m-0 mt-1">Day streak</p>
-        <p class="text-[11px] m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
-          {{ streak.todayMet ? '✓ done today' : '○ not yet' }}
-        </p>
-      </div>
-
-      <!-- Total sessions -->
-      <div class="card-pop bg-white flex flex-col gap-1 p-4">
-        <p class="font-heading text-5xl font-bold text-ink m-0 leading-none">{{ totalAttempts }}</p>
-        <p class="text-xs text-ink-lighter m-0 mt-1">Total sessions</p>
-      </div>
-
-      <!-- Avg. score — radial progress (primary / lavender) -->
-      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
-        <div
-          class="radial-progress font-heading font-bold text-sm"
-          :style="`--value:${avgOverall}; --size:5rem; --thickness:6px; color: var(--color-primary); background-color: #f3e8ff;`"
-          role="progressbar"
-          :aria-valuenow="avgOverall"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >{{ avgOverall || '—' }}</div>
-        <p class="text-xs text-ink-lighter m-0">Avg. score</p>
-      </div>
-
-      <!-- Mastered — radial progress (secondary / mint) -->
-      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
-        <div
-          class="radial-progress font-heading font-bold text-sm"
-          :style="`--value:${masteredPercent}; --size:5rem; --thickness:6px; color: var(--color-secondary); background-color: #d1fae5;`"
-          role="progressbar"
-          :aria-valuenow="masteredPercent"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >{{ passagesMastered }}/{{ SAMPLE_PASSAGES.length }}</div>
-        <p class="text-xs text-ink-lighter m-0">Mastered</p>
-      </div>
-    </div>
-
-    <!-- Up next — all passages with pastel thumbnails -->
-    <section>
-      <p class="text-xs uppercase tracking-wider font-semibold text-ink-lighter mb-3">Up next</p>
-      <NuxtLink
-        to="/practice"
-        class="card-pop bg-white flex items-center gap-4 p-4 no-underline"
-      >
-        <div class="w-14 h-14 rounded-xl shrink-0" :class="thumbnailColors[nextPassageIndex % thumbnailColors.length]" />
-        <div class="flex-1 min-w-0">
-          <p class="font-heading text-sm font-semibold text-ink m-0 truncate">{{ nextPassage.title }}</p>
-          <p class="text-xs text-ink-light m-0 mt-0.5">{{ nextPassage.source }}</p>
+  <main>
+    <!-- Hero -->
+    <section class="bg-hero-fade">
+      <div class="max-w-page mx-auto px-5 pt-16 pb-20 flex flex-col items-center text-center gap-6">
+        <div class="flex items-center gap-2">
+          <span class="font-heading text-4xl font-bold tracking-tight text-ink">セカトーク</span>
+          <span class="text-sm font-bold bg-primary text-white px-2 py-1 rounded-md tracking-widest leading-none">XP</span>
         </div>
-        <span class="btn-primary btn-sm shrink-0">Practice</span>
-      </NuxtLink>
-    </section>
 
-    <!-- Weak phonemes -->
-    <section v-if="weakPhonemes.length" class="card">
-      <h2 class="text-sm font-semibold text-ink mb-3">Phonemes to work on</h2>
-      <div class="flex flex-wrap gap-2">
-        <span
-          v-for="stat in weakPhonemes"
-          :key="stat.phoneme"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-mono bg-red-50 border border-red-200 text-red-700"
-        >
-          /{{ stat.phoneme }}/ <span class="text-xs text-red-400">{{ stat.avgScore }}%</span>
-        </span>
+        <h1 class="font-heading text-3xl sm:text-4xl font-bold text-ink max-w-xl leading-tight m-0">
+          英語をもっとリアルに、<br class="hidden sm:block">もっと正確に。
+        </h1>
+
+        <p class="text-base text-ink-light max-w-md m-0 leading-relaxed">
+          AI-powered pronunciation scoring and idiom practice, built for Japanese university students.
+          Read a passage, get instant feedback on every word and sound.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3 mt-2">
+          <NuxtLink to="/account" class="btn-primary px-8 py-3 text-base font-semibold">
+            無料で始める
+          </NuxtLink>
+          <NuxtLink to="/about" class="btn-secondary px-8 py-3 text-base font-semibold">
+            もっと見る
+          </NuxtLink>
+        </div>
       </div>
     </section>
 
-    <!-- Recent sessions -->
-    <section v-if="recentAttempts.length">
-      <h2 class="text-sm font-semibold text-ink-medium mb-3">Recent sessions</h2>
-      <div class="flex flex-col gap-2">
-        <NuxtLink
-          v-for="attempt in recentAttempts"
-          :key="attempt.timestamp"
-          :to="attempt.slug ? `/attempt/${attempt.slug}` : '/practice'"
-          class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
-        >
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-ink m-0 truncate">{{ attempt.passageTitle }}</p>
-            <p class="text-xs text-ink-lighter m-0">{{ formatDate(attempt.timestamp) }}</p>
+    <!-- Screenshot placeholder -->
+    <section class="bg-white border-y border-border py-12">
+      <div class="max-w-page mx-auto px-5">
+        <div class="rounded-2xl bg-surface border border-border aspect-video flex items-center justify-center text-ink-lighter text-sm">
+          <!-- Drop public/images/landing-screenshot.png here and replace with <img> -->
+          App screenshot
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="bg-white py-16">
+      <div class="max-w-page mx-auto px-5">
+        <h2 class="font-heading text-2xl font-bold text-ink text-center mb-10">What you'll learn</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <!-- Pronunciation -->
+          <div class="card flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="2" width="6" height="11" rx="3" />
+                <path stroke-linecap="round" d="M5 10a7 7 0 0 0 14 0" />
+                <line x1="12" y1="17" x2="12" y2="21" stroke-linecap="round" />
+                <line x1="9" y1="21" x2="15" y2="21" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-ink mb-1">Pronunciation Practice</h3>
+              <p class="text-sm text-ink-medium m-0 leading-relaxed">
+                Read a passage aloud. AI scores every word and phoneme — accuracy, fluency, completeness, and prosody.
+              </p>
+            </div>
           </div>
-          <span class="text-sm font-bold shrink-0" :class="scoreColor(attempt.scores.overall)">
-            {{ attempt.scores.overall }}
-          </span>
+
+          <!-- Idioms -->
+          <div class="card flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 4.5A9 9 0 1 0 12 3a9 9 0 0 0-9 9c0 1.7.47 3.29 1.29 4.64L3 21l4.36-1.29A8.96 8.96 0 0 0 12 21" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-ink mb-1">Idioms &amp; Slang</h3>
+              <p class="text-sm text-ink-medium m-0 leading-relaxed">
+                See a literal image, pick the figurative meaning. Train your intuition for natural English expressions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Pitch graph -->
+          <div class="card flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+                <polyline stroke-linecap="round" stroke-linejoin="round" points="3 17 7 12 11 14 15 8 21 10" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-ink mb-1">Pitch Contour Graph</h3>
+              <p class="text-sm text-ink-medium m-0 leading-relaxed">
+                Visualise how your intonation rises and falls compared to a native speaker after each recording.
+              </p>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div class="card flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-ink mb-1">Progress Tracking</h3>
+              <p class="text-sm text-ink-medium m-0 leading-relaxed">
+                Streak, passage mastery, weak phonemes — see exactly where to focus your practice.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bg-hero-fade py-16">
+      <div class="max-w-page mx-auto px-5 text-center flex flex-col items-center gap-5">
+        <h2 class="font-heading text-2xl font-bold text-ink m-0">Ready to practise?</h2>
+        <p class="text-sm text-ink-light max-w-sm m-0">
+          Sign up for free and start getting real feedback on your English pronunciation today.
+        </p>
+        <NuxtLink to="/account" class="btn-primary px-8 py-3 text-base font-semibold">
+          Sign up — it's free
         </NuxtLink>
       </div>
-    </section>
-
-    <!-- Passage mastery -->
-    <section v-if="loading || masteryRows.length">
-      <h2 class="text-sm font-semibold text-ink-medium mb-3">Passage mastery</h2>
-      <p v-if="loading" class="text-sm text-ink-lighter m-0">Loading…</p>
-      <div v-else class="flex flex-col gap-2">
-        <NuxtLink
-          v-for="row in masteryRows"
-          :key="row.passageId"
-          :to="row.attempts[0]?.slug ? `/attempt/${row.attempts[0].slug}` : '/practice'"
-          class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
-        >
-          <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink">{{ row.passageTitle }}</span>
-          <div class="flex items-center gap-3 shrink-0">
-            <span class="text-xs text-ink-lighter">{{ row.attempts.length }} attempt{{ row.attempts.length !== 1 ? 's' : '' }}</span>
-            <span class="flex gap-px" :aria-label="`${passageStars(row.attempts)} out of 3 stars`">
-              <span v-for="n in 3" :key="n" :class="['star text-sm', { 'star-lit': passageStars(row.attempts) >= n }]">★</span>
-            </span>
-          </div>
-        </NuxtLink>
-      </div>
-    </section>
-
-    <!-- Empty state -->
-    <section v-if="!loading && !history.length" class="text-center py-16 text-ink-lighter">
-      <p class="text-base m-0">No practice sessions yet.</p>
-      <NuxtLink to="/practice" class="btn-primary mt-4 inline-flex">Start practising</NuxtLink>
     </section>
   </main>
 </template>

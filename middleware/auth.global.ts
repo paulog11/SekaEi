@@ -8,10 +8,15 @@
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser()
-  const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
+  const publicRoutes = ['/account', '/confirm', '/reset', '/pending', '/dev-only', '/']
 
   if (!user.value && !publicRoutes.includes(to.path)) {
     return navigateTo('/account')
+  }
+
+  // Redirect authenticated users from landing page to dashboard
+  if (user.value && to.path === '/') {
+    return navigateTo('/dashboard')
   }
 
   // Approval check runs client-only — it uses the user's JWT via apiFetch,

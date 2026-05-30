@@ -57,21 +57,15 @@ and `en` sections. No CMS needed at this size. Link them from a new shared
 
 ## 2. SEO, discoverability & marketing surface
 
-Logged-out visitors currently land on a dashboard. There is no marketing page,
-no social card image, and search engines have minimal signal.
+Most items in this section were implemented (landing page, sitemap, robots.txt,
+per-page meta, og:image, `<html lang="ja">`, JSON-LD, canonical URLs).
 
-- **Marketing landing page** — replace `/` for unauthenticated visitors with a real landing page (hero, screenshot, "what you'll learn", testimonials/quotes if any, signup CTA). Keep `/dashboard` as the post-login home and route `/` based on `authStore.isLoggedIn`. Could also extract to `pages/index.vue` vs new `pages/dashboard.vue`.
-- **`robots.txt`** — add `public/robots.txt` allowing all crawlers except `/account`, `/pending`, `/attempt/*`, `/practice/words`. Reference sitemap.
-- **Sitemap** — install `@nuxtjs/sitemap` to auto-generate from page routes. Exclude protected/auth-gated paths.
-- **Per-page meta** — every `useHead` call today sets only `title`. Extend to `useSeoMeta({ title, description, ogTitle, ogDescription, ogImage, twitterCard: 'summary_large_image' })`. Public pages (landing, about, privacy, terms) need real descriptions; protected pages can use defaults.
-- **Open Graph / Twitter card image** — design a 1200×630 brand card (the gradient + セカトークXP logo would work). Drop into `public/og-image.png` and reference as `ogImage` default.
-- **`<html lang>`** — currently absent. Set in `nuxt.config.ts` under `app.head.htmlAttrs.lang = 'ja'` (primary audience is JP). Improves a11y and search.
-- **Structured data (JSON-LD)** — `EducationalApplication` schema on the landing page; helps Google rich results.
-- **Canonical URLs** — set `link[rel=canonical]` per page via `useHead`.
+Remaining follow-ups:
 
-Suggested approach: `@nuxtjs/sitemap` module + one shared composable
-`useSekaSeoMeta(overrides)` that fills in brand defaults (og:image,
-og:site_name, twitter:site) so each page only specifies what's unique.
+- **Real hero screenshot** — `public/images/landing-screenshot.*` is a placeholder; drop in an actual product screenshot and wire it into the landing page hero section.
+- **Testimonials / social proof** — testimonial block was scaffolded but left empty; add real student quotes or a "N students practising" counter once numbers are meaningful.
+- **Production domain** — set `NUXT_PUBLIC_SITE_URL` in Vercel to the real domain so sitemap, canonical tags, and `og:url` resolve correctly (currently falls back to `https://sekatoku.example.com`).
+- **Per-page dynamic OG images** — currently a single static `public/og-image.png` is used everywhere. For per-page cards (e.g. attempt detail with the passage title), install `nuxt-og-image` and replace the static default.
 
 ## 3. Account lifecycle (post-signup management)
 

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 
-useHead({ title: 'Confirming — セカトークXP' })
+useSekaSeoMeta({ title: 'Confirming — セカトークXP', noindex: true })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

@@ -36,13 +36,13 @@ watch(user, (u) => {
   <!-- Top header — desktop only, hidden on auth/gate pages -->
   <header v-if="showNav" class="hidden sm:block border-b border-border bg-white sticky top-0 z-30">
     <div class="max-w-page mx-auto px-5 h-14 flex items-center justify-between">
-      <NuxtLink to="/" class="flex items-center gap-1.5 no-underline">
+      <NuxtLink :to="user ? '/dashboard' : '/'" class="flex items-center gap-1.5 no-underline">
         <span class="text-lg font-bold tracking-tight text-ink">セカトーク</span>
         <span class="text-[11px] font-bold bg-primary text-white px-1.5 py-0.5 rounded-md tracking-widest leading-none">XP</span>
       </NuxtLink>
 
       <nav class="flex gap-1">
-        <NuxtLink to="/" class="nav-link">Dashboard</NuxtLink>
+        <NuxtLink to="/dashboard" class="nav-link">Dashboard</NuxtLink>
         <NuxtLink to="/practice" class="nav-link">Pronunciation</NuxtLink>
         <NuxtLink to="/practice/words" class="nav-link">Words</NuxtLink>
         <NuxtLink to="/idiomslang" class="nav-link">Idioms</NuxtLink>

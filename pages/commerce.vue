@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ access: 'free' })
-useHead({ title: '特定商取引法に基づく表記 — セカトークXP' })
+useSekaSeoMeta({
+  title: '特定商取引法に基づく表記 — セカトークXP',
+  description: 'セカトークXPの特定商取引法に基づく表記。事業者情報、連絡先、サービス内容について記載しています。',
+})
 const updatedAt = '2025年5月28日'
 </script>
 

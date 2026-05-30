@@ -9,7 +9,7 @@ import { ALLOWED_VOICES, VOICE_LABELS, VOICE_REGIONS, type AllowedVoice, type Vo
 import { useAuthStore } from '~/stores/authStore'
 
 definePageMeta({})
-useHead({ title: 'Account — セカトークXP' })
+useSekaSeoMeta({ title: 'Account — セカトークXP', noindex: true })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

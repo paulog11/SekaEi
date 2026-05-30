@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ access: 'free' })
-useHead({ title: 'プライバシーポリシー — セカトークXP' })
+useSekaSeoMeta({
+  title: 'プライバシーポリシー — セカトークXP',
+  description: 'セカトークXPのプライバシーポリシー。収集する情報、利用目的、第三者への提供について説明します。',
+})
 const updatedAt = '2025年5月28日'
 </script>
 

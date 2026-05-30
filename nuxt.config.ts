@@ -1,7 +1,27 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@pinia/nuxt', '@vercel/analytics', '@vercel/speed-insights'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@pinia/nuxt', '@vercel/analytics', '@vercel/speed-insights', '@nuxtjs/sitemap'],
+
+  site: {
+    url: process.env.NUXT_PUBLIC_SITE_URL ?? 'https://sekatoku.example.com',
+    name: 'セカトークXP',
+  },
+
+  sitemap: {
+    exclude: [
+      '/dashboard',
+      '/practice',
+      '/practice/words',
+      '/idiomslang',
+      '/account',
+      '/pending',
+      '/confirm',
+      '/reset',
+      '/dev-only',
+      '/attempt/**',
+    ],
+  },
   // auth-state must run first (it's async, so Nuxt awaits it) so the session
   // is cached before approval-guard's immediate watcher calls getSession().
   plugins: [
@@ -10,6 +30,7 @@ export default defineNuxtConfig({
   ],
   app: {
     head: {
+      htmlAttrs: { lang: 'ja' },
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'manifest', href: '/manifest.webmanifest' },
@@ -19,6 +40,10 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'viewport', content: 'width=device-width,initial-scale=1,viewport-fit=cover' },
+        { name: 'description', content: 'セカトークXP — AIが発音を採点する、日本の大学生のための英語練習ツール。' },
+        { property: 'og:site_name', content: 'セカトークXP' },
+        { property: 'og:type', content: 'website' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
     },
   },
@@ -56,6 +81,7 @@ export default defineNuxtConfig({
       // 'development' | 'production'
       // Pages marked stage: 'development' redirect to /dev-only in production.
       appStage: process.env.NUXT_PUBLIC_APP_STAGE ?? 'development',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? 'https://sekatoku.example.com',
     },
   },
   nitro: {

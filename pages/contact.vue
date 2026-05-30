@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ access: 'free' })
-useHead({ title: 'お問い合わせ — セカトークXP' })
+useSekaSeoMeta({
+  title: 'お問い合わせ — セカトークXP',
+  description: 'セカトークXPへのお問い合わせ。ご質問・ご要望・不具合の報告はこちらからどうぞ。',
+})
 
 // TODO: Replace with your actual support email address
 const SUPPORT_EMAIL = 'paulo.gonzales@internationalmentorship.org'

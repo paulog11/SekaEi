@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 
 definePageMeta({ access: 'free' })
+useSekaSeoMeta({ title: 'Idioms & Slang — セカトークXP', noindex: true })
 
 const selectedPackIndex = ref<number | null>(null)
 const goingForward = ref(true)

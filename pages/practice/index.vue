@@ -16,7 +16,7 @@ import { useNativePitch } from '~/composables/useNativePitch'
 import type { PitchSeries } from '~/types/pitch'
 
 definePageMeta({ access: 'free' })
-useHead({ title: 'Pronunciation — セカトークXP' })
+useSekaSeoMeta({ title: 'Pronunciation — セカトークXP', noindex: true })
 
 const tutorialStore = useTutorialStore()
 const authStore = useAuthStore()
