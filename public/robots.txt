@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /pending
+Disallow: /attempt/
+Disallow: /practice/words
+Disallow: /dashboard
+
+Sitemap: https://sekatoku.example.com/sitemap.xml

@@ -7,7 +7,7 @@ import { useCoach } from '~/composables/useCoach'
 import { useApi } from '~/composables/useApi'
 
 definePageMeta({ access: 'free' })
-useHead({ title: 'Word Review' })
+useSekaSeoMeta({ title: 'Word Review — セカトークXP', noindex: true })
 
 const { words, loading, error, fetchWords, flag, unflag } = useFlaggedWords()
 const { result: coachResult, loading: coachLoading, error: coachError, requestCoach } = useCoach()

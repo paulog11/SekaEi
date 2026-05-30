@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ access: 'free' })
-useHead({ title: 'About — セカトークXP' })
+useSekaSeoMeta({
+  title: 'About — セカトークXP',
+  description: 'セカトークXPとは？AIが発音を採点する仕組み、イディオム練習の特徴、ピッチグラフの使い方を紹介します。',
+})
 </script>
 
 <template>

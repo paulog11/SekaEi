@@ -24,6 +24,7 @@ const attempt = ref<AttemptDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
+useSekaSeoMeta({ title: 'Attempt — セカトークXP', noindex: true })
 useHead(() => ({
   title: attempt.value ? `Attempt — ${attempt.value.passageTitle} — セカトークXP` : 'Attempt — セカトークXP',
 }))

@@ -6,7 +6,7 @@
  * to skip the approval requirement.
  */
 
-const PUBLIC_ROUTES = ['/account', '/confirm', '/reset', '/pending', '/dev-only']
+const PUBLIC_ROUTES = ['/account', '/confirm', '/reset', '/pending', '/dev-only', '/']
 
 export default defineNuxtRouteMiddleware((to) => {
   if (PUBLIC_ROUTES.includes(to.path)) return
