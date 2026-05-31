@@ -237,6 +237,7 @@ watch(user, async (u) => {
   if (u) {
     await Promise.all([fetchStreak(), fetchPassages(), fetchDisplayName()])
     goalInput.value = streak.value.goalMinutes
+    fetchDevices()
   }
 }, { immediate: true })
 
@@ -255,6 +256,134 @@ async function handleAddPassage() {
     newPassageText.value = ''
   } else {
     passageError.value = 'Failed to save passage. Title may already be in use.'
+  }
+}
+
+// ── Privacy & account ────────────────────────────────────────────────────────
+
+// Change email
+const newEmail = ref('')
+const emailSaving = ref(false)
+const emailError = ref<string | null>(null)
+const emailSuccess = ref(false)
+
+async function handleChangeEmail() {
+  emailError.value = null
+  emailSuccess.value = false
+  const val = newEmail.value.trim()
+  if (!val) { emailError.value = 'Please enter a new email address.'; return }
+  emailSaving.value = true
+  try {
+    const { error } = await supabase.auth.updateUser({ email: val })
+    if (error) { emailError.value = error.message; return }
+    emailSuccess.value = true
+    newEmail.value = ''
+    setTimeout(() => { emailSuccess.value = false }, 5000)
+  } finally {
+    emailSaving.value = false
+  }
+}
+
+// Change password (while signed in)
+const currentPasswordInput = ref('')
+const newPasswordInput = ref('')
+const confirmNewPasswordInput = ref('')
+const pwSaving = ref(false)
+const pwError = ref<string | null>(null)
+const pwSuccess = ref(false)
+
+async function handleChangePassword() {
+  pwError.value = null
+  pwSuccess.value = false
+  if (!currentPasswordInput.value) { pwError.value = 'Enter your current password.'; return }
+  if (newPasswordInput.value.length < 12) { pwError.value = 'New password must be at least 12 characters.'; return }
+  if (newPasswordInput.value !== confirmNewPasswordInput.value) { pwError.value = 'New passwords do not match.'; return }
+  pwSaving.value = true
+  try {
+    const emailVal = user.value?.email ?? ''
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: emailVal, password: currentPasswordInput.value })
+    if (signInError) { pwError.value = 'Current password is incorrect.'; return }
+    const { error } = await supabase.auth.updateUser({ password: newPasswordInput.value })
+    if (error) { pwError.value = error.message; return }
+    pwSuccess.value = true
+    currentPasswordInput.value = ''
+    newPasswordInput.value = ''
+    confirmNewPasswordInput.value = ''
+    setTimeout(() => { pwSuccess.value = false }, 3000)
+  } finally {
+    pwSaving.value = false
+  }
+}
+
+// Data export
+const exportLoading = ref(false)
+const exportError = ref<string | null>(null)
+
+async function handleExportData() {
+  exportError.value = null
+  exportLoading.value = true
+  try {
+    const data = await apiFetch<Record<string, unknown>>('/api/me/export')
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sekatoku-data.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    exportError.value = 'Export failed. Please try again.'
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+// Active devices
+type DeviceRow = { deviceId: string; claimedAt: string | null }
+const devices = ref<DeviceRow[]>([])
+const devicesLoading = ref(false)
+const signOutOthersLoading = ref(false)
+const signOutOthersSuccess = ref(false)
+
+async function fetchDevices() {
+  devicesLoading.value = true
+  try {
+    const data = await apiFetch<{ devices: DeviceRow[] }>('/api/devices')
+    devices.value = data.devices
+  } catch { /* non-fatal */ } finally {
+    devicesLoading.value = false
+  }
+}
+
+async function handleSignOutOthers() {
+  signOutOthersSuccess.value = false
+  signOutOthersLoading.value = true
+  try {
+    await supabase.auth.signOut({ scope: 'others' })
+    signOutOthersSuccess.value = true
+    setTimeout(() => { signOutOthersSuccess.value = false }, 3000)
+  } finally {
+    signOutOthersLoading.value = false
+  }
+}
+
+// Delete account
+const showDeleteDialog = ref(false)
+const deleteLoading = ref(false)
+const deleteError = ref<string | null>(null)
+
+async function handleDeleteAccount() {
+  deleteError.value = null
+  deleteLoading.value = true
+  try {
+    await apiFetch('/api/me', { method: 'DELETE' })
+    await supabase.auth.signOut()
+    await navigateTo('/account')
+  } catch {
+    deleteError.value = 'Failed to delete account. Please try again or contact support.'
+    showDeleteDialog.value = false
+  } finally {
+    deleteLoading.value = false
   }
 }
 </script>
@@ -482,6 +611,148 @@ async function handleAddPassage() {
           </div>
         </div>
       </section>
+
+      <!-- Privacy & account -->
+      <section class="w-full max-w-2xl card">
+        <h2 class="text-base font-semibold text-ink mb-5">Privacy &amp; Account</h2>
+        <div class="flex flex-col gap-0 divide-y divide-border">
+
+          <!-- Change email -->
+          <div class="pb-5">
+            <h3 class="text-sm font-semibold text-ink mb-3">Change email</h3>
+            <div v-if="user?.new_email" class="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-xs mb-3">
+              Pending change to <strong>{{ user.new_email }}</strong> — check your new inbox to confirm.
+            </div>
+            <div class="flex items-center gap-3">
+              <input
+                v-model="newEmail"
+                class="field-input flex-1"
+                type="email"
+                placeholder="New email address"
+                autocomplete="email"
+                :disabled="emailSaving"
+                @keydown.enter="handleChangeEmail"
+              >
+              <button
+                class="btn-secondary btn-sm shrink-0"
+                :disabled="emailSaving || !newEmail.trim()"
+                @click="handleChangeEmail"
+              >
+                {{ emailSaving ? 'Sending…' : 'Send link' }}
+              </button>
+            </div>
+            <p v-if="emailError" class="text-sm text-red-600 mt-2 m-0">{{ emailError }}</p>
+            <p v-if="emailSuccess" class="text-sm text-green-600 mt-2 m-0">Confirmation link sent — check your new inbox.</p>
+          </div>
+
+          <!-- Change password -->
+          <div class="py-5">
+            <h3 class="text-sm font-semibold text-ink mb-3">Change password</h3>
+            <div class="flex flex-col gap-3">
+              <input
+                v-model="currentPasswordInput"
+                class="field-input"
+                type="password"
+                placeholder="Current password"
+                autocomplete="current-password"
+                :disabled="pwSaving"
+              >
+              <input
+                v-model="newPasswordInput"
+                class="field-input"
+                type="password"
+                placeholder="New password (12+ characters)"
+                autocomplete="new-password"
+                :disabled="pwSaving"
+              >
+              <input
+                v-model="confirmNewPasswordInput"
+                class="field-input"
+                type="password"
+                placeholder="Confirm new password"
+                autocomplete="new-password"
+                :disabled="pwSaving"
+              >
+              <button
+                class="btn-secondary btn-sm self-start"
+                :disabled="pwSaving || !currentPasswordInput || !newPasswordInput || !confirmNewPasswordInput"
+                @click="handleChangePassword"
+              >
+                {{ pwSaving ? 'Saving…' : 'Update password' }}
+              </button>
+            </div>
+            <p v-if="pwError" class="text-sm text-red-600 mt-2 m-0">{{ pwError }}</p>
+            <p v-if="pwSuccess" class="text-sm text-green-600 mt-2 m-0">Password updated.</p>
+          </div>
+
+          <!-- Data export -->
+          <div class="py-5">
+            <h3 class="text-sm font-semibold text-ink mb-1">Export your data</h3>
+            <p class="text-xs text-ink-lighter mb-3 m-0">Download a copy of your profile, attempts, and saved data as JSON.</p>
+            <button
+              class="btn-secondary btn-sm"
+              :disabled="exportLoading"
+              @click="handleExportData"
+            >
+              {{ exportLoading ? 'Preparing…' : 'Download my data' }}
+            </button>
+            <p v-if="exportError" class="text-sm text-red-600 mt-2 m-0">{{ exportError }}</p>
+          </div>
+
+          <!-- Active devices -->
+          <div class="py-5">
+            <h3 class="text-sm font-semibold text-ink mb-1">Active devices</h3>
+            <p class="text-xs text-ink-lighter mb-3 m-0">Devices that have previously signed in to this account.</p>
+            <p v-if="devicesLoading" class="text-sm text-ink-lighter mb-3 m-0">Loading…</p>
+            <div v-else-if="devices.length" class="flex flex-col gap-1.5 mb-3">
+              <div
+                v-for="d in devices"
+                :key="d.deviceId"
+                class="flex items-center justify-between bg-surface border border-border rounded-lg px-3.5 py-2"
+              >
+                <div>
+                  <p class="text-xs font-mono text-ink-medium m-0">{{ d.deviceId.slice(0, 8) }}…</p>
+                  <p class="text-xs text-ink-lighter m-0 mt-0.5">
+                    Claimed {{ d.claimedAt ? new Date(d.claimedAt).toLocaleDateString() : '—' }}
+                    <span v-if="d.deviceId === getOrCreateDeviceId()" class="ml-1 text-primary font-medium">· this device</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-sm text-ink-lighter mb-3 m-0">No devices found.</p>
+            <button
+              class="btn-secondary btn-sm"
+              :disabled="signOutOthersLoading"
+              @click="handleSignOutOthers"
+            >
+              {{ signOutOthersLoading ? 'Signing out…' : 'Sign out other devices' }}
+            </button>
+            <p v-if="signOutOthersSuccess" class="text-sm text-green-600 mt-2 m-0">Other devices have been signed out.</p>
+          </div>
+
+          <!-- Delete account -->
+          <div class="pt-5">
+            <h3 class="text-sm font-semibold text-red-700 mb-1">Delete account</h3>
+            <p class="text-xs text-ink-lighter mb-3 m-0">Permanently erase your profile, attempts, and all saved data. This cannot be undone.</p>
+            <button class="btn-danger btn-sm" @click="showDeleteDialog = true">
+              Delete my account
+            </button>
+            <p v-if="deleteError" class="text-sm text-red-600 mt-2 m-0">{{ deleteError }}</p>
+          </div>
+
+        </div>
+      </section>
+
+      <ConfirmDialog
+        :open="showDeleteDialog"
+        title="Delete your account?"
+        message="This permanently erases your profile, attempts, and all saved data. This cannot be undone."
+        confirm-word="DELETE"
+        confirm-label="Delete my account"
+        :danger="true"
+        @confirm="handleDeleteAccount"
+        @cancel="showDeleteDialog = false"
+      />
 
       <!-- About link -->
       <section class="w-full max-w-2xl">

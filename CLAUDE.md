@@ -171,6 +171,10 @@ The app enforces two checks on every protected route: (1) the user is logged in,
 | `server/api/attempts.post.ts` | Saves a completed attempt to Supabase. |
 | `server/api/attempts.get.ts` | Returns attempt history for the authenticated user. |
 | `server/api/me.get.ts` | Returns the current user profile (id, email, displayName, approvalStatus, tutorialCompletedAt) + streak data. |
+| `server/api/me.delete.ts` | DELETE /api/me — deletes the authenticated user via `supabase.auth.admin.deleteUser`. Cascades remove all per-user rows. Auth: any authenticated user (not approval-gated). |
+| `server/api/me/export.get.ts` | GET /api/me/export — APPI right of disclosure. Returns a JSON bundle of profile + attempts + custom_passages + streak + phoneme_stats + flagged_words. Sets `Content-Disposition: attachment`. |
+| `server/api/devices/index.get.ts` | GET /api/devices — lists `device_claims` rows for the current user (deviceId + claimedAt). Not a live-session list. |
+| `components/ConfirmDialog.vue` | Reusable Teleport+Transition confirmation dialog. Props: `open`, `title`, `message`, `confirmWord?` (typed input), `confirmLabel?`, `danger?`. Emits `confirm` / `cancel`. |
 
 ---
 
@@ -256,6 +260,8 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 |-----------|---------------|
 | `tests/unit/me.get.test.ts` | Profile fields (id, email, displayName, university, approvalStatus, tutorialCompletedAt), null-field fallbacks |
 | `tests/unit/me.patch.test.ts` | displayName validation (length, charset, bad words), university length, DB error → 500 |
+| `tests/unit/me.delete.test.ts` | 401 unauthenticated, deleteUser called with user id, 500 on error, `{ ok: true }` success |
+| `tests/unit/me.export.get.test.ts` | 401 unauthenticated, bundle keys present, Content-Disposition header set, 500 on DB error |
 | `tests/unit/tutorial.post.test.ts` | Mark tutorial complete, returns completedAt, profiles update |
 
 ### API routes — flagged words
@@ -301,6 +307,7 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 | `tests/unit/flagDifficultWordsSilent.test.ts` | `flagDifficultWordsSilently` — threshold 60, skips Omission/Insertion, normalization, error swallowing |
 | `tests/unit/claimDevice.test.ts` | `claimDevice` util — upsert + attempts migration (legacy device_id → real user) |
 | `tests/unit/devices.claim.test.ts` | `POST /api/devices/claim` — UUID validation, delegation |
+| `tests/unit/devices.get.test.ts` | `GET /api/devices` — 401 unauthenticated, snake→camel mapping, empty list, 500 on DB error |
 
 ### Shared fixtures
 
