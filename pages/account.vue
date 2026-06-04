@@ -7,6 +7,7 @@ import { useVoicePreference } from '~/composables/useVoicePreference'
 import { useTextToSpeech } from '~/composables/useTextToSpeech'
 import { ALLOWED_VOICES, VOICE_LABELS, VOICE_REGIONS, type AllowedVoice, type VoiceRegion } from '~/types/voices'
 import { useAuthStore } from '~/stores/authStore'
+import { TIER_LIMITS } from '~/server/utils/tierLimits'
 
 definePageMeta({})
 useSekaSeoMeta({ title: 'Account — セカトークXP', noindex: true })
@@ -405,6 +406,7 @@ async function handleDeleteAccount() {
         <div class="flex-1 min-w-0">
           <p class="font-heading text-xl font-bold text-ink m-0">{{ displayName || 'Learner' }}</p>
           <p class="text-sm text-ink-light m-0 truncate">{{ user.email }}</p>
+          <TierBadge :tier="authStore.tier" class="mt-1.5" />
         </div>
         <div class="flex flex-col items-end gap-1.5 shrink-0">
           <button class="btn-secondary btn-sm" @click="handleSignOut">Sign out</button>
@@ -470,6 +472,14 @@ async function handleDeleteAccount() {
       <section v-if="authStore.tier !== 'attendee'" class="w-full max-w-2xl card">
         <h2 class="text-base font-semibold text-ink mb-1">Program Code</h2>
         <p class="text-xs text-ink-lighter mb-4 m-0">If you attended our English program, enter your invite code to unlock full features — higher daily limits, AI coaching, and custom passages.</p>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm mb-4">
+          <p class="font-medium text-ink m-0 mb-1.5">On the Free plan you have:</p>
+          <ul class="list-disc list-inside text-ink-light space-y-0.5 m-0">
+            <li>{{ TIER_LIMITS.public.assessDaily }} pronunciation tests per day</li>
+            <li>No AI coaching</li>
+            <li>No custom passages</li>
+          </ul>
+        </div>
         <div v-if="redeemSuccess" class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm mb-3">
           Welcome to the program! Full features are now unlocked.
         </div>

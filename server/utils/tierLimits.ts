@@ -10,3 +10,8 @@ export const TIER_LIMITS = {
   public:   { assessDaily: 10, coachDaily: 0,  canAddCustomPassages: false },
   attendee: { assessDaily: 60, coachDaily: 20, canAddCustomPassages: true  },
 } as const
+
+export const TIER_LABELS: Record<Tier, string> = {
+  public: 'Free',
+  attendee: 'Attendee',
+}
