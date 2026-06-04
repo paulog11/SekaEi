@@ -83,10 +83,7 @@ const features = [
     <!-- Screenshot placeholder -->
     <section class="bg-white border-y border-border py-12">
       <div class="max-w-page mx-auto px-5">
-        <div class="rounded-2xl bg-surface border border-border aspect-video flex items-center justify-center text-ink-lighter text-sm">
-          <!-- Drop public/images/landing-screenshot.png here and replace with <img> -->
-          App screenshot
-        </div>
+        <img src="/assets/landing-screenshot.jpg" alt="App screenshot" />
       </div>
     </section>
 

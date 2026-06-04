@@ -77,6 +77,7 @@ describe('GET /api/me', () => {
         created_at: '2024-01-01T00:00:00Z',
         approval_status: 'approved',
         tutorial_completed_at: '2024-01-02T00:00:00Z',
+        tier: 'attendee',
       },
       { current_streak: 3, longest_streak: 7, daily_goal_minutes: 10, last_practice_date: '2024-01-01' },
     )
@@ -91,6 +92,7 @@ describe('GET /api/me', () => {
         university: 'MIT',
         approvalStatus: 'approved',
         tutorialCompletedAt: '2024-01-02T00:00:00Z',
+        tier: 'attendee',
       },
       streak: 3,
       longestStreak: 7,
@@ -112,6 +114,17 @@ describe('GET /api/me', () => {
     expect(result.user.university).toBeNull()
     expect(result.user.tutorialCompletedAt).toBeNull()
     expect(result.user.approvalStatus).toBe('pending')
+  })
+
+  it('defaults tier to public when column is absent', async () => {
+    vi.mocked(useSupabaseUser).mockResolvedValue(MOCK_USER as any)
+    setupProfileChain(
+      { display_name: null, university: null, created_at: '2024-01-01T00:00:00Z', approval_status: 'approved', tutorial_completed_at: null },
+      null,
+    )
+
+    const result = await (handler as Function)({})
+    expect(result.user.tier).toBe('public')
   })
 
   it('returns zeros for streak when no streak row exists', async () => {

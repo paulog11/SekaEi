@@ -17,6 +17,7 @@ const user = useSupabaseUser()
 const { apiFetch } = useApi()
 const tutorialStore = useTutorialStore()
 const authStore = useAuthStore()
+onMounted(() => { authStore.refreshApproval() })
 
 // ── Auth form state ──────────────────────────────────────────────────────────
 const activeTab = ref<'signin' | 'signup'>('signin')
