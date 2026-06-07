@@ -39,7 +39,7 @@ or partial in this repo. Each item lists what's missing, why it matters, and a
 concrete suggested approach (library / file / Vercel feature). This is a menu,
 not a prescribed ship list.
 
-## 1. Legal & compliance
+## 1. Legal & compliance - DONE
 
 Currently fully absent. For a Japan-targeted product collecting email + voice
 recordings + behavioral data, this is the largest single gap.
@@ -55,7 +55,7 @@ Suggested approach: keep these as static `.vue` pages with content in both `ja`
 and `en` sections. No CMS needed at this size. Link them from a new shared
 `<AppFooter>` component on all non-app routes.
 
-## 2. SEO, discoverability & marketing surface
+## 2. SEO, discoverability & marketing surface - DONE
 
 Most items in this section were implemented (landing page, sitemap, robots.txt,
 per-page meta, og:image, `<html lang="ja">`, JSON-LD, canonical URLs).
@@ -67,7 +67,7 @@ Remaining follow-ups:
 - **Production domain** — set `NUXT_PUBLIC_SITE_URL` in Vercel to the real domain so sitemap, canonical tags, and `og:url` resolve correctly (currently falls back to `https://sekatoku.example.com`).
 - **Per-page dynamic OG images** — currently a single static `public/og-image.png` is used everywhere. For per-page cards (e.g. attempt detail with the passage title), install `nuxt-og-image` and replace the static default.
 
-## 3. Account lifecycle (post-signup management)
+## 3. Account lifecycle (post-signup management) - DONE
 
 These are user-rights features expected in any modern public app, and most are
 required by APPI.
