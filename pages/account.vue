@@ -78,6 +78,7 @@ async function handleSignIn() {
       try {
         await apiFetch('/api/devices/claim', { method: 'POST', body: { deviceId: getOrCreateDeviceId() } })
       } catch { /* non-fatal */ }
+      await authStore.refreshApproval()
     }
   } finally {
     authLoading.value = false
