@@ -9,25 +9,27 @@ definePageMeta({ access: 'free' })
 useSekaSeoMeta({ title: 'Dashboard — セカトークXP', noindex: true })
 
 const user = useSupabaseUser()
-const { getHistory } = useHistory()
-const { streak, fetchStreak } = useStreak()
-const { weakest, fetchStats } = usePhonemeStats()
+const { getHistory, error: historyError } = useHistory()
+const { streak, fetchStreak, error: streakError } = useStreak()
+const { weakest, fetchStats, error: statsError } = usePhonemeStats()
 const weakPhonemes = computed(() => weakest.value.filter(s => s.avgScore < 70))
 
 const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
 const loading = ref(false)
 
-watch(user, async (u) => {
-  if (u) {
-    loading.value = true
-    ;[history.value] = await Promise.all([
-      getHistory(),
-      fetchStreak(),
-      fetchStats(),
-    ])
-    loading.value = false
-  }
-}, { immediate: true })
+const loadError = computed(() => historyError.value || streakError.value || statsError.value || null)
+
+async function load(force = false) {
+  loading.value = true
+  ;[history.value] = await Promise.all([
+    getHistory({ force }),
+    fetchStreak({ force }),
+    fetchStats({ force }),
+  ])
+  loading.value = false
+}
+
+watch(user, (u) => { if (u) load() }, { immediate: true })
 
 const totalAttempts = computed(() => history.value.length)
 
@@ -90,50 +92,57 @@ function formatDate(ts: number) {
   <main class="container-page flex flex-col gap-6">
     <h1 class="text-lg font-bold text-ink m-0">Dashboard</h1>
 
+    <ErrorBoundary :error="loadError" @retry="load(true)">
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <!-- Streak -->
-      <div class="card-pop bg-white flex flex-col gap-1 p-4">
-        <p class="font-heading text-5xl font-bold text-primary m-0 leading-none">
-          {{ streak.current }}<span class="text-4xl">🔥</span>
-        </p>
-        <p class="text-xs text-ink-lighter m-0 mt-1">Day streak</p>
-        <p class="text-[11px] m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
-          {{ streak.todayMet ? '✓ done today' : '○ not yet' }}
-        </p>
-      </div>
+      <!-- Loading skeletons -->
+      <template v-if="loading">
+        <div v-for="n in 4" :key="n" class="skeleton h-24" />
+      </template>
+      <template v-else>
+        <!-- Streak -->
+        <div class="card-pop bg-white flex flex-col gap-1 p-4">
+          <p class="font-heading text-5xl font-bold text-primary m-0 leading-none">
+            {{ streak.current }}<span class="text-4xl">🔥</span>
+          </p>
+          <p class="text-xs text-ink-lighter m-0 mt-1">Day streak</p>
+          <p class="text-[11px] m-0" :class="streak.todayMet ? 'text-green-600' : 'text-amber-600'">
+            {{ streak.todayMet ? '✓ done today' : '○ not yet' }}
+          </p>
+        </div>
 
-      <!-- Total sessions -->
-      <div class="card-pop bg-white flex flex-col gap-1 p-4">
-        <p class="font-heading text-5xl font-bold text-ink m-0 leading-none">{{ totalAttempts }}</p>
-        <p class="text-xs text-ink-lighter m-0 mt-1">Total sessions</p>
-      </div>
+        <!-- Total sessions -->
+        <div class="card-pop bg-white flex flex-col gap-1 p-4">
+          <p class="font-heading text-5xl font-bold text-ink m-0 leading-none">{{ totalAttempts }}</p>
+          <p class="text-xs text-ink-lighter m-0 mt-1">Total sessions</p>
+        </div>
 
-      <!-- Avg. score — radial progress (primary / lavender) -->
-      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
-        <div
-          class="radial-progress font-heading font-bold text-sm"
-          :style="`--value:${avgOverall}; --size:5rem; --thickness:6px; color: var(--color-primary); background-color: #f3e8ff;`"
-          role="progressbar"
-          :aria-valuenow="avgOverall"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >{{ avgOverall || '—' }}</div>
-        <p class="text-xs text-ink-lighter m-0">Avg. score</p>
-      </div>
+        <!-- Avg. score — radial progress (primary / lavender) -->
+        <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
+          <div
+            class="radial-progress font-heading font-bold text-sm"
+            :style="`--value:${avgOverall}; --size:5rem; --thickness:6px; color: var(--color-primary); background-color: #f3e8ff;`"
+            role="progressbar"
+            :aria-valuenow="avgOverall"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >{{ avgOverall || '—' }}</div>
+          <p class="text-xs text-ink-lighter m-0">Avg. score</p>
+        </div>
 
-      <!-- Mastered — radial progress (secondary / mint) -->
-      <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
-        <div
-          class="radial-progress font-heading font-bold text-sm"
-          :style="`--value:${masteredPercent}; --size:5rem; --thickness:6px; color: var(--color-secondary); background-color: #d1fae5;`"
-          role="progressbar"
-          :aria-valuenow="masteredPercent"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >{{ passagesMastered }}/{{ SAMPLE_PASSAGES.length }}</div>
-        <p class="text-xs text-ink-lighter m-0">Mastered</p>
-      </div>
+        <!-- Mastered — radial progress (secondary / mint) -->
+        <div class="card-pop bg-white flex flex-col items-center justify-center gap-2 p-4">
+          <div
+            class="radial-progress font-heading font-bold text-sm"
+            :style="`--value:${masteredPercent}; --size:5rem; --thickness:6px; color: var(--color-secondary); background-color: #d1fae5;`"
+            role="progressbar"
+            :aria-valuenow="masteredPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >{{ passagesMastered }}/{{ SAMPLE_PASSAGES.length }}</div>
+          <p class="text-xs text-ink-lighter m-0">Mastered</p>
+        </div>
+      </template>
     </div>
 
     <!-- Up next — all passages with pastel thumbnails -->
@@ -188,10 +197,9 @@ function formatDate(ts: number) {
     </section>
 
     <!-- Passage mastery -->
-    <section v-if="loading || masteryRows.length">
+    <section v-if="masteryRows.length">
       <h2 class="text-sm font-semibold text-ink-medium mb-3">Passage mastery</h2>
-      <p v-if="loading" class="text-sm text-ink-lighter m-0">Loading…</p>
-      <div v-else class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2">
         <NuxtLink
           v-for="row in masteryRows"
           :key="row.passageId"
@@ -214,5 +222,6 @@ function formatDate(ts: number) {
       <p class="text-base m-0">No practice sessions yet.</p>
       <NuxtLink to="/practice" class="btn-primary mt-4 inline-flex">Start practising</NuxtLink>
     </section>
+    </ErrorBoundary>
   </main>
 </template>

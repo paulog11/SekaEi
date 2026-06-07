@@ -34,6 +34,7 @@ export const useHistoryStore = defineStore('history', () => {
   const attempts = ref<AttemptRecord[]>([])
   const fetchedAt = ref<number | null>(null)
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   // Non-reactive per-passage cache — no need to render directly
   const byPassageCache: Record<string, { data: AttemptRecord[]; ts: number }> = {}
@@ -51,6 +52,7 @@ export const useHistoryStore = defineStore('history', () => {
     attempts.value = []
     fetchedAt.value = null
     loading.value = false
+    error.value = null
     for (const key in byPassageCache) delete byPassageCache[key]
   }
 
@@ -61,8 +63,9 @@ export const useHistoryStore = defineStore('history', () => {
       const res = await apiFetch<{ attempts: AttemptRecord[] }>('/api/attempts')
       attempts.value = res.attempts
       fetchedAt.value = Date.now()
-    } catch {
-      // non-fatal
+      error.value = null
+    } catch (e) {
+      error.value = (e as { data?: { message?: string } })?.data?.message ?? "Couldn't load your sessions."
     } finally {
       loading.value = false
     }
@@ -103,5 +106,5 @@ export const useHistoryStore = defineStore('history', () => {
     }
   }
 
-  return { attempts, loading, fetchedAt, isStale, invalidate, reset, fetchAll, fetchByPassage, addAttempt }
+  return { attempts, loading, error, fetchedAt, isStale, invalidate, reset, fetchAll, fetchByPassage, addAttempt }
 })

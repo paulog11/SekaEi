@@ -9,6 +9,6 @@ import { usePhonemeStatsStore } from '~/stores/phonemeStatsStore'
 
 export function usePhonemeStats() {
   const store = usePhonemeStatsStore()
-  const { weakest, strongest, loading } = storeToRefs(store)
-  return { weakest, strongest, loading, fetchStats: store.fetchStats }
+  const { weakest, strongest, loading, error } = storeToRefs(store)
+  return { weakest, strongest, loading, error, fetchStats: store.fetchStats }
 }
