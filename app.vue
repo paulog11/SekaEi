@@ -63,6 +63,9 @@ watch(user, (u) => {
   <!-- Cookie disclosure banner — client only, dismissed to localStorage -->
   <ClientOnly><CookieBanner /></ClientOnly>
 
+  <!-- Offline indicator — client only -->
+  <ClientOnly><OfflineBanner /></ClientOnly>
+
   <!-- First-time user tutorial overlay -->
   <TutorialOverlay />
 </template>

@@ -55,18 +55,14 @@ export const useCustomPassagesStore = defineStore('customPassages', () => {
     }
   }
 
-  async function addPassage(title: string, text: string, category: PassageCategory = 'custom'): Promise<CustomPassage | null> {
-    try {
-      const data = await apiFetch<{ passage: CustomPassage }>('/api/passages', {
-        method: 'POST',
-        body: { title, text, category },
-      })
-      items.value = [data.passage, ...items.value]
-      fetchedAt.value = Date.now() // in-memory is now current
-      return data.passage
-    } catch {
-      return null
-    }
+  async function addPassage(title: string, text: string, category: PassageCategory = 'custom'): Promise<CustomPassage> {
+    const data = await apiFetch<{ passage: CustomPassage }>('/api/passages', {
+      method: 'POST',
+      body: { title, text, category },
+    })
+    items.value = [data.passage, ...items.value]
+    fetchedAt.value = Date.now() // in-memory is now current
+    return data.passage
   }
 
   async function deletePassage(id: string): Promise<void> {
