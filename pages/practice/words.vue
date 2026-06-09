@@ -121,9 +121,12 @@ async function handleUnflag(word: FlaggedWord) {
           <!-- Archive -->
           <div v-if="activeWord" class="flex justify-end">
             <button
-              class="text-xs text-ink-lighter hover:text-ink transition-colors duration-150 underline underline-offset-2"
+              class="btn btn-secondary btn-sm flex items-center gap-1.5"
               @click="handleUnflag(activeWord)"
             >
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
               Archive word
             </button>
           </div>
