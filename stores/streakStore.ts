@@ -23,6 +23,7 @@ export const useStreakStore = defineStore('streak', () => {
   const streak = ref<StreakData>({ current: 0, longest: 0, goalMinutes: 5, todayMet: false })
   const fetchedAt = ref<number | null>(null)
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   function isStale() {
     return fetchedAt.value === null || Date.now() - fetchedAt.value > TTL
@@ -36,6 +37,7 @@ export const useStreakStore = defineStore('streak', () => {
     streak.value = { current: 0, longest: 0, goalMinutes: 5, todayMet: false }
     fetchedAt.value = null
     loading.value = false
+    error.value = null
   }
 
   async function fetchStreak({ force = false } = {}): Promise<void> {
@@ -45,8 +47,9 @@ export const useStreakStore = defineStore('streak', () => {
       const data = await apiFetch<StreakData>('/api/stats/streak')
       streak.value = data
       fetchedAt.value = Date.now()
-    } catch {
-      // non-fatal
+      error.value = null
+    } catch (e) {
+      error.value = (e as { data?: { message?: string } })?.data?.message ?? "Couldn't load your streak."
     } finally {
       loading.value = false
     }
@@ -61,5 +64,5 @@ export const useStreakStore = defineStore('streak', () => {
     }
   }
 
-  return { streak, loading, fetchedAt, isStale, invalidate, reset, fetchStreak, setGoal }
+  return { streak, loading, error, fetchedAt, isStale, invalidate, reset, fetchStreak, setGoal }
 })

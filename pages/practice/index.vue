@@ -137,6 +137,7 @@ const newPassageTitle = ref('')
 const newPassageText = ref('')
 const newPassageCategory = ref<PassageCategory>('custom')
 const addingPassage = ref(false)
+const addPassageError = ref<string | null>(null)
 
 const passageHasBadWords = computed(() =>
   containsBadWords(newPassageTitle.value) || containsBadWords(newPassageText.value)
@@ -145,13 +146,16 @@ const passageHasBadWords = computed(() =>
 async function submitNewPassage() {
   if (!newPassageTitle.value.trim() || !newPassageText.value.trim()) return
   addingPassage.value = true
+  addPassageError.value = null
   try {
     const added = await addPassage(newPassageTitle.value.trim(), newPassageText.value.trim(), newPassageCategory.value)
-    if (added) selectedPassageId.value = `custom:${added.id}`
+    selectedPassageId.value = `custom:${added.id}`
     newPassageTitle.value = ''
     newPassageText.value = ''
     newPassageCategory.value = 'custom'
     showAddPassage.value = false
+  } catch (e: unknown) {
+    addPassageError.value = (e as { data?: { message?: string } })?.data?.message ?? 'Failed to add passage.'
   } finally {
     addingPassage.value = false
   }
@@ -664,6 +668,7 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
                 </svg>
                 <p class="text-sm text-red-700 m-0">Please refrain from using bad language.</p>
               </div>
+              <p v-if="addPassageError" class="text-sm text-red-600 m-0" role="alert">{{ addPassageError }}</p>
               <button
                 class="btn-primary w-full"
                 :disabled="!newPassageTitle.trim() || !newPassageText.trim() || newPassageText.length > 300 || addingPassage || passageHasBadWords"

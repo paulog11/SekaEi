@@ -9,6 +9,6 @@ import { useStreakStore } from '~/stores/streakStore'
 
 export function useStreak() {
   const store = useStreakStore()
-  const { streak, loading } = storeToRefs(store)
-  return { streak, loading, fetchStreak: store.fetchStreak, setGoal: store.setGoal }
+  const { streak, loading, error } = storeToRefs(store)
+  return { streak, loading, error, fetchStreak: store.fetchStreak, setGoal: store.setGoal }
 }

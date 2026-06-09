@@ -23,6 +23,7 @@ export const usePhonemeStatsStore = defineStore('phonemeStats', () => {
   const strongest = ref<PhonemeStat[]>([])
   const fetchedAt = ref<number | null>(null)
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   function isStale() {
     return fetchedAt.value === null || Date.now() - fetchedAt.value > TTL
@@ -37,6 +38,7 @@ export const usePhonemeStatsStore = defineStore('phonemeStats', () => {
     strongest.value = []
     fetchedAt.value = null
     loading.value = false
+    error.value = null
   }
 
   async function fetchStats({ force = false } = {}): Promise<void> {
@@ -47,12 +49,13 @@ export const usePhonemeStatsStore = defineStore('phonemeStats', () => {
       weakest.value = data.weakest
       strongest.value = data.strongest
       fetchedAt.value = Date.now()
-    } catch {
-      // non-fatal
+      error.value = null
+    } catch (e) {
+      error.value = (e as { data?: { message?: string } })?.data?.message ?? "Couldn't load phoneme stats."
     } finally {
       loading.value = false
     }
   }
 
-  return { weakest, strongest, loading, fetchedAt, isStale, invalidate, reset, fetchStats }
+  return { weakest, strongest, loading, error, fetchedAt, isStale, invalidate, reset, fetchStats }
 })

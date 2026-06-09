@@ -252,13 +252,14 @@ async function handleAddPassage() {
   if (!newPassageTitle.value.trim() || !newPassageText.value.trim()) return
   passageError.value = null
   addingPassage.value = true
-  const result = await addPassage(newPassageTitle.value.trim(), newPassageText.value.trim())
-  addingPassage.value = false
-  if (result) {
+  try {
+    await addPassage(newPassageTitle.value.trim(), newPassageText.value.trim())
     newPassageTitle.value = ''
     newPassageText.value = ''
-  } else {
-    passageError.value = 'Failed to save passage. Title may already be in use.'
+  } catch (e: unknown) {
+    passageError.value = (e as { data?: { message?: string } })?.data?.message ?? 'Failed to save passage.'
+  } finally {
+    addingPassage.value = false
   }
 }
 
