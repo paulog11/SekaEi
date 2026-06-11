@@ -183,7 +183,7 @@ function formatDate(ts: number) {
           v-for="attempt in recentAttempts"
           :key="attempt.timestamp"
           :to="attempt.slug ? `/attempt/${attempt.slug}` : '/practice'"
-          class="flex items-center gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
+          class="flex items-center gap-3 bg-white rounded-lg px-3.5 py-2.5 no-underline shadow-[0_1px_4px_rgba(0,0,0,0.07)]"
         >
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-ink m-0 truncate">{{ attempt.passageTitle }}</p>
@@ -204,7 +204,7 @@ function formatDate(ts: number) {
           v-for="row in masteryRows"
           :key="row.passageId"
           :to="row.attempts[0]?.slug ? `/attempt/${row.attempts[0].slug}` : '/practice'"
-          class="flex items-center justify-between gap-3 bg-surface border border-border rounded-lg px-3.5 py-2.5 no-underline"
+          class="flex items-center justify-between gap-3 bg-white rounded-lg px-3.5 py-2.5 no-underline shadow-[0_1px_4px_rgba(0,0,0,0.07)]"
         >
           <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink">{{ row.passageTitle }}</span>
           <div class="flex items-center gap-3 shrink-0">
