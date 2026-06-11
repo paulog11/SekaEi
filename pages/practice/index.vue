@@ -559,7 +559,7 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
                   v-for="a in detailPassageAttempts"
                   :key="a.slug ?? a.timestamp"
                   :to="`/attempt/${a.slug}`"
-                  class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-surface transition-colors no-underline"
+                  class="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.1)] transition-shadow no-underline"
                   @click="detailPassage = null"
                 >
                   <span class="text-xs text-ink-lighter">{{ formatAttemptDate(a.timestamp) }}</span>
