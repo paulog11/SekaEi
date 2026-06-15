@@ -170,6 +170,10 @@ const nativePitchComposable = useNativePitch()
 const nativePitchSeries = ref<PitchSeries | null>(null)
 const lastSavedSlug = ref<string | null>(null)
 
+const showImprovementToast = ref(false)
+const improvementDelta = ref(0)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
 watch(referenceText, (text) => {
   if (text) nativePitchComposable.preload(text)
 }, { immediate: true })
@@ -226,8 +230,19 @@ async function assess() {
     const form = new FormData()
     form.append('audio', audioWav.value, 'recording.wav')
     form.append('referenceText', referenceText.value)
+    const previousAttempts = allHistory.value.filter(r => r.passageId === activePassageId.value)
+    const previousBest = previousAttempts.length
+      ? Math.max(...previousAttempts.map(r => r.scores.overall))
+      : null
     const data = await apiFetch<AssessmentResult>('/api/assess', { method: 'POST', body: form })
     assessmentResult.value = data
+    const newScore = Math.round(data.PronunciationAssessment.PronScore)
+    if (previousBest !== null && newScore > previousBest) {
+      improvementDelta.value = newScore - previousBest
+      showImprovementToast.value = true
+      if (toastTimer) clearTimeout(toastTimer)
+      toastTimer = setTimeout(() => { showImprovementToast.value = false }, 3500)
+    }
     nativePitchComposable.fetch(referenceText.value).then(series => { nativePitchSeries.value = series }).catch(() => { nativePitchSeries.value = null })
     tutorialStore.advanceIfOnStep(5)
     lastSavedSlug.value = await addAttempt({
@@ -580,6 +595,31 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
                 Practice this passage
               </button>
             </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Improvement toast -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+      >
+        <div
+          v-if="showImprovementToast"
+          role="status"
+          aria-live="polite"
+          class="fixed bottom-6 right-4 z-[70] flex items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 shadow-lg text-white max-w-[260px]"
+        >
+          <span class="text-xl" aria-hidden="true">🎉</span>
+          <div>
+            <p class="text-sm font-semibold m-0 leading-snug">You improved your score!</p>
+            <p class="text-xs opacity-90 m-0 mt-0.5">+{{ improvementDelta }} pts — Good job!</p>
           </div>
         </div>
       </Transition>
