@@ -37,7 +37,7 @@ const { items: customPassages, fetchPassages, addPassage } = useCustomPassages()
 const { fetchStreak } = useStreak()
 
 const { apiFetch } = useApi()
-const { play: playTts, playingKey: ttsPlayingKey } = useTextToSpeech()
+const { play: playTts, stop: stopTts, playingKey: ttsPlayingKey } = useTextToSpeech()
 const isRecording = ref(false)
 const isPlayingPassage = computed(() =>
   ttsPlayingKey.value === `en-US-AriaNeural:${referenceText.value}`
@@ -47,6 +47,8 @@ onMounted(() => {
   fetchPassages()
   fetchStreak()
 })
+
+onUnmounted(() => stopTts())
 
 const allPassages = computed(() => [
   ...SAMPLE_PASSAGES,
@@ -456,16 +458,16 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
             v-if="referenceText"
             type="button"
             class="btn btn-secondary btn-sm flex items-center gap-1.5"
-            :disabled="isPlayingPassage || isRecording"
-            :title="isRecording ? 'Stop recording first' : 'Hear native pronunciation'"
-            @click="playTts(referenceText)"
+            :disabled="isRecording"
+            :title="isRecording ? 'Stop recording first' : (isPlayingPassage ? 'Stop playback' : 'Hear native pronunciation')"
+            @click="isPlayingPassage ? stopTts() : playTts(referenceText)"
           >
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 0 1 0 7.07" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.07 4.93a10 10 0 0 1 0 14.14" />
             </svg>
-            {{ isPlayingPassage ? 'Playing…' : 'Listen' }}
+            {{ isPlayingPassage ? 'Stop' : 'Listen' }}
           </button>
         </div>
         <p class="text-sm text-ink leading-relaxed m-0">{{ referenceText }}</p>
