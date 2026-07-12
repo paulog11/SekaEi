@@ -29,6 +29,7 @@ Numbered SQL files = the source of truth for the database schema. Applied in lex
 | 0008 | `0008_no_auto_retire.sql` | Removed auto-retirement from `upsert_flagged_word`; words now stay active until the user archives. |
 | 0009 | `0009_university.sql` | Added `profiles.university` (optional). |
 | 0010 | `0010_invite_codes_and_tier.sql` | Added `profiles.tier` (`public` / `attendee`) + invite-code redemption RPC. |
+| 0013 | `0013_db_security_hardening.sql` | Enabled RLS on `device_claims` (was never enabled despite 0002's comment); reverted `profiles.tier` default from `attendee` back to `public`; added `SET search_path = public` to `increment_assess_usage`, `increment_coach_usage`, `redeem_invite_code`, `handle_new_user`. |
 
 ## Local dev
 
