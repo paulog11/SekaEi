@@ -4,6 +4,7 @@
  */
 
 import type { AttemptRecord } from './useHistory'
+import type { LevelDef } from '~/types/levels'
 
 export type StarRating = 0 | 1 | 2 | 3
 
@@ -18,6 +19,14 @@ export function passageStars(attempts: AttemptRecord[]): StarRating {
   if (best >= 80) return 2
   if (best >= 60) return 1
   return 0
+}
+
+/**
+ * True when every passage in the level has been starred at least once
+ * (best overall >= 60) in the given attempts — earns the level's passport stamp.
+ */
+export function levelStampEarned(level: LevelDef, attempts: AttemptRecord[]): boolean {
+  return level.passageIds.every(id => passageStars(attempts.filter(a => a.passageId === id)) >= 1)
 }
 
 /**

@@ -42,6 +42,8 @@ export default defineNuxtPlugin(async () => {
     useCustomPassagesStore().reset()
     useFlaggedWordsStore().reset()
     useTutorialStore().reset()
+    useXpStore().reset()
+    useBadgesStore().reset()
   }
 
   let previousUserId: string | null = user.value?.id ?? null

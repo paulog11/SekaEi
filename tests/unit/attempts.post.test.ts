@@ -32,6 +32,12 @@ vi.mock('~/server/utils/flagDifficultWords', () => ({
   flagDifficultWordsSilently: mockFlagDifficultWordsSilently,
 }))
 
+const mockServiceRpc = vi.fn()
+
+vi.mock('~/server/utils/supabaseService', () => ({
+  useSupabaseService: () => ({ rpc: mockServiceRpc }),
+}))
+
 const createError = (opts: { statusCode: number; message: string }) => {
   const err = new Error(opts.message) as Error & { statusCode: number }
   err.statusCode = opts.statusCode
@@ -61,18 +67,22 @@ function makeEvent(body: unknown) {
   return { __body: body }
 }
 
-function setupInsertChain(result: unknown) {
+function setupInsertChain(result: unknown, priorBestResult: unknown = { data: [], error: null }) {
   const c = {} as Record<string, ReturnType<typeof vi.fn>>
   c.select = vi.fn().mockReturnValue(c)
   c.eq = vi.fn().mockReturnValue(c)
+  c.order = vi.fn().mockReturnValue(c)
   c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
   c.insert = vi.fn().mockReturnValue(c)
   c.single = vi.fn().mockResolvedValue(result)
+  c.limit = vi.fn().mockResolvedValue(priorBestResult)
   c.update = vi.fn().mockReturnValue(c)
   c.upsert = vi.fn().mockResolvedValue({ error: null })
   c.rpc = vi.fn().mockResolvedValue({ error: null })
   c.in = vi.fn().mockReturnValue(c)
   mockFrom.mockReturnValue(c)
+  // Default: add_xp succeeds with a total of 0 (overridden per-test as needed).
+  mockServiceRpc.mockResolvedValue({ data: 0, error: null })
   return c
 }
 
@@ -180,7 +190,7 @@ describe('POST /api/attempts — happy path', () => {
 
     const result = await (handler as Function)(makeEvent(VALID_BODY))
 
-    expect(result).toEqual({ attempt: MOCK_ROW })
+    expect(result).toMatchObject({ attempt: MOCK_ROW })
     expect(c.insert).toHaveBeenCalledWith(expect.objectContaining({
       user_id: VALID_UUID,
       passage_id: 'interstellar',
@@ -254,6 +264,85 @@ describe('POST /api/attempts — happy path', () => {
     await (handler as Function)(makeEvent(VALID_BODY))
 
     expect(mockFlagDifficultWordsSilently).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/attempts — XP awarding', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRequireApprovedUser.mockResolvedValue(MOCK_USER)
+  })
+
+  it('response contains xp with awarded, bonus, total, level, leveledUp on a successful save', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null }) // no prior attempts -> priorBest null
+    mockServiceRpc.mockResolvedValue({ data: 30, error: null })
+
+    // overall 82 -> base 20 (80-89) + 10 first-attempt bonus = 30
+    const result = await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(result.xp).toEqual({
+      awarded: 30,
+      bonus: 10,
+      total: 30,
+      level: 1,
+      leveledUp: false,
+    })
+  })
+
+  it('issues the prior-best query with user_id and passage_id filters before the insert', async () => {
+    const c = setupInsertChain({ data: MOCK_ROW, error: null })
+    mockServiceRpc.mockResolvedValue({ data: 30, error: null })
+
+    await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(c.eq).toHaveBeenCalledWith('user_id', VALID_UUID)
+    expect(c.eq).toHaveBeenCalledWith('passage_id', 'interstellar')
+    expect(c.order).toHaveBeenCalledWith('overall_score', { ascending: false })
+    expect(c.limit.mock.invocationCallOrder[0]).toBeLessThan(c.insert.mock.invocationCallOrder[0])
+  })
+
+  it('awards the mastery bonus when prior best was 85 and the new overall is 92', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null }, { data: [{ overall_score: 85 }], error: null })
+    mockServiceRpc.mockResolvedValue({ data: 80, error: null })
+
+    const result = await (handler as Function)(makeEvent({
+      ...VALID_BODY,
+      scores: { accuracy: 90, fluency: 90, completeness: 90, overall: 92 },
+    }))
+
+    expect(result.xp.bonus).toBe(50)
+    expect(result.xp.awarded).toBe(80)
+  })
+
+  it('returns xp: null and still saves the attempt when the add_xp RPC fails', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null })
+    mockServiceRpc.mockResolvedValue({ data: null, error: { message: 'rpc failure' } })
+
+    const result = await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(result.attempt).toEqual(MOCK_ROW)
+    expect(result.xp).toBeNull()
+  })
+
+  it('reports leveledUp: true when the new total crosses a level threshold', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null }, { data: [{ overall_score: 82 }], error: null })
+    mockServiceRpc.mockResolvedValue({ data: 160, error: null })
+
+    // priorBest 82, overall 82 -> base 20, no bonuses -> awarded 20; 160 - 20 = 140 (level 1), 160 (level 2)
+    const result = await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(result.xp.level).toBe(2)
+    expect(result.xp.leveledUp).toBe(true)
+  })
+
+  it('reports leveledUp: false when the new total does not cross a level threshold', async () => {
+    setupInsertChain({ data: MOCK_ROW, error: null }, { data: [{ overall_score: 82 }], error: null })
+    mockServiceRpc.mockResolvedValue({ data: 100, error: null })
+
+    const result = await (handler as Function)(makeEvent(VALID_BODY))
+
+    expect(result.xp.level).toBe(1)
+    expect(result.xp.leveledUp).toBe(false)
   })
 })
 

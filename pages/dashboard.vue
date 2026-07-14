@@ -2,6 +2,8 @@
 import { useHistory } from '~/composables/useHistory'
 import { useStreak } from '~/composables/useStreak'
 import { usePhonemeStats } from '~/composables/usePhonemeStats'
+import { useXp } from '~/composables/useXp'
+import { useBadges } from '~/composables/useBadges'
 import { passageStars } from '~/composables/useProgress'
 import { SAMPLE_PASSAGES } from '~/types/passages'
 
@@ -13,11 +15,13 @@ const { getHistory, error: historyError } = useHistory()
 const { streak, fetchStreak, error: streakError } = useStreak()
 const { weakest, fetchStats, error: statsError } = usePhonemeStats()
 const weakPhonemes = computed(() => weakest.value.filter(s => s.avgScore < 70))
+const { total: xpTotal, fetchXp, error: xpError } = useXp()
+const { earned: earnedBadges, fetchBadges, error: badgesError } = useBadges()
 
 const history = ref<import('~/composables/useHistory').AttemptRecord[]>([])
 const loading = ref(false)
 
-const loadError = computed(() => historyError.value || streakError.value || statsError.value || null)
+const loadError = computed(() => historyError.value || streakError.value || statsError.value || xpError.value || badgesError.value || null)
 
 async function load(force = false) {
   loading.value = true
@@ -25,6 +29,8 @@ async function load(force = false) {
     getHistory({ force }),
     fetchStreak({ force }),
     fetchStats({ force }),
+    fetchXp({ force }),
+    fetchBadges({ force }),
   ])
   loading.value = false
 }
@@ -93,6 +99,10 @@ function formatDate(ts: number) {
     <h1 class="text-lg font-bold text-ink m-0">Dashboard</h1>
 
     <ErrorBoundary :error="loadError" @retry="load(true)">
+    <!-- XP progress -->
+    <div v-if="loading" class="skeleton h-20" />
+    <XpBar v-else :total="xpTotal" />
+
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <!-- Loading skeletons -->
@@ -144,6 +154,18 @@ function formatDate(ts: number) {
         </div>
       </template>
     </div>
+
+    <!-- Passport -->
+    <section class="card">
+      <h2 class="text-sm font-semibold text-ink mb-3">Passport</h2>
+      <PassportStamps :history="history" />
+    </section>
+
+    <!-- Badges -->
+    <section class="card">
+      <h2 class="text-sm font-semibold text-ink mb-3">Badges</h2>
+      <BadgeGrid :earned="earnedBadges" />
+    </section>
 
     <!-- Up next — all passages with pastel thumbnails -->
     <section>

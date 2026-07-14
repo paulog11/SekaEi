@@ -138,6 +138,31 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `pages/idiomslang.vue` | Route `/idiomslang`. Renders `<IdiomLabView />`. |
 | `public/images/idioms/` | Static image assets for idiom challenges. Target: WebP, 800×800px, <150 KB per image. |
 
+### Gamification (World Journey)
+
+XP is awarded server-side in `server/api/attempts.post.ts` via the service-role `add_xp` RPC (clients have no direct write access to `user_xp`). Levels/ranks are static in `types/levels.ts` — a soft path (8 levels, nothing gated); each level's `passageIds` are recommendations only. Passport stamps are derived client-side from existing attempt history/stars, not persisted. Badges are lazily computed and awarded on `GET /api/badges` — no separate cron/job.
+
+| File | Purpose |
+|------|---------|
+| `types/levels.ts` | `LevelDef` + static `LEVELS` array (8 ranks, Tokyo → Honolulu → … → Paris → Tokyo), each with recommended `passageIds`. `levelForXp` / `levelProgress` helpers. |
+| `types/badges.ts` | `BadgeDef` + static `BADGES` registry (streaks, attempt counts, first mastery, phoneme mastery). No award logic here. |
+| `supabase/migrations/0014_xp.sql` | `user_xp` table + `add_xp` RPC (atomic upsert-increment, service-role only) + `user_badges` table (own-row select; writes via service client only). |
+| `server/utils/xp.ts` | `computeXpAward(overall, priorBestOverall)` — base XP by score tier + first-attempt/mastery-crossing bonuses. |
+| `server/utils/badges.ts` | `computeEligibleBadges(data)` — pure eligibility check (streaks, attempts, mastery, `/l//r/` and `θ/ð` phoneme mastery). |
+| `server/api/stats/xp.get.ts` | GET /api/stats/xp — current XP total; defaults to 0 with no `user_xp` row. Level derivation stays client-side. |
+| `server/api/badges.get.ts` | GET /api/badges — lazy check-and-award: computes eligibility, upserts newly-earned badges via the service client (bypasses RLS), returns all earned badges. |
+| `stores/xpStore.ts` | Pinia store; XP total cache (5 min TTL) + `applyAward`/`consumeLastAward` for the practice page's XP toast / level-up modal. |
+| `stores/badgesStore.ts` | Pinia store; earned-badges cache (10 min TTL) backed by `GET /api/badges`. |
+| `composables/useXp.ts` | Facade over `xpStore` — total/level/progress/lastAward + `fetchXp`/`consumeLastAward`. |
+| `composables/useBadges.ts` | Facade over `badgesStore` — earned badges + `fetchBadges`. |
+| `components/XpBar.vue` | Rank + city + progress bar toward the next level, from `levelProgress(total)`. |
+| `components/LevelUpModal.vue` | Teleport modal shown when an attempt's XP award crosses a level threshold. |
+| `components/LevelPath.vue` | Vertical "World Journey" timeline of all 8 levels with their passage stops + stars; emits `select` to open a passage. |
+| `components/PassportStamps.vue` | Grid of per-level stamps (emoji per city); a stamp fills in once every passage in that level has been starred (`levelStampEarned`). |
+| `components/BadgeGrid.vue` | Grid of all `BADGES`, greyed out until earned. |
+| `pages/practice/index.vue` | Adds a Path/grid picker toggle (`LevelPath` vs. the existing category grid), an XP toast, and `LevelUpModal`, driven by the `xp` field on the `/api/attempts` response. |
+| `pages/dashboard.vue` | Adds an `XpBar` row plus Passport (`PassportStamps`) and Badges (`BadgeGrid`) sections. |
+
 ### Auth / access control
 
 The app enforces two checks on every protected route: (1) the user is logged in, (2) `profiles.approval_status = 'approved'`. This is implemented in three layers that compound — each layer is defence-in-depth, not a replacement for the others.
@@ -168,7 +193,7 @@ The app enforces two checks on every protected route: (1) the user is logged in,
 | `composables/useProgress.ts` | Aggregates score trends for the progress page. |
 | `composables/useStreak.ts` | Computes daily practice streak. |
 | `composables/usePhonemeStats.ts` | Per-phoneme accuracy aggregation across attempts. |
-| `server/api/attempts.post.ts` | Saves a completed attempt to Supabase. |
+| `server/api/attempts.post.ts` | Saves a completed attempt to Supabase; also awards XP synchronously via the service-role `add_xp` RPC and returns an `xp` field (`{ awarded, bonus, total, level, leveledUp }`, or `null` on RPC failure). |
 | `server/api/attempts.get.ts` | Returns attempt history for the authenticated user. |
 | `server/api/me.get.ts` | Returns the current user profile (id, email, displayName, approvalStatus, tutorialCompletedAt) + streak data. |
 | `server/api/me.delete.ts` | DELETE /api/me — deletes the authenticated user via `supabase.auth.admin.deleteUser`. Cascades remove all per-user rows. Auth: any authenticated user (not approval-gated). |
@@ -250,7 +275,7 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 
 | Test file | What it covers |
 |-----------|---------------|
-| `tests/unit/attempts.post.test.ts` | Save attempt, 403 unapproved, azureResult forwarding, streak/phoneme/flagging fire-and-forget |
+| `tests/unit/attempts.post.test.ts` | Save attempt, 403 unapproved, azureResult forwarding, streak/phoneme/flagging fire-and-forget, XP award (base/bonus tiers, `leveledUp`, `xp: null` on `add_xp` RPC failure) |
 | `tests/unit/attempts.get.test.ts` | List attempts, field mapping (slug/passageId/scores) |
 | `tests/unit/attemptById.get.test.ts` | Fetch by slug, 404, azureResult blob inclusion |
 
@@ -288,14 +313,16 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 | `tests/unit/stats.streak.get.test.ts` | Streak data, defaults when no record, todayMet flag |
 | `tests/unit/stats.phonemes.get.test.ts` | Min-3-attempts filter, avgScore rounding, weakest/strongest sort, 10-entry cap |
 | `tests/unit/stats.goal.put.test.ts` | 1–120 range validation, boundary values, rounding, upsert with user_id |
+| `tests/unit/stats.xp.get.test.ts` | 401 unauthenticated, defaults to 0 with no `user_xp` row, returns stored total, queries scoped to user_id |
 
 ### Composables / stores
 
 | Test file | What it covers |
 |-----------|---------------|
 | `tests/unit/useHistory.test.ts` | Fetch history, azureResult forwarding (`@vitest-environment happy-dom`) |
-| `tests/unit/useProgress.test.ts` | `passageStars` (thresholds 90/80/60), `customPassageId` (slugify, 80-char truncation) |
+| `tests/unit/useProgress.test.ts` | `passageStars` (thresholds 90/80/60), `customPassageId` (slugify, 80-char truncation), `levelStampEarned` (all passages in a level starred) |
 | `tests/unit/idiomLabStore.test.ts` | submitAnswer, nextChallenge, restartPack, selectPack, shuffledOptions (`@vitest-environment happy-dom`) |
+| `tests/unit/xpStore.test.ts` | `fetchXp` (TTL, force refetch, error), `applyAward`/`consumeLastAward`, derived `level`/`progress`, `reset` (`@vitest-environment happy-dom`) |
 
 ### Utils
 
@@ -308,6 +335,10 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 | `tests/unit/claimDevice.test.ts` | `claimDevice` util — upsert + attempts migration (legacy device_id → real user) |
 | `tests/unit/devices.claim.test.ts` | `POST /api/devices/claim` — UUID validation, delegation |
 | `tests/unit/devices.get.test.ts` | `GET /api/devices` — 401 unauthenticated, snake→camel mapping, empty list, 500 on DB error |
+| `tests/unit/levels.test.ts` | `LEVELS` data integrity (every `SAMPLE_PASSAGES` id covered exactly once, increasing thresholds, contiguous level numbers), `levelForXp` boundaries, negative-total clamping, `levelProgress` mid-journey and max-level cases |
+| `tests/unit/xp.util.test.ts` | `computeXpAward` — base score tiers, first-attempt bonus, mastery-crossing bonus, idempotent (no re-bonus), `amount = base + bonus` |
+| `tests/unit/badges.util.test.ts` | `computeEligibleBadges` — streak/attempts thresholds, first-mastery, `/l//r/` and `θ/ð` phoneme-mastery pairing (both required), id integrity against `BADGES` |
+| `tests/unit/badges.get.test.ts` | `GET /api/badges` — 401 unauthenticated, returns existing earned badges, awards + upserts newly-eligible badges via service client, skips upsert when nothing new, degrades gracefully on query errors |
 
 ### Shared fixtures
 

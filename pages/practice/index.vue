@@ -5,6 +5,9 @@ import type { PassageCategory } from '~/types/passages'
 import { useHistory } from '~/composables/useHistory'
 import { useCustomPassages } from '~/composables/useCustomPassages'
 import { useStreak } from '~/composables/useStreak'
+import { useXp } from '~/composables/useXp'
+import { levelForXp } from '~/types/levels'
+import type { LevelDef } from '~/types/levels'
 import { passageStars } from '~/composables/useProgress'
 import { useApi } from '~/composables/useApi'
 import { useTextToSpeech } from '~/composables/useTextToSpeech'
@@ -32,9 +35,11 @@ const passagePickerOpen = ref(true)
 const hasConfirmedPassage = ref(false)
 type FilterValue = PassageCategory | 'all'
 const selectedCategory = ref<FilterValue>('all')
+const pickerView = ref<'grid' | 'path'>('grid')
 
 const { items: customPassages, fetchPassages, addPassage } = useCustomPassages()
 const { fetchStreak } = useStreak()
+const { total: xpTotal, lastAward, consumeLastAward, fetchXp } = useXp()
 
 const { apiFetch } = useApi()
 const { play: playTts, stop: stopTts, playingKey: ttsPlayingKey } = useTextToSpeech()
@@ -46,6 +51,7 @@ const isPlayingPassage = computed(() =>
 onMounted(() => {
   fetchPassages()
   fetchStreak()
+  fetchXp()
 })
 
 onUnmounted(() => stopTts())
@@ -175,6 +181,29 @@ const lastSavedSlug = ref<string | null>(null)
 const showImprovementToast = ref(false)
 const improvementDelta = ref(0)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+const showXpToast = ref(false)
+const xpAwarded = ref(0)
+const xpBonus = ref(0)
+let xpToastTimer: ReturnType<typeof setTimeout> | null = null
+
+const showLevelUpModal = ref(false)
+const levelUpLevel = ref<LevelDef>(levelForXp(0))
+
+watch(lastAward, (award) => {
+  if (!award) return
+  const consumed = consumeLastAward()
+  if (!consumed) return
+  xpAwarded.value = consumed.awarded
+  xpBonus.value = consumed.bonus
+  showXpToast.value = true
+  if (xpToastTimer) clearTimeout(xpToastTimer)
+  xpToastTimer = setTimeout(() => { showXpToast.value = false }, 3500)
+  if (consumed.leveledUp) {
+    levelUpLevel.value = levelForXp(consumed.total)
+    showLevelUpModal.value = true
+  }
+})
 
 watch(referenceText, (text) => {
   if (text) nativePitchComposable.preload(text)
@@ -353,97 +382,125 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
           </button>
         </div>
 
-        <!-- Category filter chips -->
+        <!-- Picker view toggle -->
         <div class="flex gap-2 overflow-x-auto pb-1 mb-3">
           <button
             type="button"
             :class="[
               'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
-              selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+              pickerView === 'path' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
             ]"
-            @click="selectedCategory = 'all'"
+            @click="pickerView = 'path'"
           >
-            All
+            🗺 Path
           </button>
           <button
-            v-for="cat in PASSAGE_CATEGORIES"
-            :key="cat"
             type="button"
             :class="[
               'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
-              selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+              pickerView === 'grid' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
             ]"
-            @click="selectedCategory = cat"
+            @click="pickerView = 'grid'"
           >
-            {{ CATEGORY_LABELS[cat] }}
+            All passages
           </button>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <!-- Passage cards -->
-          <button
-            v-for="(passage, idx) in filteredPassages"
-            :key="passage.id"
-            type="button"
-            :data-tutorial="idx === 0 ? 'passage-card' : undefined"
-            :class="[
-              'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
-              selectedPassageId === passage.id ? 'border-primary' : '',
-            ]"
-            @click="openDetail(passage)"
-          >
-            <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
-            <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
-            <span class="inline-block self-start text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
-              {{ CATEGORY_LABELS[passage.category] }}
-            </span>
-            <div
-              class="rating rating-sm pointer-events-none mt-1"
-              :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
-            >
-              <span
-                v-for="n in 3"
-                :key="n"
-                class="mask mask-star bg-amber-400"
-                :aria-checked="starsForPassage(passage.id) >= n"
-              />
-            </div>
-          </button>
-
-          <!-- Add passage card (attendees only) -->
-          <template v-if="selectedCategory === 'all' || selectedCategory === 'custom'">
+        <template v-if="pickerView === 'grid'">
+          <!-- Category filter chips -->
+          <div class="flex gap-2 overflow-x-auto pb-1 mb-3">
             <button
-              v-if="authStore.tier === 'attendee'"
               type="button"
-              class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
-              @click="showAddPassage = true"
+              :class="[
+                'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+                selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+              ]"
+              @click="selectedCategory = 'all'"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span class="text-[11px] font-medium">Add passage</span>
+              All
             </button>
-            <NuxtLink
-              v-else
-              to="/account"
-              class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150 no-underline"
+            <button
+              v-for="cat in PASSAGE_CATEGORIES"
+              :key="cat"
+              type="button"
+              :class="[
+                'px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors duration-150',
+                selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white text-ink-medium border-border hover:border-primary-300',
+              ]"
+              @click="selectedCategory = cat"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span class="text-[11px] font-medium text-center">Add passage</span>
-              <span class="text-[10px] text-center leading-tight">Enter program code to unlock</span>
-            </NuxtLink>
-          </template>
-        </div>
+              {{ CATEGORY_LABELS[cat] }}
+            </button>
+          </div>
 
-        <!-- Empty state when a filter has no passages -->
-        <p
-          v-if="filteredPassages.length === 0 && selectedCategory !== 'all'"
-          class="text-sm text-ink-lighter text-center py-6"
-        >
-          No passages in this category yet.
-        </p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <!-- Passage cards -->
+            <button
+              v-for="(passage, idx) in filteredPassages"
+              :key="passage.id"
+              type="button"
+              :data-tutorial="idx === 0 ? 'passage-card' : undefined"
+              :class="[
+                'card-pop bg-white p-4 flex flex-col gap-1.5 text-left',
+                selectedPassageId === passage.id ? 'border-primary' : '',
+              ]"
+              @click="openDetail(passage)"
+            >
+              <span class="font-heading text-sm font-semibold text-ink leading-snug line-clamp-2">{{ passage.title }}</span>
+              <span v-if="passage.source" class="text-[11px] text-ink-lighter leading-snug">{{ passage.source }}</span>
+              <span class="inline-block self-start text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface text-ink-medium">
+                {{ CATEGORY_LABELS[passage.category] }}
+              </span>
+              <div
+                class="rating rating-sm pointer-events-none mt-1"
+                :aria-label="`${starsForPassage(passage.id)} out of 3 stars`"
+              >
+                <span
+                  v-for="n in 3"
+                  :key="n"
+                  class="mask mask-star bg-amber-400"
+                  :aria-checked="starsForPassage(passage.id) >= n"
+                />
+              </div>
+            </button>
+
+            <!-- Add passage card (attendees only) -->
+            <template v-if="selectedCategory === 'all' || selectedCategory === 'custom'">
+              <button
+                v-if="authStore.tier === 'attendee'"
+                type="button"
+                class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150"
+                @click="showAddPassage = true"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="text-[11px] font-medium">Add passage</span>
+              </button>
+              <NuxtLink
+                v-else
+                to="/account"
+                class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 min-h-[96px] text-ink-lighter hover:border-primary-300 hover:text-primary transition-colors duration-150 no-underline"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="text-[11px] font-medium text-center">Add passage</span>
+                <span class="text-[10px] text-center leading-tight">Enter program code to unlock</span>
+              </NuxtLink>
+            </template>
+          </div>
+
+          <!-- Empty state when a filter has no passages -->
+          <p
+            v-if="filteredPassages.length === 0 && selectedCategory !== 'all'"
+            class="text-sm text-ink-lighter text-center py-6"
+          >
+            No passages in this category yet.
+          </p>
+        </template>
+
+        <LevelPath v-else :history="allHistory" :xp-total="xpTotal" @select="openDetail" />
       </div>
     </section>
 
@@ -626,6 +683,33 @@ async function onPitchExtracted(series: { student: PitchSeries; native: PitchSer
         </div>
       </Transition>
     </Teleport>
+
+    <!-- XP toast -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+      >
+        <div
+          v-if="showXpToast"
+          role="status"
+          aria-live="polite"
+          class="fixed bottom-20 right-4 z-[70] flex items-center gap-3 rounded-xl bg-primary px-4 py-3 shadow-lg text-white max-w-[260px]"
+        >
+          <span class="text-xl" aria-hidden="true">✈️</span>
+          <div>
+            <p class="text-sm font-semibold m-0 leading-snug">+{{ xpAwarded }} XP</p>
+            <p v-if="xpBonus > 0" class="text-xs opacity-90 m-0 mt-0.5">★ Bonus +{{ xpBonus }}!</p>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <LevelUpModal :open="showLevelUpModal" :level="levelUpLevel" @close="showLevelUpModal = false" />
 
     <!-- Add custom passage popup -->
     <Teleport to="body">

@@ -11,6 +11,8 @@ import type { AssessmentResult } from '~/types/assessment'
 import { useApi } from '~/composables/useApi'
 import { useStreakStore } from '~/stores/streakStore'
 import { usePhonemeStatsStore } from '~/stores/phonemeStatsStore'
+import { useXpStore } from '~/stores/xpStore'
+import type { XpAwardPayload } from '~/stores/xpStore'
 
 export interface AttemptRecord {
   slug?: string
@@ -90,7 +92,7 @@ export const useHistoryStore = defineStore('history', () => {
     useStreakStore().invalidate()
     usePhonemeStatsStore().invalidate()
     try {
-      const res = await apiFetch<{ attempt: { slug: string } }>('/api/attempts', {
+      const res = await apiFetch<{ attempt: { slug: string }; xp: XpAwardPayload | null }>('/api/attempts', {
         method: 'POST',
         body: {
           passageId: record.passageId,
@@ -99,6 +101,7 @@ export const useHistoryStore = defineStore('history', () => {
           azureResult: azureResult ?? null,
         },
       })
+      useXpStore().applyAward(res.xp)
       return res.attempt?.slug ?? null
     } catch {
       // Silently degrade — attempt is lost but app continues
