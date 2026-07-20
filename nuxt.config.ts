@@ -14,6 +14,7 @@ export default defineNuxtConfig({
       '/practice',
       '/practice/words',
       '/idiomslang',
+      '/rhythm',
       '/account',
       '/pending',
       '/confirm',

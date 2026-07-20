@@ -8,6 +8,13 @@ export interface AzurePhoneme {
   Duration?: number
 }
 
+export interface AzureSyllable {
+  Syllable: string
+  PronunciationAssessment?: { AccuracyScore: number }
+  Offset?: number
+  Duration?: number
+}
+
 export interface AzureWord {
   Word: string
   Offset: number
@@ -17,6 +24,7 @@ export interface AzureWord {
     ErrorType: 'None' | 'Omission' | 'Insertion' | 'Mispronunciation' | 'UnexpectedBreak' | 'MissingBreak' | 'Monotone'
   }
   Phonemes: AzurePhoneme[]
+  Syllables?: AzureSyllable[]
 }
 
 export interface ProsodyAssessment {

@@ -58,10 +58,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## What this app is
 
-SekaToku is an English learning tool whose audience is Japanese university students. It currently has two tracks:
+SekaToku is an English learning tool whose audience is Japanese university students. It currently has three tracks:
 
 1. **Pronunciation Practice** — a user reads a passage aloud; the app returns per-word and per-phoneme accuracy scores powered by Azure AI Speech Pronunciation Assessment.
 2. **Idioms & Slang** — (This is a work in progress) an idiom/slang quiz. A literal image is shown; the user picks the figurative meaning from a 2×2 image grid.
+3. **Word Stress** — (route `/rhythm`) a two-phase drill for English word stress. Perception: tap the stressed syllable in a split word for instant, network-free feedback. Production: record the word and get graded on *where the stress landed*, inferred from Azure's per-syllable/phoneme durations.
 
 ---
 
@@ -124,7 +125,7 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `components/WordChip.vue` | Colour-coded word badge. Green ≥80, amber 60–79, red <60. Phoneme breakdown in popover on tap/hover. |
 | `components/ScoreDisplay.vue` | Overall score cards (Accuracy, Fluency, Completeness, Prosody, Overall) + word grid + diff view. |
 | `pages/practice.vue` | Passage selector (radio cards) + freeform textarea. Wires Recorder → assess → ScoreDisplay. |
-| `types/assessment.ts` | `AzureWord`, `AzurePhoneme`, `AssessmentResult` — shape returned by `/api/assess`. |
+| `types/assessment.ts` | `AzureWord`, `AzurePhoneme`, `AssessmentResult` — shape returned by `/api/assess`. `AzureWord` also carries optional `Syllables` (`AzureSyllable[]`) consumed by the word-stress grader. |
 | `types/passages.ts` | `Passage` interface + `SAMPLE_PASSAGES` array (Interstellar, The Great Dictator, Rocky Balboa). |
 
 ### Real English track
@@ -137,6 +138,20 @@ The WAV header (44 bytes) is stripped before writing to the PushStream because t
 | `components/IdiomLabView.vue` | Split-screen UI: literal image + blurred phrase on left; 2×2 option grid on right. Phrase revealed only after "Play Audio" is clicked. Correct answer → green border + checkmark + explanation card. Wrong answer → red border + ✗. |
 | `pages/idiomslang.vue` | Route `/idiomslang`. Renders `<IdiomLabView />`. |
 | `public/images/idioms/` | Static image assets for idiom challenges. Target: WebP, 800×800px, <150 KB per image. |
+
+### Word Stress track
+
+An instant-perception + deferred-production drill for English word stress (the base of English rhythm; a known weak spot for mora-timed Japanese speakers). Mirrors the idiom-quiz flow: perception grading is instant and client-side; production grading reuses `/api/assess` and scores stress *placement* from durations, not just clarity. Azure's holistic `ProsodyScore` is **not** used here — it doesn't cleanly report per-syllable stress.
+
+| File | Purpose |
+|------|---------|
+| `types/stress.ts` | `StressChallenge` (`word`, `syllables[]`, `stressedIndex`, `sampleSentence?`) + `StressPack` interfaces. |
+| `mocks/mockStress.ts` | `ALL_STRESS_PACKS: StressPack[]` — 3 seed packs (two-syllable, three-syllable, `-tion`/`-ity`), 18 words with vetted syllable splits + stress indices. |
+| `stores/stressLabStore.ts` | Pinia setup store mirroring `idiomLabStore`. `submitAnswer(index)` drives the perception quiz; `nextChallenge`/`restartPack`/`selectPack`. No shuffle — options are the challenge's own syllables in fixed order. |
+| `utils/stress.ts` | `detectStressedSyllable(result, challenge)` — pure duration-based grader. Prefers Azure's per-syllable `Duration` (`AzureWord.Syllables`); falls back to bucketing phoneme durations by vowel nuclei. Returns `{ detectedIndex, correct, uncertain }`. The `isVowelPhoneme` vowel set is the calibration knob for Azure's phoneme alphabet (only the fallback path needs it). |
+| `components/StressLabView.vue` | Two-phase UI. Perception: tap the stressed syllable (instant colour feedback, optional 🔊 model audio via `useTextToSpeech`). Production: `Recorder` → `POST /api/assess` with the word as `referenceText` → stress verdict card (correct / off-target / uncertain) + `ScoreDisplay`. |
+| `components/StressPackSelectionView.vue` | Pack picker; thin copy of `PackSelectionView` bound to `stressLabStore`. |
+| `pages/rhythm.vue` | Route `/rhythm`. Back button + `Transition` swapping pack selection ↔ `StressLabView`. Mirrors `pages/idiomslang.vue`. `access: 'free'`, `noindex`. |
 
 ### Gamification (World Journey)
 
@@ -322,6 +337,7 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 | `tests/unit/useHistory.test.ts` | Fetch history, azureResult forwarding (`@vitest-environment happy-dom`) |
 | `tests/unit/useProgress.test.ts` | `passageStars` (thresholds 90/80/60), `customPassageId` (slugify, 80-char truncation), `levelStampEarned` (all passages in a level starred) |
 | `tests/unit/idiomLabStore.test.ts` | submitAnswer, nextChallenge, restartPack, selectPack, shuffledOptions (`@vitest-environment happy-dom`) |
+| `tests/unit/stressLabStore.test.ts` | submitAnswer (correct/wrong index), nextChallenge, restartPack, selectPack (`@vitest-environment happy-dom`) |
 | `tests/unit/xpStore.test.ts` | `fetchXp` (TTL, force refetch, error), `applyAward`/`consumeLastAward`, derived `level`/`progress`, `reset` (`@vitest-environment happy-dom`) |
 
 ### Utils
@@ -339,6 +355,7 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 | `tests/unit/xp.util.test.ts` | `computeXpAward` — base score tiers, first-attempt bonus, mastery-crossing bonus, idempotent (no re-bonus), `amount = base + bonus` |
 | `tests/unit/badges.util.test.ts` | `computeEligibleBadges` — streak/attempts thresholds, first-mastery, `/l//r/` and `θ/ð` phoneme-mastery pairing (both required), id integrity against `BADGES` |
 | `tests/unit/badges.get.test.ts` | `GET /api/badges` — 401 unauthenticated, returns existing earned badges, awards + upserts newly-eligible badges via service client, skips upsert when nothing new, degrades gracefully on query errors |
+| `tests/unit/stress.util.test.ts` | `detectStressedSyllable` — syllable-path (correct/wrong), phoneme-fallback bucketing by vowel nuclei, uncertain on syllable-count mismatch / empty words |
 
 ### Shared fixtures
 
@@ -346,5 +363,5 @@ CI runs on every push to `master` and on PRs via `.github/workflows/ci.yml`.
 - `tests/fixtures/serverTestHarness.ts` — `makeChain()` chainable Supabase mock, `stubNitroGlobals()` Nitro global stubs
 
 **Key constraints:**
-- `composables/useRecorder.ts` and `stores/idiomLabStore.ts` must explicitly import `{ ref, computed, watch }` from `vue` (not rely on Nuxt auto-imports) so Vitest can resolve them outside Nuxt context.
+- `composables/useRecorder.ts`, `stores/idiomLabStore.ts`, and `stores/stressLabStore.ts` must explicitly import the `vue` reactivity helpers they use (`ref`/`computed`/`watch`) rather than rely on Nuxt auto-imports, so Vitest can resolve them outside Nuxt context.
 - All protected API handlers call `requireApprovedUser(event)` from `~/server/utils/approval`. Tests must mock `~/server/utils/approval` (not `useSupabaseUser` directly) or the approval check will hit the Supabase mock and throw 403.
